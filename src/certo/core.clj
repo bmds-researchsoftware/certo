@@ -62,24 +62,80 @@
    {:row-fn :cnt :result-set-fn first}))
 
 
+(defn default-controller [db req]
+  {:body  (str req)
+   :status 200
+   :headers {"Content-Type" "text/plain"}})
+
+
+(defn index [db schema table]
+  {:body (format "index: schema=%s table=%s" schema table)
+   :status 200
+   :headers {"Content-Type" "text/plain"}})
+
+
+(defn put! [db schema table]
+  {:body (format "put!: schema=%s table=%s" schema table)
+   :status 200
+   :headers {"Content-Type" "text/plain"}})
+
+
+(defn delete! [db schema table]
+  {:body (format "delete!: schema=%s table=%s" schema table)
+   :status 200
+   :headers {"Content-Type" "text/plain"}})
+
+
+;; Match all routes of the form "/:schema/:table"
+(defn default-handler [db]
+ 
+  (compojure/context
+    "/:schema/:table" [schema table]
+
+    (compojure/routes
+    
+     ;; (GET "/" [] @model)
+     (compojure/GET "/" [] (index db schema table))
+    
+     (compojure/PUT "/" [& data] (put! db schema table))
+    
+     (compojure/DELETE "/" [] (delete! db schema table)))))
+
+
+(defn subjects-handler [db]
+  (compojure/routes
+   
+   (compojure/GET
+       "/"
+       req
+       {:body "dashboard"
+        :status 200
+        :headers {"Content-Type" "text/plain"}})
+   
+   (compojure/GET
+       "/subjects"
+       req
+       {:body  (format "There are %d subjects." (select-count-subjects db))
+        :status 200
+        :headers {"Content-Type" "text/plain"}})
+   
+   (compojure/GET
+       "/subjects/:prefix"
+       [prefix]
+       {:body  (format "There are %d subjects whose last name begins with '%s'." (select-count-subjects-by-last-name db prefix) prefix)
+        :status 200
+        :headers {"Content-Type" "text/plain"}})))
+
+
 (defn handler [db]
   (compojure/routes
-      
-   (compojure/GET
-    "/"
-    request
-    {:body  (format "There are %d subjects." (select-count-subjects db))
-     :status 200
-     :headers {"Content-Type" "text/plain"}})
 
-   (compojure/GET
-    "/:prefix"
-    [prefix]
-    {:body  (format "There are %d subjects whose last name begins with '%s'." (select-count-subjects-by-last-name db prefix) prefix)
-     :status 200
-     :headers {"Content-Type" "text/plain"}})
+   ;; or you could put the subject-handler routes right here
+   (subjects-handler db)
+
+   (default-handler db)
    
-   (route/not-found "<h1>Page not found</h1>")))
+   (route/not-found "<h1>page not found</h1>")))
 
 
 ;; (def wrapped-handler (wrap-defaults (handler db-spec) site-defaults))
