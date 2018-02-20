@@ -7,7 +7,7 @@ hierarchy.
 
 
 # Production
-lein clean
-lein uberjar
-java -jar target/uberjar/certo-0.1.0-SNAPSHOT-standalone.jar
+- lein clean
+- lein uberjar
+- java -jar target/uberjar/certo-0.1.0-SNAPSHOT-standalone.jar
 
