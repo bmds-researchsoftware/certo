@@ -183,8 +183,7 @@ insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label,
 insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, text_max_length, required, created_by, updated_by) values ('sys', 'users', 'password', 'text', 'false', 'Password', 'text', 25, 'true', 'root', 'root');
 -- -- end: table - sys.fields -- --
 
-
--- -- start: table - sys.events_classes -- --
+-- -- start: table - sys.event_classes -- --
 create table sys.event_classes (
   id serial8 primary key,
   name text not null,
@@ -195,15 +194,27 @@ create table sys.event_classes (
   updated_at timestamptz default current_timestamp);
   
 select create_trigger_set_updated_at('sys.event_classes');
--- -- end: table - sys.events_classes -- --
+-- -- end: table - sys.event_classes -- --
 
+-- -- start: table - sys.event_classes_fields -- --
+create table sys.event_classes_fields (
+  id serial8 primary key,
+  event_classes_id int8 references sys.event_classes (id) not null,
+  fields_id int8 references sys.fields (id) not null,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp);
+  
+select create_trigger_set_updated_at('sys.event_classes_fields');
+-- -- end: table - sys.event_classes_fields -- --
 
 -- -- start: table - sys.events -- --
 create table sys.events (
-  id uuid primary key default uuid_generate_v1mc(),
-  event_class_id int8 references sys.event_classes (id),
-  data jsonb,  
-  notes text, -- TO DO: Should this really be the 1:n notes construct?
+  id serial8 primary key,
+  -- id uuid primary key default uuid_generate_v1mc(),
+  event_classes_id int8 references sys.event_classes (id),
+  data jsonb,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
@@ -211,10 +222,28 @@ create table sys.events (
   
 select create_trigger_set_updated_at('sys.events');
 -- -- end: table - sys.events -- --
+
+-- -- start: table - sys.notes -- --
+create table sys.notes (
+  id serial8 primary key,
+  event_classes_id int8 references sys.event_classes (id),  
+  events_id int8 references sys.events (id),
+  note text not null,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp  
+  check (((event_classes_id is not null)::integer + (events_id is not null)::integer) = 1));
+  
+select create_trigger_set_updated_at('sys.notes');
+create unique index on sys.notes (event_classes_id) where event_classes_id is not null;
+create unique index on sys.notes (events_id) where events_id is not null;
+-- -- end: table - sys.notes -- --
 -- end: schema - sys --
 
-  
+
 -- start: schema - study --
+-- -- start: table - study.subjects -- --
 drop schema if exists study cascade;
 create schema study;
 
@@ -229,13 +258,33 @@ create table study.subjects (
   updated_at timestamptz default current_timestamp);
 
 select create_trigger_set_updated_at('study.subjects');
+-- -- end: table - study.subjects -- --
 
-insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Martha', 'Washington', '1731-06-13', 'root', 'root');
-insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Abigail', 'Adams', '1744-11-22', 'root', 'root');
-insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Martha', 'Jefferson', '1748-10-30', 'root', 'root');
-insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Betsy', 'Ross', '1752-01-01', 'root', 'root');
-insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Dolly', 'Madison', '1768-05-20', 'root', 'root');
-insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Elizabeth','Monroe', '1768-06-30', 'root', 'root');
-insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Jackie', 'Kennedy', '1929-07-28', 'root', 'root');
+-- -- start: table - study.notes -- --
+create table study.notes (
+  id serial8 primary key,
+  subjects_id int8 references study.subjects (id),
+  -- addresses_id int8 references study.addresses (id),
+  note text not null,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp,
+  check (((subjects_id is not null)::integer -- + (addresses_id is not null)::integer)
+	   = 1)));
+  
+select create_trigger_set_updated_at('study.notes');
+create unique index on study.notes (subjects_id) where subjects_id is not null;
+-- create unique index on study.notes (addresses_id) where addresses_id is not null;
+-- -- end: table - study.notes -- --
+
+insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Martha', 'Washington', '1731-06-13', 'djneu', 'djneu');
+insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Abigail', 'Adams', '1744-11-22', 'djneu', 'djneu');
+insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Martha', 'Jefferson', '1748-10-30', 'djneu', 'djneu');
+insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Betsy', 'Ross', '1752-01-01', 'djneu', 'djneu');
+insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Dolly', 'Madison', '1768-05-20', 'djneu', 'djneu');
+insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Elizabeth','Monroe', '1768-06-30', 'djneu', 'djneu');
+insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Jackie', 'Kennedy', '1929-07-28', 'djneu', 'djneu');
+insert into study.notes (subjects_id, note, created_by, updated_by) values (2, 'Abigail Adams was married to the Second President of the United States.', 'djneu', 'djneu');
 -- end: schema - study --
 
