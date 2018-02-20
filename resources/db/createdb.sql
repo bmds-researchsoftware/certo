@@ -1,0 +1,241 @@
+-- $ sudo -u postgres createuser certo -d -s -P
+
+-- Add the following line to pg_hba.conf:
+-- local	 all		 certo		 			 md5
+
+-- $ sudo -u postgres service postgresql reload
+
+-- $ createdb -U certo certo
+
+-- Add the following line to .pgpass:
+-- localhost:5432:certo:certo:PASSWORD
+
+-- $ cd certo/resources
+
+-- $ psql -U certo -d certo
+
+-- certo=# \i createdb.sql
+
+
+-- Note: primary keys can either be serial8 or uuid
+
+
+-- start: extensions --
+create extension if not exists "uuid-ossp";
+create extension if not exists btree_gist;
+-- end: extensions --
+
+
+-- start: functions and triggers --
+create or replace function set_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace function create_trigger_set_updated_at(tbl text) returns void as $$
+begin
+  execute format('create trigger trigger_set_updated_at before update on %s for each row execute procedure set_updated_at();', tbl);
+end
+$$ language plpgsql;
+-- end: functions and triggers --
+
+
+-- start: schema - sys --
+drop schema if exists sys cascade;
+create schema sys;
+-- -- start: table - sys.users -- --
+create table sys.users (
+  id uuid primary key default uuid_generate_v1mc(),
+  username text unique,
+  password text not null,
+  created_by text references sys.users (username),
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username),
+  updated_at timestamptz default current_timestamp);
+  
+select create_trigger_set_updated_at('sys.users');
+
+insert into sys.users (username, password, created_by, updated_by) values ('root', 'rootpw', 'root', 'root');
+insert into sys.users (username, password, created_by, updated_by) values ('djneu', 'djneupw', 'root', 'root');
+-- -- end: table - sys.users -- --
+-- end: schema - sys --
+
+
+-- start: schema - val --
+drop schema if exists val cascade;
+create schema val;
+
+-- -- start: table - val.types -- --
+create table val.types (
+  -- id serial8 primary key,
+  id uuid primary key default uuid_generate_v1mc(),
+  type text unique,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp);
+
+select create_trigger_set_updated_at('val.types');
+
+insert into val.types (type, created_by, updated_by) values ('serial8', 'root', 'root');
+insert into val.types (type, created_by, updated_by) values ('uuid', 'root', 'root');
+insert into val.types (type, created_by, updated_by) values ('float', 'root', 'root');
+insert into val.types (type, created_by, updated_by) values ('integer', 'root', 'root');
+insert into val.types (type, created_by, updated_by) values ('date', 'root', 'root');
+insert into val.types (type, created_by, updated_by) values ('text', 'root', 'root');
+insert into val.types (type, created_by, updated_by) values ('timestamptz', 'root', 'root');
+-- -- end: table - val.types -- --
+
+-- -- start: table - val.controls -- --
+create table val.controls (
+  -- id serial8 primary key,
+  id uuid primary key default uuid_generate_v1mc(),
+  control text unique,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp);
+
+select create_trigger_set_updated_at('val.controls');
+
+insert into val.controls (control, created_by, updated_by) values ('date', 'root', 'root');
+insert into val.controls (control, created_by, updated_by) values ('float', 'root', 'root');
+insert into val.controls (control, created_by, updated_by) values ('integer', 'root', 'root');
+insert into val.controls (control, created_by, updated_by) values ('select', 'root', 'root');
+insert into val.controls (control, created_by, updated_by) values ('text', 'root', 'root');
+insert into val.controls (control, created_by, updated_by) values ('textarea', 'root', 'root');
+-- -- end: table - val.controls -- --
+-- end: schema - val --
+
+
+-- start: schema - sys --
+-- -- start: table - sys.fields -- --
+create table sys.fields (
+  id serial8 primary key,
+  schema_name text not null,
+  table_name text not null,
+  field_name text not null,
+  type text references val.types (type) not null,
+  is_pk boolean not null,
+  label text not null,
+  control text references val.controls (control) not null,
+  text_max_length int8,
+  date_min date,
+  date_max date,
+  integer_step integer,
+  integer_min integer,
+  integer_max integer,
+  float_step float,  
+  float_min float,
+  float_max float,
+  disabled boolean,
+  readonly boolean,
+  required boolean,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp,
+
+  unique (schema_name, table_name, field_name),
+
+  constraint valid_attribute_text_max_length
+  check ((text_max_length is null) or (text_max_length is not null and (type='text') and (control='text' or control='textarea'))),
+
+  constraint valid_attribute_date_min
+  check ((date_min is null) or (date_min is not null and (type='date') and (control='date'))),
+
+  constraint valid_attribute_date_max
+  check ((date_max is null) or (date_max is not null and (type='date') and (control='date'))),
+
+  constraint valid_attribute_integer_min
+  check ((integer_min is null) or (integer_min is not null and (type='integer') and (control='integer'))),
+
+  constraint valid_attribute_integer_max
+  check ((integer_max is null) or (integer_max is not null and (type='integer') and (control='integer'))),
+
+  constraint valid_attribute_float_min
+  check ((float_min is null) or (float_min is not null and (type='float') and (control='float'))),
+
+  constraint valid_attribute_float_max
+  check ((float_max is null) or (float_max is not null and (type='float') and (control='float'))));
+
+select create_trigger_set_updated_at('sys.fields');
+
+-- ensures that there is only one primary key field per schema.table
+create unique index unique_pk on sys.fields (schema_name, table_name) where is_pk;
+
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, readonly, created_by, updated_by) values ('study', 'subjects', 'id', 'serial8', 'true', 'ID', 'integer', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, text_max_length, created_by, updated_by) values ('study', 'subjects', 'first_name', 'text', 'false', 'First Name', 'text', 25, 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, text_max_length, created_by, updated_by) values ('study', 'subjects', 'last_name', 'text', 'false', 'Last Name', 'text', 25, 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, date_min, date_max, created_by, updated_by) values ('study', 'subjects', 'birth_date', 'date', 'false', 'Birth Date', 'date', '1700-01-01', '2025-12-31', 'root', 'root');
+
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, readonly, created_by, updated_by) values ('val', 'controls', 'id', 'uuid', 'true', 'ID', 'text', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, text_max_length, created_by, updated_by) values ('val', 'controls', 'control', 'text', 'false', 'Control', 'text', 25, 'root', 'root');
+
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, readonly, created_by, updated_by) values ('val', 'types', 'id', 'uuid', 'true', 'ID', 'text', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, text_max_length, created_by, updated_by) values ('val', 'types', 'type', 'text', 'false', 'Type', 'text', 25, 'root', 'root');
+
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, readonly, created_by, updated_by) values ('sys', 'users', 'id', 'uuid', 'true', 'ID', 'text', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, text_max_length, required, created_by, updated_by) values ('sys', 'users', 'username', 'text', 'false', 'Username', 'text', 25, 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, text_max_length, required, created_by, updated_by) values ('sys', 'users', 'password', 'text', 'false', 'Password', 'text', 25, 'true', 'root', 'root');
+-- -- end: table - sys.fields -- --
+
+
+-- -- start: table - sys.events_classes -- --
+create table sys.event_classes (
+  id serial8 primary key,
+  name text not null,
+  description text,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp);
+  
+select create_trigger_set_updated_at('sys.event_classes');
+-- -- end: table - sys.events_classes -- --
+
+
+-- -- start: table - sys.events -- --
+create table sys.events (
+  id uuid primary key default uuid_generate_v1mc(),
+  event_class_id int8 references sys.event_classes (id),
+  data jsonb,  
+  notes text, -- TO DO: Should this really be the 1:n notes construct?
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp);
+  
+select create_trigger_set_updated_at('sys.events');
+-- -- end: table - sys.events -- --
+-- end: schema - sys --
+
+  
+-- start: schema - study --
+drop schema if exists study cascade;
+create schema study;
+
+create table study.subjects (
+  id serial8 primary key,
+  first_name text,  
+  last_name text,
+  birth_date date,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp);
+
+select create_trigger_set_updated_at('study.subjects');
+
+insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Martha', 'Washington', '1731-06-13', 'root', 'root');
+insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Abigail', 'Adams', '1744-11-22', 'root', 'root');
+insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Martha', 'Jefferson', '1748-10-30', 'root', 'root');
+insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Betsy', 'Ross', '1752-01-01', 'root', 'root');
+insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Dolly', 'Madison', '1768-05-20', 'root', 'root');
+insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Elizabeth','Monroe', '1768-06-30', 'root', 'root');
+insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Jackie', 'Kennedy', '1929-07-28', 'root', 'root');
+-- end: schema - study --
+

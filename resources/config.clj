@@ -7,9 +7,9 @@
    :user "certo"
    :ssl true
    :sslfactory "org.postgresql.ssl.NonValidatingFactory"}
-  :pgpass "./resources/.pgpass"}
- 
- :http-server
+  :pgpass "./resources/db/.pgpass"}
+
+  :webapp
  {:owner "Certo"
   :port 8080}}
 
