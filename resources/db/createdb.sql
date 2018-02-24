@@ -201,10 +201,12 @@ create table sys.event_classes_fields (
   id serial8 primary key,
   event_classes_id int8 references sys.event_classes (id) not null,
   fields_id int8 references sys.fields (id) not null,
+  position int8 not null,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp);
+  updated_at timestamptz default current_timestamp,
+  constraint valid_position check (position >= 0));
   
 select create_trigger_set_updated_at('sys.event_classes_fields');
 -- -- end: table - sys.event_classes_fields -- --
@@ -223,11 +225,33 @@ create table sys.events (
 select create_trigger_set_updated_at('sys.events');
 -- -- end: table - sys.events -- --
 
+-- -- start: table - sys.events_queue -- --
+create table sys.events_queue (
+  id serial8 primary key,
+  event_classes_id int8 references sys.event_classes (id) not null,
+  -- this corresponds to the dimension table that this new event pertains to.
+  -- add more dimension tables as necessary
+  subjects_id int8 references study.subjects (id),
+  active_date_range daterange,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp,
+    -- add more dimension tables as necessary
+  check (((subjects_id is not null)::integer = 1));
+
+create index active_date_range_index on sys.events_queue using gist (active_date_range);
+  -- add more dimension tables as necessary
+create unique index on sys.events_queue (subjects_id) where subjects_id is not null;
+select create_trigger_set_updated_at('sys.events_queue');
+-- -- end: table - sys.events_queue -- --
+
 -- -- start: table - sys.notes -- --
 create table sys.notes (
   id serial8 primary key,
   event_classes_id int8 references sys.event_classes (id),  
   events_id int8 references sys.events (id),
+  subjects_id int8 references study.subjects (id),
   note text not null,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
@@ -259,6 +283,20 @@ create table study.subjects (
 
 select create_trigger_set_updated_at('study.subjects');
 -- -- end: table - study.subjects -- --
+
+
+-- -- start: table - sys.event_classes -- --
+insert into sys.event_classes (name, description, created_by, updated_by) values ('Register subject', 'Register a subject in the study.', 'root', 'root');
+-- -- end: table - sys.event_classes -- --
+
+
+-- -- start: table - sys.event_classes_fields -- --
+insert into sys.event_classes_fields (event_classes_id, fields_id, position, created_by, updated_by) values (1, 1, 1, 'root', 'root');
+insert into sys.event_classes_fields (event_classes_id, fields_id, position, created_by, updated_by) values (1, 2, 2, 'root', 'root');
+insert into sys.event_classes_fields (event_classes_id, fields_id, position, created_by, updated_by) values (1, 3, 3, 'root', 'root');
+insert into sys.event_classes_fields (event_classes_id, fields_id, position, created_by, updated_by) values (1, 4, 4, 'root', 'root');
+-- -- end: table - sys.event_classes_fields -- --
+
 
 -- -- start: table - study.notes -- --
 create table study.notes (

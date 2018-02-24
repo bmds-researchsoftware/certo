@@ -8,7 +8,9 @@
    [ring.util.response :refer [redirect]]
    
    [certo.models.default :as model]
-   [certo.views.default :as view]))
+   [certo.views.default :as view]
+
+   [certo.models.events :as me]))
 
 
 (def uuid-or-integer-pk "/:pk{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]+}")
@@ -33,6 +35,16 @@
     []
     (view/dashboard "Certo" (model/dashboard db md)))
 
+   (compojure/GET
+    "/sys/events/:id{[0-9]+}/new"
+    [id]
+
+
+    
+    {:body (format "New Event: %d %s" (Long/parseLong id) (me/event-classes-fields db))
+     :status 200
+     :headers {"Content-Type" "text/plain"}})
+   
    ;; Match all routes of the form "/:schema/:table"
    ;; For example: http://example.com/sys/fields
    (compojure/context
