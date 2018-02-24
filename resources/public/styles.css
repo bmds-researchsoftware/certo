@@ -28,6 +28,14 @@ table {
 	   text-align: center;
        }
 
+       .lnk {
+	   border: 0px;
+	   font-family: arial, sans-serif;
+	   font-size: 95%;
+	   background-color: #ffffff;
+       }
+
+
 .form {
     font-family: arial, sans-serif;
     border-collapse: collapse;
@@ -47,4 +55,3 @@ table {
        }
        .fld {
        }
-
