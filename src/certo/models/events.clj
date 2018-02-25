@@ -15,6 +15,11 @@
 
 ;; events
 
+
+(defn fields-by-event-class [fields event-class-event-classes-id]
+
+  )
+
 (defn event-classes-fields [db]
   (jdbc/query
    db

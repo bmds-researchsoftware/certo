@@ -38,9 +38,7 @@
    (compojure/GET
     "/sys/events/:id{[0-9]+}/new"
     [id]
-
-
-    
+    ;; (view/new (:fields md) "sys" "events" id)
     {:body (format "New Event: %d %s" (Long/parseLong id) (me/event-classes-fields db))
      :status 200
      :headers {"Content-Type" "text/plain"}})
