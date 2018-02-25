@@ -167,7 +167,6 @@
        [:tr
         [:td {:class "lnk" :style "text-align:left;" } [:a {:href "/"} "Home"]]
         [:td {:class "lnk" :style "text-align:right"} [:a {:href "/help.html"} "Help"]]]
-;;       [:tr [:th {:style "text-align:center" :colspan "3"} (str/capitalize schema)]]       
        ;; TO DO: ordering in event_class should handle putting pk first
        (for [stf stfs              
              :let [field (get fields stf)
