@@ -46,11 +46,13 @@ $$ language plpgsql;
 -- start: schema - sys --
 drop schema if exists sys cascade;
 create schema sys;
+
 -- -- start: table - sys.users -- --
 create table sys.users (
   id uuid primary key default uuid_generate_v1mc(),
   username text unique,
   password text not null,
+  usertype text not null,
   created_by text references sys.users (username),
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username),
@@ -58,8 +60,8 @@ create table sys.users (
   
 select create_trigger_set_updated_at('sys.users');
 
-insert into sys.users (username, password, created_by, updated_by) values ('root', 'rootpw', 'root', 'root');
-insert into sys.users (username, password, created_by, updated_by) values ('djneu', 'djneupw', 'root', 'root');
+insert into sys.users (username, password, usertype, created_by, updated_by) values ('root', 'rootpw', 'superuser', 'root', 'root');
+insert into sys.users (username, password, usertype, created_by, updated_by) values ('djneu', 'djneupw', 'administrator', 'root', 'root');
 -- -- end: table - sys.users -- --
 -- end: schema - sys --
 
@@ -67,6 +69,24 @@ insert into sys.users (username, password, created_by, updated_by) values ('djne
 -- start: schema - val --
 drop schema if exists val cascade;
 create schema val;
+
+-- -- start: table - val.usertypes -- --
+create table val.usertypes (
+  -- id serial8 primary key,
+  id uuid primary key default uuid_generate_v1mc(),
+  usertype text unique not null,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp);
+
+select create_trigger_set_updated_at('val.usertypes');
+
+insert into val.usertypes (usertype, created_by, updated_by) values ('superuser', 'root', 'root');
+insert into val.usertypes (usertype, created_by, updated_by) values ('administrator', 'root', 'root');
+insert into val.usertypes (usertype, created_by, updated_by) values ('manager', 'root', 'root');
+insert into val.usertypes (usertype, created_by, updated_by) values ('coordinator', 'root', 'root');
+-- -- end: table - val.usertypes -- --
 
 -- -- start: table - val.types -- --
 create table val.types (
@@ -112,6 +132,22 @@ insert into val.controls (control, created_by, updated_by) values ('textarea', '
 
 
 -- start: schema - sys --
+-- -- start: table - sys.tables -- --
+create table sys.tables (
+  id serial8 primary key,
+  schema_name text not null,
+  table_name text not null,
+  view text,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp,
+  unique (schema_name, table_name)
+);
+select create_trigger_set_updated_at('sys.tables');
+-- -- end: table - sys.tables -- --
+
+
 -- -- start: table - sys.fields -- --
 create table sys.fields (
   id serial8 primary key,
@@ -122,6 +158,8 @@ create table sys.fields (
   is_pk boolean not null,
   label text not null,
   control text references val.controls (control) not null,
+  position int8 not null,
+  in_table_view boolean not null,
   text_max_length int8,
   date_min date,
   date_max date,
@@ -140,6 +178,10 @@ create table sys.fields (
   updated_at timestamptz default current_timestamp,
 
   unique (schema_name, table_name, field_name),
+
+  unique (schema_name, table_name, field_name, position),
+
+  constraint valid_position check (position >= 0),
 
   constraint valid_attribute_text_max_length
   check ((text_max_length is null) or (text_max_length is not null and (type='text') and (control='text' or control='textarea'))),
@@ -167,20 +209,21 @@ select create_trigger_set_updated_at('sys.fields');
 -- ensures that there is only one primary key field per schema.table
 create unique index unique_pk on sys.fields (schema_name, table_name) where is_pk;
 
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, readonly, created_by, updated_by) values ('study', 'subjects', 'id', 'serial8', 'true', 'ID', 'integer', 'true', 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, text_max_length, created_by, updated_by) values ('study', 'subjects', 'first_name', 'text', 'false', 'First Name', 'text', 25, 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, text_max_length, created_by, updated_by) values ('study', 'subjects', 'last_name', 'text', 'false', 'Last Name', 'text', 25, 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, date_min, date_max, created_by, updated_by) values ('study', 'subjects', 'birth_date', 'date', 'false', 'Birth Date', 'date', '1700-01-01', '2025-12-31', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, readonly, created_by, updated_by) values ('study', 'subjects', 'id', 'serial8', 'true', 'ID', 'integer', 0, 'true', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, created_by, updated_by) values ('study', 'subjects', 'first_name', 'text', 'false', 'First Name', 'text', 1, 'true', 25, 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, created_by, updated_by) values ('study', 'subjects', 'last_name', 'text', 'false', 'Last Name', 'text', 2, 'true', 25, 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, date_min, date_max, created_by, updated_by) values ('study', 'subjects', 'birth_date', 'date', 'false', 'Birth Date', 'date', 3, 'false', '1700-01-01', '2025-12-31', 'root', 'root');
 
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, readonly, created_by, updated_by) values ('val', 'controls', 'id', 'uuid', 'true', 'ID', 'text', 'true', 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, text_max_length, created_by, updated_by) values ('val', 'controls', 'control', 'text', 'false', 'Control', 'text', 25, 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, readonly, created_by, updated_by) values ('val', 'controls', 'id', 'uuid', 'true', 'ID', 'text', 0, 'true', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, created_by, updated_by) values ('val', 'controls', 'control', 'text', 'false', 'Control', 'text', 1, 'true', 25, 'root', 'root');
 
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, readonly, created_by, updated_by) values ('val', 'types', 'id', 'uuid', 'true', 'ID', 'text', 'true', 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, text_max_length, created_by, updated_by) values ('val', 'types', 'type', 'text', 'false', 'Type', 'text', 25, 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, readonly, created_by, updated_by) values ('val', 'types', 'id', 'uuid', 'true', 'ID', 'text', 0, 'true', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, created_by, updated_by) values ('val', 'types', 'type', 'text', 'false', 'Type', 'text', 1, 'true', 25, 'root', 'root');
 
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, readonly, created_by, updated_by) values ('sys', 'users', 'id', 'uuid', 'true', 'ID', 'text', 'true', 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, text_max_length, required, created_by, updated_by) values ('sys', 'users', 'username', 'text', 'false', 'Username', 'text', 25, 'true', 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, text_max_length, required, created_by, updated_by) values ('sys', 'users', 'password', 'text', 'false', 'Password', 'text', 25, 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, readonly, created_by, updated_by) values ('sys', 'users', 'id', 'uuid', 'true', 'ID', 'text', 0, 'true', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, required, created_by, updated_by) values ('sys', 'users', 'username', 'text', 'false', 'Username', 'text', 1, 'true', 25, 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, required, created_by, updated_by) values ('sys', 'users', 'password', 'text', 'false', 'Password', 'text', 2, 'true', 25, 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, required, created_by, updated_by) values ('sys', 'users', 'usertype', 'text', 'false', 'Usertype', 'text', 3, 'true', 25, 'true', 'root', 'root');
 -- -- end: table - sys.fields -- --
 
 -- -- start: table - sys.event_classes -- --
@@ -238,7 +281,7 @@ create table sys.events_queue (
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp,
     -- add more dimension tables as necessary
-  check (((subjects_id is not null)::integer = 1));
+  check ((subjects_id is not null)::integer = 1));
 
 create index active_date_range_index on sys.events_queue using gist (active_date_range);
   -- add more dimension tables as necessary
@@ -308,8 +351,7 @@ create table study.notes (
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp,
-  check (((subjects_id is not null)::integer -- + (addresses_id is not null)::integer)
-	   = 1)));
+  check ((subjects_id is not null)::integer = 1));
   
 select create_trigger_set_updated_at('study.notes');
 create unique index on study.notes (subjects_id) where subjects_id is not null;

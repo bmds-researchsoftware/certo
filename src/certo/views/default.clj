@@ -50,7 +50,7 @@
 
 
 (defn table [fields schema table rows]
-  (let [fields (models/fields-by-schema-table fields schema table)
+  (let [fields (models/fields-by-schema-table-and-in-table-view fields schema table)
         stfs (map key fields)
         ;; there should be exactly one pk field
         pk (filter #(:is_pk (get fields %)) stfs)        

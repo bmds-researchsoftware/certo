@@ -93,6 +93,7 @@
         :type "text"
         :label "Created By"
         :control "text"
+        :position (- Long/MAX_VALUE 3)
         :disabled true}
 
        (str schema "." table ".created_at")
@@ -102,6 +103,7 @@
         :type "timestamptz"
         :label "Created At"
         :control "timestamp"
+        :position (- Long/MAX_VALUE 2)
         :disabled true}
 
        (str schema "." table ".updated_by")
@@ -111,6 +113,7 @@
         :type "text"
         :label "Updated By"
         :control "text"
+        :position (- Long/MAX_VALUE 1)
         :disabled true}       
 
        (str schema "." table ".updated_at")
@@ -120,6 +123,7 @@
         :type "timestamptz"
         :label "Updated At"
         :control "timestamp"
+        :position Long/MAX_VALUE
         :disabled true}})
     (jdbc/query
      db
@@ -127,19 +131,36 @@
      {:row-fn (juxt :schema_name :table_name)}))))
 
 
-(defn fields [db]
+(defn fields-sort-by-position [fields]
   (into
-   (common-fields db)
+   (sorted-map-by
+    (fn [key1 key2]
+      (-
+       (compare [(get-in fields [key2 :position]) key2]
+                [(get-in fields [key1 :position]) key1]))))
+   fields))
+
+
+(defn fields [db]
+  (fields-sort-by-position
    (into
-    {}
-    (map
-     (fn [{schema-name :schema_name table-name :table_name field-name :field_name :as row}]
-       [(str schema-name "." table-name "." field-name) row])
-     (jdbc/query db ["select * from sys.fields"])))))
+    (common-fields db)
+    (into
+     {}
+     (map
+      (fn [{schema-name :schema_name table-name :table_name field-name :field_name :as row}]
+        [(str schema-name "." table-name "." field-name) row])
+      (jdbc/query db ["select * from sys.fields"]))))))
 
 
 (defn fields-by-schema-table [fields schema table]
-  (into {} (filter (fn [[k v]] (and (= (:schema_name v) schema) (= (:table_name v) table))) fields)))
+  (fields-sort-by-position
+   (into {} (filter (fn [[k v]] (and (= (:schema_name v) schema) (= (:table_name v) table))) fields))))
+
+
+(defn fields-by-schema-table-and-in-table-view [fields schema table]
+  (fields-sort-by-position
+   (into {} (filter (fn [[k v]] (and (= (:schema_name v) schema) (= (:table_name v) table) (:in_table_view v))) fields))))
 
 
 (defn field-by-event [fields event]
