@@ -31,14 +31,16 @@
 
 
 (defn db-to-ui-one [value]
-  (condp = (class value)
-    java.lang.Double value
-    java.lang.Long value
-    java.lang.String value
-    java.sql.Date (db-to-ui-d value)
-    java.sql.Timestamp (db-to-ui-ts value)
-    java.util.UUID value
-    (throw (Exception. (format "Unknown %s for value %s" (class value) value)))))
+  (if (not (nil? value))
+    (condp = (class value)
+      java.lang.Double value
+      java.lang.Long value
+      java.lang.String value
+      java.sql.Date (db-to-ui-d value)
+      java.sql.Timestamp (db-to-ui-ts value)
+      java.util.UUID value
+      (throw (Exception. (format "Unknown class %s for value %s" (class value) value))))
+    ""))
 
 
 (defn page [title & body]

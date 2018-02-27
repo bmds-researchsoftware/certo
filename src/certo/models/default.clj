@@ -57,16 +57,18 @@
 
 
 (defn ui-to-db-one [fields field value]
-  (let [type (:type (get fields field))]
-    (case type
-      "date" (java.sql.Date/valueOf value)
-      "float8" (Double/parseDouble value)
-      "int8" (Long/parseLong value)
-      "serial8" (Long/parseLong value)
-      "text" value
-      "timestamptz" (java.sql.Timestamp/valueOf value)
-      "uuid"  (java.util.UUID/fromString value)
-      (throw (Exception. (format "Unknown type: %s for value: %s" type value))))))
+  (if (not (= value ""))
+    (let [type (:type (get fields field))]
+      (case type
+        "date" (java.sql.Date/valueOf value)
+        "float8" (Double/parseDouble value)
+        "int8" (Long/parseLong value)
+        "serial8" (Long/parseLong value)
+        "text" value
+        "timestamptz" (java.sql.Timestamp/valueOf value)
+        "uuid"  (java.util.UUID/fromString value)
+        (throw (Exception. (format "Unknown type %s for field %s with value %s" type field value)))))
+    nil))
 
 
 (defn ui-to-db [params fields]
