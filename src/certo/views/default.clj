@@ -141,6 +141,7 @@
       "datetime" (datetime-field attrs name value)
       "float" (number-field (assoc attrs :step 0.0000000001) name value)
       "integer" (number-field (assoc attrs :step 1) name value)
+      "select" (f/drop-down attrs name (:select-options field) value)
       "text" (f/text-field attrs name value)
       "textarea" (f/text-area attrs name value)
       "timestamp" (timestamp-field attrs name value)

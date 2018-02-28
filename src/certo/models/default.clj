@@ -83,6 +83,20 @@
       fs))))
 
 
+(defn select-options [db schema]
+  (into
+   {}
+   (map
+    (fn [[k v]]
+      [(str/join "." k)
+       {:select-options
+        (map
+         (fn [option]
+           [(:label option) (or (:text_value option) (:integer_value option) (throw (Exception. (format "No value provided for option %s" (:label option)))))])
+         (sort-by :position v))}])
+    (group-by (juxt :schema_name :table_name :field_name) (jdbc/query db [(format "select * from %s.select_options" schema)])))))
+
+
 (defn common-fields [db]
   (reduce
    into
@@ -133,7 +147,7 @@
      {:row-fn (juxt :schema_name :table_name)}))))
 
 
-(defn fields-sort-by-position [fields]
+(defn sort-by-position [fields]
   (into
    (sorted-map-by
     (fn [key1 key2]
@@ -144,24 +158,33 @@
 
 
 (defn fields [db]
-  (fields-sort-by-position
-   (into
-    (common-fields db)
+  (merge-with
+   merge
+   (sort-by-position
     (into
-     {}
-     (map
-      (fn [{schema-name :schema_name table-name :table_name field-name :field_name :as row}]
-        [(str schema-name "." table-name "." field-name) row])
-      (jdbc/query db ["select * from sys.fields"]))))))
+     (common-fields db)
+     (into
+      {}
+      (map
+       (fn [{schema-name :schema_name table-name :table_name field-name :field_name :as row}]
+         [(str schema-name "." table-name "." field-name) row])
+       (jdbc/query db ["select * from sys.fields"])))))
+   (reduce
+    into
+    (map
+     #(select-options db %)
+     ;; Get a list of schema that have select-options
+     ;; (jdbc/query db ["select distinct schema_name from sys.fields where control='select'"] {:row-fn :schema_name})
+     ["sys" "app"]))))
 
 
 (defn fields-by-schema-table [fields schema table]
-  (fields-sort-by-position
+  (sort-by-position
    (into {} (filter (fn [[k v]] (and (= (:schema_name v) schema) (= (:table_name v) table))) fields))))
 
 
 (defn fields-by-schema-table-and-in-table-view [fields schema table]
-  (fields-sort-by-position
+  (sort-by-position
    (into {} (filter (fn [[k v]] (and (= (:schema_name v) schema) (= (:table_name v) table) (:in_table_view v))) fields))))
 
 
