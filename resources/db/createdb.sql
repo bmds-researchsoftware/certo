@@ -100,13 +100,14 @@ create table val.types (
 
 select create_trigger_set_updated_at('val.types');
 
-insert into val.types (type, created_by, updated_by) values ('serial8', 'root', 'root');
-insert into val.types (type, created_by, updated_by) values ('uuid', 'root', 'root');
-insert into val.types (type, created_by, updated_by) values ('float', 'root', 'root');
-insert into val.types (type, created_by, updated_by) values ('integer', 'root', 'root');
+insert into val.types (type, created_by, updated_by) values ('boolean', 'root', 'root');
 insert into val.types (type, created_by, updated_by) values ('date', 'root', 'root');
+insert into val.types (type, created_by, updated_by) values ('float8', 'root', 'root');
+insert into val.types (type, created_by, updated_by) values ('int8', 'root', 'root');
+insert into val.types (type, created_by, updated_by) values ('serial8', 'root', 'root');
 insert into val.types (type, created_by, updated_by) values ('text', 'root', 'root');
 insert into val.types (type, created_by, updated_by) values ('timestamptz', 'root', 'root');
+insert into val.types (type, created_by, updated_by) values ('uuid', 'root', 'root');
 -- -- end: table - val.types -- --
 
 -- -- start: table - val.controls -- --
@@ -122,11 +123,14 @@ create table val.controls (
 select create_trigger_set_updated_at('val.controls');
 
 insert into val.controls (control, created_by, updated_by) values ('date', 'root', 'root');
+insert into val.controls (control, created_by, updated_by) values ('datetime', 'root', 'root');
 insert into val.controls (control, created_by, updated_by) values ('float', 'root', 'root');
 insert into val.controls (control, created_by, updated_by) values ('integer', 'root', 'root');
 insert into val.controls (control, created_by, updated_by) values ('select', 'root', 'root');
 insert into val.controls (control, created_by, updated_by) values ('text', 'root', 'root');
 insert into val.controls (control, created_by, updated_by) values ('textarea', 'root', 'root');
+insert into val.controls (control, created_by, updated_by) values ('timestamp', 'root', 'root');
+insert into val.controls (control, created_by, updated_by) values ('yes-no', 'root', 'root');
 -- -- end: table - val.controls -- --
 -- end: schema - val --
 
@@ -172,9 +176,9 @@ create table sys.fields (
   float_max float,
   select_multiple boolean,
   select_size int8,
-  disabled boolean,
-  readonly boolean,
-  required boolean,
+  disabled boolean not null,
+  readonly boolean not null,
+  required boolean not null,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
@@ -199,38 +203,83 @@ create table sys.fields (
   check ((date_max is null) or (date_max is not null and (type='date') and (control='date'))),
 
   constraint valid_attribute_integer_min
-  check ((integer_min is null) or (integer_min is not null and (type='integer') and (control='integer'))),
+  check ((integer_min is null) or (integer_min is not null and (type='int8') and (control='integer'))),
 
   constraint valid_attribute_integer_max
-  check ((integer_max is null) or (integer_max is not null and (type='integer') and (control='integer'))),
+  check ((integer_max is null) or (integer_max is not null and (type='int8') and (control='integer'))),
 
   constraint valid_attribute_float_min
-  check ((float_min is null) or (float_min is not null and (type='float') and (control='float'))),
+  check ((float_min is null) or (float_min is not null and (type='float8') and (control='float'))),
 
   constraint valid_attribute_float_max
-  check ((float_max is null) or (float_max is not null and (type='float') and (control='float'))));
+  check ((float_max is null) or (float_max is not null and (type='float8') and (control='float'))));
 
 select create_trigger_set_updated_at('sys.fields');
 
 -- ensures that there is only one primary key field per schema.table
 create unique index unique_pk on sys.fields (schema_name, table_name) where is_pk;
 
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, readonly, created_by, updated_by) values ('study', 'subjects', 'id', 'serial8', 'true', 'ID', 'integer', 0, 'true', 'true', 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, required, created_by, updated_by) values ('study', 'subjects', 'first_name', 'text', 'false', 'First Name', 'text', 1, 'true', 25, 'true', 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, required, created_by, updated_by) values ('study', 'subjects', 'last_name', 'text', 'false', 'Last Name', 'text', 2, 'true', 25, 'true', 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, date_min, date_max, required, created_by, updated_by) values ('study', 'subjects', 'birth_date', 'date', 'false', 'Birth Date', 'date', 3, 'true', '1700-01-01', '2025-12-31', 'false', 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, required, created_by, updated_by) values ('study', 'subjects', 'birth_state', 'text', 'false', 'Birth State', 'select', 4, 'false', 'false', 'root', 'root');
 
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, readonly, created_by, updated_by) values ('val', 'controls', 'id', 'uuid', 'true', 'ID', 'text', 0, 'true', 'true', 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, created_by, updated_by) values ('val', 'controls', 'control', 'text', 'false', 'Control', 'text', 1, 'true', 25, 'root', 'root');
+-- TO DO:
+-- add constraint date_min_less_than_date_max
+-- add constraint integer_min_less_than_integer_max
+-- add constraint float_min_less_than_float_max
 
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, readonly, created_by, updated_by) values ('val', 'types', 'id', 'uuid', 'true', 'ID', 'text', 0, 'true', 'true', 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, created_by, updated_by) values ('val', 'types', 'type', 'text', 'false', 'Type', 'text', 1, 'true', 25, 'root', 'root');
 
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, readonly, created_by, updated_by) values ('sys', 'users', 'id', 'uuid', 'true', 'ID', 'text', 0, 'true', 'true', 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, required, created_by, updated_by) values ('sys', 'users', 'username', 'text', 'false', 'Username', 'text', 1, 'true', 25, 'true', 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, required, created_by, updated_by) values ('sys', 'users', 'password', 'text', 'false', 'Password', 'text', 2, 'true', 25, 'true', 'root', 'root');
-insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, required, created_by, updated_by) values ('sys', 'users', 'usertype', 'text', 'false', 'Usertype', 'select', 3, 'true', 'true', 'root', 'root');
+-- -- -- start: sys.fields rows for sys.fields -- -- --
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'id', 'serial8', 'true', 'ID', 'integer', 0, 'true', 'false', 'true', 'false', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'schema_name', 'text', 'false', 'Schema Name', 'text', 1, 'true', 25, 'false', 'false', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'table_name', 'text', 'false', 'Table Name', 'text', 2, 'true', 25, 'false', 'false', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'field_name', 'text', 'false', 'Field Name', 'text', 3, 'true', 25, 'false', 'false', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'type', 'text', 'false', 'Type', 'select', 4, 'true', 'false', 'false', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'is_pk', 'boolean', 'false', 'Is primary key?', 'yes-no', 5, 'false', 'false', 'false', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'label', 'text', 'false', 'Label', 'text', 6, 'true', 25, 'false', 'false', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'control', 'text', 'false', 'Control', 'select', 7, 'false', 'false', 'false', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, integer_step, integer_min, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'position', 'int8', 'false', 'Position', 'integer', 8, 'false',  1, 0, 'false', 'false', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'in_table_view', 'boolean', 'false', 'In table view?', 'yes-no', 9, 'false', 'false', 'false', 'true', 'root', 'root');
+--   -- -- format text, <----- maybe use cl-format
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, integer_step, integer_min, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'text_max_length', 'int8', 'false', 'Text Max Length', 'integer', 10, 'false',  1, 1, 'false', 'false', 'false','root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'date_min', 'date', 'false', 'Date Min', 'date', 11, 'false', 'false', 'false', 'false', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'date_max', 'date', 'false', 'Date Max', 'date', 12, 'false', 'false', 'false', 'false', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, integer_step, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'integer_step', 'int8', 'false', 'Integer Step', 'integer', 13, 'false',  1, 'false', 'false', 'false', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, integer_step, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'integer_min', 'int8', 'false', 'Integer Min', 'integer', 14, 'false',  1, 'false', 'false', 'false', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, integer_step, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'integer_max', 'int8', 'false', 'Integer Max', 'integer', 15, 'false',  1, 'false', 'false', 'false', 'root', 'root');
+
+-- float_step float, 16
+-- float_min float,  17
+-- float_max float,  18
+
+-- select_multiple boolean,  19
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, integer_step, integer_min, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'select_size', 'int8', 'false', 'Select Size', 'integer', 20, 'false', 1, 0, 'false', 'false', 'false', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'disabled', 'boolean', 'false', 'Disabled?', 'yes-no', 21, 'false', 'false', 'false', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'readonly', 'boolean', 'false', 'Readonly?', 'yes-no', 22, 'false', 'false', 'false', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'required', 'boolean', 'false', 'Required?', 'yes-no', 23, 'false', 'false', 'false', 'true', 'root', 'root');
+-- -- -- end: sys.fields rows for sys.fields -- -- --
+
+-- -- -- start: sys.fields rows for study.subjects -- -- --
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('study', 'subjects', 'id', 'serial8', 'true', 'ID', 'integer', 0, 'true', 'false', 'true', 'false', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, disabled, readonly, required, created_by, updated_by) values ('study', 'subjects', 'first_name', 'text', 'false', 'First Name', 'text', 1, 'true', 25, 'false', 'false', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, disabled, readonly, required, created_by, updated_by) values ('study', 'subjects', 'last_name', 'text', 'false', 'Last Name', 'text', 2, 'true', 25, 'false', 'false', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, date_min, date_max, disabled, readonly, required, created_by, updated_by) values ('study', 'subjects', 'birth_date', 'date', 'false', 'Birth Date', 'date', 3, 'true', '1700-01-01', '2025-12-31', 'false', 'false', 'false', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('study', 'subjects', 'birth_state', 'text', 'false', 'Birth State', 'select', 4, 'false', 'false', 'false', 'false', 'root', 'root');
+-- -- -- end: sys.fields rows for study.subjects -- -- --
+
+-- -- -- start: sys.fields rows for val.controls -- -- --
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('val', 'controls', 'id', 'uuid', 'true', 'ID', 'text', 0, 'true', 'false', 'true', 'false', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, disabled, readonly, required, created_by, updated_by) values ('val', 'controls', 'control', 'text', 'false', 'Control', 'text', 1, 'true', 25, 'false', 'false', 'true', 'root', 'root');
+-- -- -- end: sys.fields rows for val.controls -- -- --
+
+-- -- -- start: sys.fields rows for val.types -- -- --
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('val', 'types', 'id', 'uuid', 'true', 'ID', 'text', 0, 'true', 'false', 'true', 'false', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, disabled, readonly, required, created_by, updated_by) values ('val', 'types', 'type', 'text', 'false', 'Type', 'text', 1, 'true', 25, 'false', 'false', 'true', 'root', 'root');
+-- -- -- end: sys.fields rows for val.types -- -- --
+
+-- -- -- start: sys.fields rows for sys.users -- -- --
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('sys', 'users', 'id', 'uuid', 'true', 'ID', 'text', 0, 'true', 'false', 'true', 'false', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, disabled, readonly, required, created_by, updated_by) values ('sys', 'users', 'username', 'text', 'false', 'Username', 'text', 1, 'true', 25, 'false', 'false', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, disabled, readonly, required, created_by, updated_by) values ('sys', 'users', 'password', 'text', 'false', 'Password', 'text', 2, 'true', 25, 'false', 'false', 'true', 'root', 'root');
+insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('sys', 'users', 'usertype', 'text', 'false', 'Usertype', 'select', 3, 'true', 'false', 'false', 'true', 'root', 'root');
+-- -- -- end: sys.fields rows for sys.users -- -- --
 -- -- end: table - sys.fields -- --
 
 -- -- start: table - sys.event_classes -- --
@@ -405,8 +454,37 @@ insert into sys.select_options (schema_name, table_name, field_name, label, text
 insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'users', 'usertype', 'Manager', 'manager', 1, 'root', 'root');
 insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'users', 'usertype', 'Superuser', 'superuser', 3, 'root', 'root');
 insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'users', 'usertype', 'Coordinator', 'coordinator', 0, 'root', 'root');
--- -- end: table - sys.select_options -- --
 
+
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'is_pk', '', '', 0, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'is_pk', 'Yes', 'true', 1, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'is_pk', 'No', 'false', 2, 'root', 'root');
+
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'in_table_view', '', '', 0, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'in_table_view', 'Yes', 'true', 1, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'in_table_view', 'No', 'false', 2, 'root', 'root');
+
+
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', '', '', 0, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'Boolean', 'boolean', 1, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'Date', 'date', 2, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'Floating point', 'float8', 3, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'Integer', 'int8', 4, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'ID', 'serial8', 5, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'Text', 'text', 6, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'Timestamp', 'timestamptz', 7, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'UUID', 'uuid', 8, 'root', 'root');
+
+
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', '', '', 0, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', 'Date', 'date', 1, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', 'Float', 'float', 2, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', 'Integer', 'integer', 3, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', 'Select', 'select', 4, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', 'Text', 'text', 5, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', 'Textarea', 'textarea', 6, 'root', 'root');
+insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', 'Yes/No', 'yes-no', 7, 'root', 'root');
+-- -- end: table - sys.select_options -- --
 
 -- start: schema - app --
 drop schema if exists app cascade;

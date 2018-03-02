@@ -60,18 +60,24 @@
   (if (not (= value ""))
     (let [type (:type (get fields field))]
       (case type
+        "boolean" (cond
+                    (= value "true") true
+                    (= value "false") false
+                    :else
+                    (throw (Exception. (format "Invalid boolean value %s for field %s" value field))))
         "date" (java.sql.Date/valueOf value)
         "float8" (Double/parseDouble value)
-        "int8" (Long/parseLong value)
+        ;; "int8" (Long/parseLong value)
+        "int8" (Long/parseLong (str/replace value #"[.][0]+$|[.]+$" ""))
         "serial8" (Long/parseLong value)
         "text" value
         "timestamptz" (java.sql.Timestamp/valueOf value)
-        "uuid"  (java.util.UUID/fromString value)
+        "uuid" (java.util.UUID/fromString value)
         (throw (Exception. (format "Unknown type %s for field %s with value %s" type field value)))))
     nil))
 
 
-(defn ui-to-db [params fields]
+(defn ui-to-db [fields params]
   (let [fs (clojure.set/intersection (set (map name (keys params))) (set (keys fields)))]
     (into
      {}
@@ -110,6 +116,7 @@
         :label "Created By"
         :control "text"
         :position (- Long/MAX_VALUE 3)
+        :in_table_view false
         :disabled true}
 
        (str schema "." table ".created_at")
@@ -120,6 +127,7 @@
         :label "Created At"
         :control "timestamp"
         :position (- Long/MAX_VALUE 2)
+        :in_table_view false
         :disabled true}
 
        (str schema "." table ".updated_by")
@@ -130,6 +138,7 @@
         :label "Updated By"
         :control "text"
         :position (- Long/MAX_VALUE 1)
+        :in_table_view false
         :disabled true}       
 
        (str schema "." table ".updated_at")
@@ -140,6 +149,7 @@
         :label "Updated At"
         :control "timestamp"
         :position Long/MAX_VALUE
+        :in_table_view false
         :disabled true}})
     (jdbc/query
      db
@@ -248,7 +258,7 @@
         (jdbc/insert!
          db
          (st schema table)
-         (ui-to-db params fields))]
+         (ui-to-db fields params))]
     (case (count (take 2 rs))
       0 (throw (Exception. "Error: Not inserted."))
       1 true
@@ -256,7 +266,7 @@
 
 
 (defn update! [db {:keys [fields]} schema table params]
-  (let [params (ui-to-db params fields)
+  (let [params (ui-to-db fields params)
         pkfn (pk-field-name fields schema table)]
     (let [[cnt]
           (jdbc/update!

@@ -14,33 +14,58 @@
    [certo.utilities :as u]))
 
 
-(defn db-to-ui-d [d]
-  (when d
-    (jt/format "MM/dd/YYYY" (jt/local-date-time d))))
-
-
-(defn db-to-ui-dt [dt]
+(defn db-to-ui-datetime [dt]
   "yyyy-MM-ddThh:mm"
   (when dt
     (str (jt/format "YYYY-MM-dd" (jt/local-date dt)) "T" (jt/format "HH:mm" (jt/local-time dt)))))
 
 
-(defn db-to-ui-ts [ts]
+(defn db-to-ui-timestamp [ts]
   (when ts
     (jt/format "MM/dd/YYYY, hh:mm:ss a" (jt/local-date-time ts))))
 
 
-(defn db-to-ui-one [value]
-  (if (not (nil? value))
-    (condp = (class value)
-      java.lang.Double value
-      java.lang.Long value
-      java.lang.String value
-      java.sql.Date (db-to-ui-d value)
-      java.sql.Timestamp (db-to-ui-ts value)
-      java.util.UUID value
-      (throw (Exception. (format "Unknown class %s for value %s" (class value) value))))
-    ""))
+(defn db-to-ui-boolean-table [value]
+  (cond
+    (true? value) "Yes"
+    (false? value) "No"
+    :else
+    (throw (Exception. (format "Invalid boolean value %s" value)))))
+
+
+(defn db-to-ui-date-table [d]
+  (when d
+    (jt/format "MM/dd/YYYY" (jt/local-date-time d))))
+
+
+(defn db-to-ui-select-table [fields field value]
+  (some
+   (fn [[lbl val]] (when (= val value) lbl))
+   (get-in fields [(name field) :select-options])))
+
+
+(defn db-to-table-one [fields field value]
+  [field
+   ;; value transformed to string
+   (if (not (nil? value))
+     (let [select? (= (get-in fields [(name field) :control]) "select")]
+       (condp = (class value)
+         java.lang.Boolean (db-to-ui-boolean-table value)
+         java.lang.Double value
+         java.lang.Integer (if select? (db-to-ui-select-table value) value)         
+         java.lang.Long (if select? (db-to-ui-select-table value) value)
+         java.lang.String (if select? (db-to-ui-select-table fields field value) value)
+         java.sql.Date (db-to-ui-date-table value)
+         java.sql.Timestamp (db-to-ui-timestamp value)
+         java.util.UUID value
+         (throw (Exception. (format "Unknown %s for value %s" (class value) value)))))
+     "")])
+
+
+(defn db-to-table [fields row]
+  (into
+   {}
+   (map  (fn [[field value]] (db-to-table-one fields field value)) row)))
 
 
 (defn page [title & body]
@@ -68,20 +93,20 @@
      [:div {:class "ct"} title]
      [:table
       [:tr
-       [:td {:class "lnk" :style "text-align:left;" } [:a {:href "/"} "Home"]]
-       [:td {:class "lnk" :style "text-align:right" :colspan (str (dec (count stfs)))} [:a {:href (str "/" schema "/" table "/new")} "New"]]]
+       [:td
+        {:class "lnk" :style "text-align:left;" } [:a {:href "/"} "Home"]]
+       [:td
+        {:class "lnk" :style "text-align:right" :colspan (str (dec (count stfs)))} [:a {:href (str "/" schema "/" table "/new")} "New"]]]
       [:tr
-       [:th (:label (get fields pk))]
-       ;; TO DO: ordering in event_class should handle putting pk first       
-       (for [field (map #(get fields %) stfs)
-             :when (not (:is_pk field))]
+       (for [field (map #(get fields %) stfs)]
          [:th (:label field)])]
-      (for [row rows]
+      (for [row rows
+            :let [row (db-to-table fields row)]]
         [:tr
-         [:td [:a {:href (str "/" schema "/" table "/" (pk_kw row) "/edit")} (db-to-ui-one (pk_kw row))]]
-         (for [stf stfs
-               :when (not= stf pk)]
-           [:td (db-to-ui-one (get row (keyword stf)))])])])))
+         (for [stf stfs]
+           (if (= stf pk)
+             [:td [:a {:href (str "/" schema "/" table "/" (pk_kw row) "/edit")} (pk_kw row)]]
+             [:td (get row (keyword stf))]))])])))
 
 
 (defn form-label [name field]
@@ -91,13 +116,14 @@
 (defelem date-field
   "Creates a new date input field."
   ([name] (date-field name nil))
-  ([name value] (#'f/input-field "date" name value)))
+  ([name value]
+   (#'f/input-field "date" name value)))
 
 
 (defelem datetime-field
   "Creates a new datetime input field. This control expects the following format 2017-06-01T14:30"
   ([name] (datetime-field name nil))
-  ([name value] (#'f/input-field "datetime-local" name (db-to-ui-dt value))))
+    ([name value] (#'f/input-field "datetime-local" name (db-to-ui-datetime value))))
 
 
 (defelem number-field
@@ -114,7 +140,23 @@
 (defelem timestamp-field
   "Creates a new timestamp input field."
   ([name] (timestamp-field name nil))
-  ([name value] (f/text-field name (db-to-ui-ts value))))
+  ([name value] (f/text-field name (db-to-ui-timestamp value))))
+
+
+(defelem yes-no-field
+  "Creates a new yes-no input field."
+  ([name] (yes-no-field name nil))
+  ([name value]
+   (f/drop-down
+    name
+    [["" nil] ["Yes" "true"] ["No" "false"]]
+    ;; value
+    (cond
+      (nil? value) nil
+      (true? value) "true"
+      (false? value) "false"
+      :else
+      (throw (Exception. (format "Invalid boolean value %s of class %s is nil? %s" value (class value) (nil? value))))))))
 
 
 (defn form-field [name field value]
@@ -129,28 +171,36 @@
            {:text_max_length :maxlength 
             :date_min :min
             :date_max :max
+            :integer_step :step
             :integer_min :min
             :integer_max :max
+            :float_step :step
             :float_min :min
             :float_max :max
+            :select_multiple :multiple
+            :select_size :size
             :disabled :disabled
             :readonly :readonly
             :required :required})))]
     (case control
       "date" (date-field attrs name value)
       "datetime" (datetime-field attrs name value)
-      "float" (number-field (assoc attrs :step 0.0000000001) name value)
-      "integer" (number-field (assoc attrs :step 1) name value)
+      ;; "float" (number-field (assoc attrs :step 0.0000000001) name value)
+      "float" (number-field attrs name value)
+      ;;"integer" (number-field (assoc attrs :step 1) name value)
+      "integer" (number-field attrs name value)
       "select" (f/drop-down attrs name (:select-options field) value)
       "text" (f/text-field attrs name value)
       "textarea" (f/text-area attrs name value)
       "timestamp" (timestamp-field attrs name value)
+      "yes-no" (yes-no-field attrs name value)
       (throw (Exception. (format "Invalid control: %s" control))))))
 
 
 (defn form [fields schema table action data]
-  (let [stfs (map key fields)
-        ;; there should be exactly one pk field        
+  (let [;;data (db-to-ui fields data true)
+        stfs (map key fields)
+        ;; there should be exactly one pk field
         pk (first (filter #(:is_pk (get fields %)) stfs))
         pk_kw (keyword pk)
         title (str/capitalize table)]
@@ -170,12 +220,14 @@
        [:tr
         [:td {:class "lnk" :style "text-align:left;" } [:a {:href "/"} "Home"]]
         [:td {:class "lnk" :style "text-align:right"} [:a {:href "/help.html"} "Help"]]]
-       ;; TO DO: ordering in event_class should handle putting pk first
-       (for [stf stfs              
+       (for [stf stfs
              :let [field (get fields stf)
                    value ((keyword stf) data)]]
          [:tr
-          (if (= (:control field) "textarea")
+          (if (or (= (:control field) "textarea")
+                  ;; avoids NPE in the case where (:select_size value)
+                  ;; is nil, by using 0 as the default value of (:select_size value).
+                  (and (= (:control field) "select") (> (or (:select_size field) 0) 1)))
             [:td {:class "lbl" :style "vertical-align:top"} (form-label stf field)]
             [:td {:class "lbl"} (form-label stf field)])
           [:td {:class "fld"} (form-field stf field value)]])])
