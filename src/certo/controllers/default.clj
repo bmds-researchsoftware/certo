@@ -9,7 +9,7 @@
    
    [certo.models.default :as model]
    [certo.views.default :as view]
-
+   [certo.metadata :as metadata] ;; TO DO: remove when implement proper cache
    [certo.models.events :as me]))
 
 
@@ -51,10 +51,11 @@
 
     [schema-table]
 
-    (let [[schema table] (str/split schema-table #"/")]
+    (let [[schema table] (str/split schema-table #"/")
+          md (.start (.stop md))]
 
       (compojure/routes
-     
+
        (compojure/GET
         "/"
         []
