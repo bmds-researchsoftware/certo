@@ -38,7 +38,7 @@ $$ language plpgsql;
 create or replace function create_trigger_set_updated_at(tbl text) returns void as $$
 begin
   execute format('create trigger trigger_set_updated_at before update on %s for each row execute procedure set_updated_at();', tbl);
-end
+end;
 $$ language plpgsql;
 -- end: functions and triggers --
 
@@ -60,8 +60,10 @@ create table sys.users (
   
 select create_trigger_set_updated_at('sys.users');
 
-insert into sys.users (username, password, usertype, created_by, updated_by) values ('root', 'rootpw', 'superuser', 'root', 'root');
-insert into sys.users (username, password, usertype, created_by, updated_by) values ('djneu', 'djneupw', 'administrator', 'root', 'root');
+insert into sys.users 
+(username, password, usertype, created_by, updated_by) values 
+('root',  'rootpw',  'superuser',     'root', 'root'),
+('djneu', 'djneupw', 'administrator', 'root', 'root');
 -- -- end: table - sys.users -- --
 -- end: schema - sys --
 
@@ -82,10 +84,12 @@ create table val.usertypes (
 
 select create_trigger_set_updated_at('val.usertypes');
 
-insert into val.usertypes (usertype, created_by, updated_by) values ('superuser', 'root', 'root');
-insert into val.usertypes (usertype, created_by, updated_by) values ('administrator', 'root', 'root');
-insert into val.usertypes (usertype, created_by, updated_by) values ('manager', 'root', 'root');
-insert into val.usertypes (usertype, created_by, updated_by) values ('coordinator', 'root', 'root');
+insert into val.usertypes
+(usertype, created_by, updated_by) values 
+('superuser',     'root', 'root'),
+('administrator', 'root', 'root'),
+('manager',       'root', 'root'),
+('coordinator',   'root', 'root');
 -- -- end: table - val.usertypes -- --
 
 -- -- start: table - val.types -- --
@@ -100,14 +104,16 @@ create table val.types (
 
 select create_trigger_set_updated_at('val.types');
 
-insert into val.types (type, created_by, updated_by) values ('boolean', 'root', 'root');
-insert into val.types (type, created_by, updated_by) values ('date', 'root', 'root');
-insert into val.types (type, created_by, updated_by) values ('float8', 'root', 'root');
-insert into val.types (type, created_by, updated_by) values ('int8', 'root', 'root');
-insert into val.types (type, created_by, updated_by) values ('serial8', 'root', 'root');
-insert into val.types (type, created_by, updated_by) values ('text', 'root', 'root');
-insert into val.types (type, created_by, updated_by) values ('timestamptz', 'root', 'root');
-insert into val.types (type, created_by, updated_by) values ('uuid', 'root', 'root');
+insert into val.types 
+(type, created_by, updated_by) values 
+('boolean',     'root', 'root'),
+('date',        'root', 'root'),
+('float8',      'root', 'root'),
+('int8',        'root', 'root'),
+('serial8',     'root', 'root'),
+('text',        'root', 'root'),
+('timestamptz', 'root', 'root'),
+('uuid',        'root', 'root');
 -- -- end: table - val.types -- --
 
 -- -- start: table - val.controls -- --
@@ -122,15 +128,17 @@ create table val.controls (
 
 select create_trigger_set_updated_at('val.controls');
 
-insert into val.controls (control, created_by, updated_by) values ('date', 'root', 'root');
-insert into val.controls (control, created_by, updated_by) values ('datetime', 'root', 'root');
-insert into val.controls (control, created_by, updated_by) values ('float', 'root', 'root');
-insert into val.controls (control, created_by, updated_by) values ('integer', 'root', 'root');
-insert into val.controls (control, created_by, updated_by) values ('select', 'root', 'root');
-insert into val.controls (control, created_by, updated_by) values ('text', 'root', 'root');
-insert into val.controls (control, created_by, updated_by) values ('textarea', 'root', 'root');
-insert into val.controls (control, created_by, updated_by) values ('timestamp', 'root', 'root');
-insert into val.controls (control, created_by, updated_by) values ('yes-no', 'root', 'root');
+insert into val.controls 
+(control, created_by, updated_by) values 
+('date',      'root', 'root'),
+('datetime',  'root', 'root'),
+('float',     'root', 'root'),
+('integer',   'root', 'root'),
+('select',    'root', 'root'),
+('text',      'root', 'root'),
+('textarea',  'root', 'root'),
+('timestamp', 'root', 'root'),
+('yes-no',    'root', 'root');
 -- -- end: table - val.controls -- --
 -- end: schema - val --
 
@@ -219,13 +227,11 @@ select create_trigger_set_updated_at('sys.fields');
 -- ensures that there is only one primary key field per schema.table
 create unique index unique_pk on sys.fields (schema_name, table_name) where is_pk;
 
-
 -- TO DO:
 -- add constraint date_min_less_than_date_max
 -- add constraint integer_min_less_than_integer_max
 -- add constraint float_min_less_than_float_max
 -- add constraint that ensures that when control='select' select_multiple and select_size are required
-
 
 -- -- -- start: sys.fields rows for sys.fields -- -- --
 insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'id', 'serial8', 'true', 'ID', 'integer', 0, 'true', 'false', 'true', 'false', 'root', 'root');
@@ -388,15 +394,19 @@ select create_trigger_set_updated_at('study.subjects');
 
 
 -- -- start: table - sys.event_classes -- --
-insert into sys.event_classes (name, description, created_by, updated_by) values ('Register subject', 'Register a subject in the study.', 'root', 'root');
+insert into sys.event_classes 
+(name, description, created_by, updated_by) values 
+('Register subject', 'Register a subject in the study.', 'root', 'root');
 -- -- end: table - sys.event_classes -- --
 
 
 -- -- start: table - sys.event_classes_fields -- --
-insert into sys.event_classes_fields (event_classes_id, fields_id, position, created_by, updated_by) values (1, 1, 1, 'root', 'root');
-insert into sys.event_classes_fields (event_classes_id, fields_id, position, created_by, updated_by) values (1, 2, 2, 'root', 'root');
-insert into sys.event_classes_fields (event_classes_id, fields_id, position, created_by, updated_by) values (1, 3, 3, 'root', 'root');
-insert into sys.event_classes_fields (event_classes_id, fields_id, position, created_by, updated_by) values (1, 4, 4, 'root', 'root');
+insert into sys.event_classes_fields 
+(event_classes_id, fields_id, position, created_by, updated_by) values 
+(1, 1, 1, 'root', 'root'),
+(1, 2, 2, 'root', 'root'),
+(1, 3, 3, 'root', 'root'),
+(1, 4, 4, 'root', 'root');
 -- -- end: table - sys.event_classes_fields -- --
 
 
@@ -417,14 +427,19 @@ create unique index on study.notes (subjects_id) where subjects_id is not null;
 -- create unique index on study.notes (addresses_id) where addresses_id is not null;
 -- -- end: table - study.notes -- --
 
-insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Martha', 'Washington', '1731-06-13', 'djneu', 'djneu');
-insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Abigail', 'Adams', '1744-11-22', 'djneu', 'djneu');
-insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Martha', 'Jefferson', '1748-10-30', 'djneu', 'djneu');
-insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Betsy', 'Ross', '1752-01-01', 'djneu', 'djneu');
-insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Dolly', 'Madison', '1768-05-20', 'djneu', 'djneu');
-insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Elizabeth','Monroe', '1768-06-30', 'djneu', 'djneu');
-insert into study.subjects (first_name, last_name, birth_date, created_by, updated_by) values ('Jackie', 'Kennedy', '1929-07-28', 'djneu', 'djneu');
-insert into study.notes (subjects_id, note, created_by, updated_by) values (2, 'Abigail Adams was married to the Second President of the United States.', 'djneu', 'djneu');
+insert into study.subjects 
+(first_name, last_name, birth_date, created_by, updated_by) values 
+('Martha',   'Washington', '1731-06-13', 'djneu', 'djneu'),
+('Abigail',  'Adams',      '1744-11-22', 'djneu', 'djneu'),
+('Martha',   'Jefferson',  '1748-10-30', 'djneu', 'djneu'),
+('Betsy',    'Ross',       '1752-01-01', 'djneu', 'djneu'),
+('Dolly',    'Madison',    '1768-05-20', 'djneu', 'djneu'),
+('Elizabeth','Monroe',     '1768-06-30', 'djneu', 'djneu'),
+('Jackie',   'Kennedy',    '1929-07-28', 'djneu', 'djneu');
+
+insert into study.notes 
+(subjects_id, note, created_by, updated_by) values 
+(2, 'Abigail Adams was married to the Second President of the United States.', 'djneu', 'djneu');
 -- end: schema - study --
 
 -- -- start: table - sys.select_options -- --
@@ -448,44 +463,46 @@ create table sys.select_options (
   constraint valid_position 
   check ((position is null) or (position >= 0)),
 
-  foreign key (schema_name, table_name, field_name) references sys.fields (schema_name, table_name, field_name));
+  foreign key (schema_name, table_name, field_name) references sys.fields (schema_name, table_name, field_name),
+
+  unique (schema_name, table_name, field_name, position)
+);
 select create_trigger_set_updated_at('sys.select_options');
 
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'users', 'usertype', '', '', 0, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'users', 'usertype', 'Administrator', 'administrator', 2, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'users', 'usertype', 'Manager', 'manager', 1, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'users', 'usertype', 'Superuser', 'superuser', 3, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'users', 'usertype', 'Coordinator', 'coordinator', 0, 'root', 'root');
+insert into sys.select_options 
+(schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values 
+('sys', 'users', 'usertype', '',              '',              0, 'root', 'root'),
+('sys', 'users', 'usertype', 'Administrator', 'administrator', 3, 'root', 'root'),
+('sys', 'users', 'usertype', 'Manager',        'manager',      2, 'root', 'root'),
+('sys', 'users', 'usertype', 'Superuser',      'superuser',    4, 'root', 'root'),
+('sys', 'users', 'usertype', 'Coordinator',    'coordinator',  1, 'root', 'root'),
 
+('sys', 'fields', 'is_pk', '',    '',      0, 'root', 'root'),
+('sys', 'fields', 'is_pk', 'Yes', 'true',  1, 'root', 'root'),
+('sys', 'fields', 'is_pk', 'No',  'false', 2, 'root', 'root'),
 
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'is_pk', '', '', 0, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'is_pk', 'Yes', 'true', 1, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'is_pk', 'No', 'false', 2, 'root', 'root');
+('sys', 'fields', 'in_table_view', '',    '',      0, 'root', 'root'),
+('sys', 'fields', 'in_table_view', 'Yes', 'true',  1, 'root', 'root'),
+('sys', 'fields', 'in_table_view', 'No',  'false', 2, 'root', 'root'),
 
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'in_table_view', '', '', 0, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'in_table_view', 'Yes', 'true', 1, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'in_table_view', 'No', 'false', 2, 'root', 'root');
+('sys', 'fields', 'type', '',               '',            0, 'root', 'root'),
+('sys', 'fields', 'type', 'Boolean',        'boolean',     1, 'root', 'root'),
+('sys', 'fields', 'type', 'Date',           'date',        2, 'root', 'root'),
+('sys', 'fields', 'type', 'Floating point', 'float8',      3, 'root', 'root'),
+('sys', 'fields', 'type', 'Integer',        'int8',        4, 'root', 'root'),
+('sys', 'fields', 'type', 'ID',             'serial8',     5, 'root', 'root'),
+('sys', 'fields', 'type', 'Text',           'text',        6, 'root', 'root'),
+('sys', 'fields', 'type', 'Timestamp',      'timestamptz', 7, 'root', 'root'),
+('sys', 'fields', 'type', 'UUID',           'uuid',        8, 'root', 'root'),
 
-
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', '', '', 0, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'Boolean', 'boolean', 1, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'Date', 'date', 2, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'Floating point', 'float8', 3, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'Integer', 'int8', 4, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'ID', 'serial8', 5, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'Text', 'text', 6, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'Timestamp', 'timestamptz', 7, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'type', 'UUID', 'uuid', 8, 'root', 'root');
-
-
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', '', '', 0, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', 'Date', 'date', 1, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', 'Float', 'float', 2, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', 'Integer', 'integer', 3, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', 'Select', 'select', 4, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', 'Text', 'text', 5, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', 'Textarea', 'textarea', 6, 'root', 'root');
-insert into sys.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('sys', 'fields', 'control', 'Yes/No', 'yes-no', 7, 'root', 'root');
+('sys', 'fields', 'control', '',         '',           0, 'root', 'root'),
+('sys', 'fields', 'control', 'Date',     'date',       1, 'root', 'root'),
+('sys', 'fields', 'control', 'Float',    'float',      2, 'root', 'root'),
+('sys', 'fields', 'control', 'Integer',  'integer',    3, 'root', 'root'),
+('sys', 'fields', 'control', 'Select',   'select',     4, 'root', 'root'),
+('sys', 'fields', 'control', 'Text',     'text',       5, 'root', 'root'),
+('sys', 'fields', 'control', 'Textarea', 'textarea',   6, 'root', 'root'),
+('sys', 'fields', 'control', 'Yes/No',   'yes-no',     7, 'root', 'root');
 -- -- end: table - sys.select_options -- --
 
 -- start: schema - app --
@@ -516,20 +533,22 @@ create table app.select_options (
   foreign key (schema_name, table_name, field_name) references sys.fields (schema_name, table_name, field_name));
 select create_trigger_set_updated_at('app.select_options');
 
-insert into app.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('study', 'subjects', 'birth_state', '', '', 0, 'root', 'root');
-insert into app.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('study', 'subjects', 'birth_state', 'Connecticut', 'CT', 1, 'root', 'root');
-insert into app.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('study', 'subjects', 'birth_state', 'Delaware', 'DE', 2, 'root', 'root');
-insert into app.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('study', 'subjects', 'birth_state', 'Georgia', 'GA', 3, 'root', 'root');
-insert into app.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('study', 'subjects', 'birth_state', 'Maryland', 'MD', 4, 'root', 'root');
-insert into app.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('study', 'subjects', 'birth_state', 'Massachusetts', 'MA', 5, 'root', 'root');
-insert into app.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('study', 'subjects', 'birth_state', 'New Hampshire', 'NH', 6, 'root', 'root');
-insert into app.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('study', 'subjects', 'birth_state', 'New Jersey', 'NJ', 7, 'root', 'root');
-insert into app.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('study', 'subjects', 'birth_state', 'New York', 'NY', 8, 'root', 'root');
-insert into app.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('study', 'subjects', 'birth_state', 'North Carolina', 'NC', 9, 'root', 'root');
-insert into app.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('study', 'subjects', 'birth_state', 'Pennsylvania', 'PA', 10, 'root', 'root');
-insert into app.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('study', 'subjects', 'birth_state', 'Rhode Island', 'RI', 11, 'root', 'root');
-insert into app.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('study', 'subjects', 'birth_state', 'South Carolina', 'SC', 12, 'root', 'root');
-insert into app.select_options (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values ('study', 'subjects', 'birth_state', 'Virginia', 'VA', 13, 'root', 'root');
+insert into app.select_options 
+(schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values 
+('study', 'subjects', 'birth_state', '', '', 0, 'root', 'root'),
+('study', 'subjects', 'birth_state', 'Connecticut',    'CT', 1,  'root', 'root'),
+('study', 'subjects', 'birth_state', 'Delaware',       'DE', 2,  'root', 'root'),
+('study', 'subjects', 'birth_state', 'Georgia',        'GA', 3,  'root', 'root'),
+('study', 'subjects', 'birth_state', 'Maryland',       'MD', 4,  'root', 'root'),
+('study', 'subjects', 'birth_state', 'Massachusetts',  'MA', 5,  'root', 'root'),
+('study', 'subjects', 'birth_state', 'New Hampshire',  'NH', 6,  'root', 'root'),
+('study', 'subjects', 'birth_state', 'New Jersey',     'NJ', 7,  'root', 'root'),
+('study', 'subjects', 'birth_state', 'New York',       'NY', 8,  'root', 'root'),
+('study', 'subjects', 'birth_state', 'North Carolina', 'NC', 9,  'root', 'root'),
+('study', 'subjects', 'birth_state', 'Pennsylvania',   'PA', 10, 'root', 'root'),
+('study', 'subjects', 'birth_state', 'Rhode Island',   'RI', 11, 'root', 'root'),
+('study', 'subjects', 'birth_state', 'South Carolina', 'SC', 12, 'root', 'root'),
+('study', 'subjects', 'birth_state', 'Virginia',       'VA', 13, 'root', 'root');
 -- -- end: table - study.select_options -- --
 -- end: schema - app --
 
