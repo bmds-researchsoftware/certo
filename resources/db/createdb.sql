@@ -535,7 +535,7 @@ select create_trigger_set_updated_at('app.select_options');
 
 insert into app.select_options 
 (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values 
-('study', 'subjects', 'birth_state', '', '', 0, 'root', 'root'),
+('study', 'subjects', 'birth_state', '',               '',   0,  'root', 'root'),
 ('study', 'subjects', 'birth_state', 'Connecticut',    'CT', 1,  'root', 'root'),
 ('study', 'subjects', 'birth_state', 'Delaware',       'DE', 2,  'root', 'root'),
 ('study', 'subjects', 'birth_state', 'Georgia',        'GA', 3,  'root', 'root'),
