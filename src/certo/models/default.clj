@@ -170,15 +170,14 @@
 (defn fields [db]
   (merge-with
    merge
-   (sort-by-position
+   (into
+    (common-fields db)
     (into
-     (common-fields db)
-     (into
-      {}
-      (map
-       (fn [{schema-name :schema_name table-name :table_name field-name :field_name :as row}]
-         [(str schema-name "." table-name "." field-name) row])
-       (jdbc/query db ["select * from sys.fields"])))))
+     {}
+     (map
+      (fn [{schema-name :schema_name table-name :table_name field-name :field_name :as row}]
+        [(str schema-name "." table-name "." field-name) row])
+      (jdbc/query db ["select * from sys.fields"]))))
    (reduce
     into
     (map
@@ -189,13 +188,11 @@
 
 
 (defn fields-by-schema-table [fields schema table]
-  (sort-by-position
-   (into {} (filter (fn [[k v]] (and (= (:schema_name v) schema) (= (:table_name v) table))) fields))))
+  (into {} (filter (fn [[k v]] (and (= (:schema_name v) schema) (= (:table_name v) table))) fields)))
 
 
 (defn fields-by-schema-table-and-in-table-view [fields schema table]
-  (sort-by-position
-   (into {} (filter (fn [[k v]] (and (= (:schema_name v) schema) (= (:table_name v) table) (:in_table_view v))) fields))))
+  (into {} (filter (fn [[k v]] (and (= (:schema_name v) schema) (= (:table_name v) table) (:in_table_view v))) fields)))
 
 
 (defn field-by-event [fields event]

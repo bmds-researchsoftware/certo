@@ -77,7 +77,8 @@
 
 
 (defn table [fields schema table rows]
-  (let [fields (models/fields-by-schema-table-and-in-table-view fields schema table)
+  (let [fields (models/sort-by-position
+                (models/fields-by-schema-table-and-in-table-view fields schema table))
         stfs (map key fields)
         ;; there should be exactly one pk field
         pk (filter #(:is_pk (get fields %)) stfs)        
@@ -106,7 +107,8 @@
          (for [stf stfs]
            (if (= stf pk)
              [:td [:a {:href (str "/" schema "/" table "/" (pk_kw row) "/edit")} (pk_kw row)]]
-             [:td (get row (keyword stf))]))])])))
+             [:td (get row (keyword stf))]))])]
+     [:br])))
 
 
 (defn form-label [name field]
@@ -198,7 +200,7 @@
 
 
 (defn form [fields schema table action data]
-  (let [;;data (db-to-ui fields data true)
+  (let [fields (models/sort-by-position fields)
         stfs (map key fields)
         ;; there should be exactly one pk field
         pk (first (filter #(:is_pk (get fields %)) stfs))
@@ -252,7 +254,9 @@
         (list
          (f/submit-button {:form (str action "-form")} "Insert")
          "&nbsp;" "&nbsp;"))
-      [:input {:type "button" :onclick (format "location.href='/%s/%s'" schema table) :value "Cancel"}]])))
+      [:input {:type "button" :onclick (format "location.href='/%s/%s'" schema table) :value "Cancel"}]]
+
+     [:br])))
 
 
 (defn new [fields schema table]
