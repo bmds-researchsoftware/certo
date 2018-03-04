@@ -1,25 +1,3 @@
--- $ sudo -u postgres createuser certo -d -s -P
-
--- Add the following line to pg_hba.conf:
--- local	 all		 certo		 			 md5
-
--- $ sudo -u postgres service postgresql reload
-
--- $ createdb -U certo certo
-
--- Add the following line to .pgpass:
--- localhost:5432:certo:certo:PASSWORD
-
--- $ cd certo/resources
-
--- $ psql -U certo -d certo
-
--- certo=# \i createdb.sql
-
-
--- Note: primary keys can either be serial8 or uuid
-
-
 -- start: extensions --
 create extension if not exists "uuid-ossp";
 create extension if not exists btree_gist;
@@ -172,21 +150,27 @@ create table sys.fields (
   control text references val.controls (control) not null,
   position int8 not null,
   in_table_view boolean not null,
-  -- format text, <----- maybe use cl-format
-  text_max_length int8,
-  date_min date,
-  date_max date,
-  integer_step integer,
-  integer_min integer,
-  integer_max integer,
-  float_step float,  
-  float_min float,
-  float_max float,
-  select_multiple boolean,
-  select_size int8,
   disabled boolean not null,
   readonly boolean not null,
   required boolean not null,
+
+  text_max_length int8,
+  -- format text, <----- maybe use cl-format
+  
+  date_min date,
+  date_max date,
+  
+  integer_step integer,
+  integer_min integer,
+  integer_max integer,
+  
+  float_step float,  
+  float_min float,
+  float_max float,
+  
+  select_multiple boolean,
+  select_size int8,
+
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
@@ -233,8 +217,13 @@ create unique index unique_pk on sys.fields (schema_name, table_name) where is_p
 -- add constraint float_min_less_than_float_max
 -- add constraint that ensures that when control='select' select_multiple and select_size are required
 
+
+-- (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, text_max_length, date_min, date_max, integer_step, integer_min, integer_max, float_step, float_min, float_max, select_multiple, select_size, created_by, updated_by)
+
+
 -- -- -- start: sys.fields rows for sys.fields -- -- --
 insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'id', 'serial8', 'true', 'ID', 'integer', 0, 'true', 'false', 'true', 'false', 'root', 'root');
+
 insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'schema_name', 'text', 'false', 'Schema Name', 'text', 1, 'true', 25, 'false', 'false', 'true', 'root', 'root');
 insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'table_name', 'text', 'false', 'Table Name', 'text', 2, 'true', 25, 'false', 'false', 'true', 'root', 'root');
 insert into sys.fields (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, text_max_length, disabled, readonly, required, created_by, updated_by) values ('sys', 'fields', 'field_name', 'text', 'false', 'Field Name', 'text', 3, 'true', 25, 'false', 'false', 'true', 'root', 'root');
@@ -473,9 +462,9 @@ insert into sys.select_options
 (schema_name, table_name, field_name, label, text_value, position, created_by, updated_by) values 
 ('sys', 'users', 'usertype', '',              '',              0, 'root', 'root'),
 ('sys', 'users', 'usertype', 'Administrator', 'administrator', 3, 'root', 'root'),
-('sys', 'users', 'usertype', 'Manager',        'manager',      2, 'root', 'root'),
-('sys', 'users', 'usertype', 'Superuser',      'superuser',    4, 'root', 'root'),
-('sys', 'users', 'usertype', 'Coordinator',    'coordinator',  1, 'root', 'root'),
+('sys', 'users', 'usertype', 'Manager',       'manager',       2, 'root', 'root'),
+('sys', 'users', 'usertype', 'Superuser',     'superuser',     4, 'root', 'root'),
+('sys', 'users', 'usertype', 'Coordinator',   'coordinator',   1, 'root', 'root'),
 
 ('sys', 'fields', 'is_pk', '',    '',      0, 'root', 'root'),
 ('sys', 'fields', 'is_pk', 'Yes', 'true',  1, 'root', 'root'),

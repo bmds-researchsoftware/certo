@@ -15,6 +15,7 @@
    [certo.system :as system]
    [certo.utilities :as cu]
    [certo.views.default :as cvd]
+   [certo.sql :as sql]
 
    [qualified.core :as q]))
 
@@ -31,6 +32,12 @@
                   ;;(constantly (system/new-system system-name))
                   (constantly (system/new-system q/system-name q/wrapped-handler))))
 
+(defn touch [fs]
+  (doseq [f fs]
+    (.setLastModified
+     (clojure.java.io/file f)
+     (java-time/to-millis-from-epoch (java-time/instant)))))
+
 (defn start []
   (alter-var-root #'system component/start))
 
@@ -44,6 +51,9 @@
 
 (defn reset []
   (stop)
+  ;; touch *.clj files so hugsql reloads them and changes in the *.sql
+  ;; files they use are realized  
+  (touch ["src/certo/sql.clj"])
   ;;(clojure.tools.namespace.repl/refresh-all :after 'user/go)
   (clojure.tools.namespace.repl/refresh :after 'user/go))
 ;; ----- end: system -----
