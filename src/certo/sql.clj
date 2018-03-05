@@ -1,5 +1,6 @@
 (ns certo.sql
-  (:require [hugsql.core :as hugsql]))
+  (:require [hugsql.core :as hugsql]
+            [clojure.string :as str]))
 
 
 ;; The path is relative to the classpath (not proj dir!),
@@ -91,19 +92,59 @@
 
 
 (def ordered-flds
+  ;; [;;:id
+  ;;  :schema_name
+  ;;  :table_name
+  ;;  :field_name
+  ;;  :type
+  ;;  :is_pk
+  ;;  :label
+  ;;  :control
+  ;;  :position
+  ;;  :in_table_view
+  ;;  :disabled
+  ;;  :readonly
+  ;;  :required
+
+  ;;  :text_max_length
+   
+  ;;  :date_min
+  ;;  :date_max
+   
+  ;;  :integer_step
+  ;;  :integer_min
+  ;;  :integer_max
+   
+  ;;  :float_step
+  ;;  :float_min
+  ;;  :float_max
+   
+  ;;  :select_multiple
+  ;;  :select_size
+
+  ;;  :created_by
+  ;;  ;;:created_at
+  ;;  :updated_by
+  ;;  ;;:updated_at
+  ;;  ]  
   [;;:id
    :schema_name
    :table_name
    :field_name
    :type
    :is_pk
+   :required
+   :created_by
+   ;; :created_at
+   :updated_by
+   ;; :updated_at
+   
    :label
    :control
    :position
    :in_table_view
    :disabled
    :readonly
-   :required
 
    :text_max_length
    
@@ -120,15 +161,12 @@
    
    :select_multiple
    :select_size
+   ]
 
-   :created_by
-   ;;:created_at
-   :updated_by
-   ;;:updated_at
-   ])
+  )
 
 
-(defn format-flds []
+(defn format-flds-clj []
   (doseq [row
           (map
            (fn [r]
@@ -148,6 +186,27 @@
     (println "})")
     (println)))
 
+
+(defn format-flds-sql []
+  (doseq [row
+          (map
+           (fn [r]
+             (merge (zipmap ordered-flds (repeat nil)) r))
+           (map
+            (fn [[es vs]]
+              (into {} (map (fn [e v] [e v]) es vs)))
+            flds))]
+    (println "insert into sys.fields db")
+    (println (str (str/join "," ordered-flds) " values"))
+    (doseq [ordered-fld ordered-flds
+            :let [ordered-val (get row ordered-fld)]]
+      (print
+       (clojure.pprint/cl-format nil "~s, "
+                                 (cond (= ordered-val "false") false
+                                       (= ordered-val "true") true
+                                       :else ordered-val))))
+    (println ")")
+    (println)))
 
 (defn insert-sys-fields-sys-fields [db]
   (insert-sys-fields
