@@ -24,7 +24,7 @@ insert into val.usertypes
 -- :command :execute
 -- :result :raw
 -- :doc Insert into val.types
-insert into val.types 
+insert into val.types
 (type, created_by, updated_by) values 
 ('boolean',     'root', 'root'),
 ('date',        'root', 'root'),
