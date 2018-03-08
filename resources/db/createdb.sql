@@ -194,7 +194,7 @@ create table sys.fields (
   constraint valid_int8_type_controls
   check ((type = 'int8' and ((control='integer') or (control='select'))) or (type != 'float')),
 
-  -- TO DO: should make a integer-id control
+  -- TO DO: should make an integer-id control
   constraint valid_serial8_type_controls
   check ((type = 'serial8' and (control='text')) or (type != 'serial8')),
 
@@ -252,15 +252,6 @@ select create_trigger_set_updated_at('sys.fields');
 
 -- ensures that there is only one primary key field per schema.table
 create unique index unique_pk on sys.fields (schema_name, table_name) where is_pk;
-
--- TO DO:
--- add constraint date_min_less_than_date_max
--- add constraint integer_min_less_than_integer_max
--- add constraint float_min_less_than_float_max
--- add constraint that ensures that when control='select' select_multiple and select_size are required
-
-
--- (schema_name, table_name, field_name, type, is_pk, label, control, position, in_table_view, disabled, readonly, required, text_max_length, date_min, date_max, integer_step, integer_min, integer_max, float_step, float_min, float_max, select_multiple, select_size, created_by, updated_by)
 
 
 -- -- -- start: sys.fields rows for sys.fields -- -- --
