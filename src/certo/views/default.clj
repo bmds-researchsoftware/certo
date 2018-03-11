@@ -77,7 +77,7 @@
 
 
 (defn table [fields schema table rows]
-  (let [fields (models/sort-by-position
+  (let [fields (models/sort-by-location
                 (models/fields-by-schema-table-and-in-table-view fields schema table))
         stfs (map key fields)
         ;; there should be exactly one pk field
@@ -200,7 +200,7 @@
 
 
 (defn form [fields schema table action data]
-  (let [fields (models/sort-by-position fields)
+  (let [fields (models/sort-by-location fields)
         stfs (map key fields)
         ;; there should be exactly one pk field
         pk (first (filter #(:is_pk (get fields %)) stfs))

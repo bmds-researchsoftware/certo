@@ -99,7 +99,7 @@
         (map
          (fn [option]
            [(:label option) (or (:text_value option) (:integer_value option) (throw (Exception. (format "No value provided for option %s" (:label option)))))])
-         (sort-by :position v))}])
+         (sort-by :location v))}])
     (group-by (juxt :schema_name :table_name :field_name) (jdbc/query db [(format "select * from %s.select_options" schema)])))))
 
 
@@ -115,7 +115,7 @@
         :type "text"
         :label "Created By"
         :control "text"
-        :position (- Long/MAX_VALUE 3)
+        :location (- Long/MAX_VALUE 3)
         :in_table_view false
         :disabled true}
 
@@ -126,7 +126,7 @@
         :type "timestamptz"
         :label "Created At"
         :control "timestamp"
-        :position (- Long/MAX_VALUE 2)
+        :location (- Long/MAX_VALUE 2)
         :in_table_view false
         :disabled true}
 
@@ -137,7 +137,7 @@
         :type "text"
         :label "Updated By"
         :control "text"
-        :position (- Long/MAX_VALUE 1)
+        :location (- Long/MAX_VALUE 1)
         :in_table_view false
         :disabled true}       
 
@@ -148,7 +148,7 @@
         :type "timestamptz"
         :label "Updated At"
         :control "timestamp"
-        :position Long/MAX_VALUE
+        :location Long/MAX_VALUE
         :in_table_view false
         :disabled true}})
     (jdbc/query
@@ -157,13 +157,13 @@
      {:row-fn (juxt :schema_name :table_name)}))))
 
 
-(defn sort-by-position [fields]
+(defn sort-by-location [fields]
   (into
    (sorted-map-by
     (fn [key1 key2]
       (-
-       (compare [(get-in fields [key2 :position]) key2]
-                [(get-in fields [key1 :position]) key1]))))
+       (compare [(get-in fields [key2 :location]) key2]
+                [(get-in fields [key1 :location]) key1]))))
    fields))
 
 
