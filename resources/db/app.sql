@@ -16,11 +16,32 @@ from study.subjects
 where last_name = :last_name
 
 
--- :name insert-study-subjects-one
+-- :name insert-app-select-options
+-- :command :execute
+-- :result :raw
+-- :doc Insert into app.select_options
+insert into app.select_options 
+  (schema_name, table_name, field_name, label, text_value, location, created_by, updated_by)
+values
+  (:schema_name, :table_name, :field_name, :label, :text_value, :location, :created_by, :updated_by);
+
+
+-- :name insert-study-subjects
 -- :command :execute
 -- :result :raw
 -- :doc Insert some study.subjects
 insert into study.subjects
-(first_name, last_name, birth_date, created_by, updated_by) values 
-(:first_name, :last_name, :birth_date, :created_by, :updated_by)
+  (first_name, last_name, birth_date, created_by, updated_by) 
+values 
+  (:first_name, :last_name, :birth_date::date, :created_by, :updated_by)
+
+
+-- :name insert-app-notes
+-- :command :execute
+-- :result :raw
+-- :doc Insert into app.notes
+insert into app.notes
+  (subjects_id, note, created_by, updated_by)
+ values
+  (:subjects_id, :note, :created_by, :updated_by);
 

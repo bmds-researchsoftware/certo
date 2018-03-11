@@ -48,7 +48,7 @@ create table sys.users (
   id uuid primary key default uuid_generate_v1mc(),
   username text unique,
   password text not null,
-  usertype text not null,
+  usergroup text not null,
   created_by text references sys.users (username),
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username),
@@ -65,20 +65,20 @@ drop schema if exists val cascade;
 create schema val;
 
 
--- :name create-table-val-usertypes
+-- :name create-table-val-usergroups
 -- :command :execute
 -- :result :raw
--- :doc Create table val.usertypes
-create table val.usertypes (
+-- :doc Create table val.usergroups
+create table val.usergroups (
   -- id serial8 primary key,
   id uuid primary key default uuid_generate_v1mc(),
-  usertype text unique not null,
+  usergroup text unique not null,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp);
 
-select sys.create_trigger_set_updated_at('val.usertypes');
+select sys.create_trigger_set_updated_at('val.usergroups');
 
 
 -- :name create-table-val-types
@@ -126,8 +126,7 @@ create table sys.tables (
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp,
-  unique (schema_name, table_name)
-);
+  unique (schema_name, table_name));
 
 select sys.create_trigger_set_updated_at('sys.tables');
 
@@ -145,7 +144,7 @@ create table sys.fields (
   is_pk boolean not null,
   label text not null,
   control text references val.controls (control) not null,
-  position int8 not null,
+  location int8 not null check (location >= 0),
   in_table_view boolean not null,
   disabled boolean not null,
   readonly boolean not null,
@@ -173,43 +172,79 @@ create table sys.fields (
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp,
 
+
   unique (schema_name, table_name, field_name),
+  unique (schema_name, table_name, field_name, location),
 
-  unique (schema_name, table_name, field_name, position),
 
-  constraint valid_position check (position >= 0),
+  -- start: constraints for types --
+  constraint valid_boolean_type_controls
+  check ((type = 'boolean' and (control='yes-no')) or (type != 'boolean')),
 
-  constraint valid_select_size 
-  check ((select_size is null) or (select_size >= 0)),
+  constraint valid_date_type_controls
+  check ((type = 'date' and (control='date')) or (type != 'date')),
 
-  constraint valid_attribute_text_max_length
-  check ((text_max_length is null) or (text_max_length is not null and (type='text') and (control='select' or control='text' or control='textarea'))),
+  constraint valid_float8_type_controls
+  check ((type = 'float8' and (control='float')) or (type != 'float')),
 
-  constraint valid_attribute_date_min
-  check ((date_min is null) or (date_min is not null and (type='date') and (control='date'))),
+  constraint valid_int8_type_controls
+  check ((type = 'int8' and ((control='integer') or (control='select'))) or (type != 'float')),
 
-  constraint valid_attribute_date_max
-  check ((date_max is null) or (date_max is not null and (type='date') and (control='date'))),
+  -- TO DO: should make an integer-id control
+  constraint valid_serial8_type_controls
+  check ((type = 'serial8' and (control='text')) or (type != 'serial8')),
 
-  constraint valid_attribute_integer_min
-  check ((integer_min is null) or (integer_min is not null and (type='int8') and (control='integer'))),
+  constraint valid_text_type_controls
+  check ((type = 'text' and ((control='text') or (control='textarea') or (control='select'))) or (type != 'text')),
 
-  constraint valid_attribute_integer_max
-  check ((integer_max is null) or (integer_max is not null and (type='int8') and (control='integer'))),
+  constraint valid_timestamptz_type_controls
+  check ((type = 'timestamptz' and ((control='timestamp') or (control='datetime'))) or (type != 'timestamptz')),
 
-  constraint valid_attribute_float_min
-  check ((float_min is null) or (float_min is not null and (type='float8') and (control='float'))),
+  -- TO DO: should make a uuid-id control
+  constraint valid_uuid_type_controls
+  check ((type = 'uuid' and (control='text')) or (type != 'uuid')),
+  -- end: constraints for types --
 
-  constraint valid_attribute_float_max
-  check ((float_max is null) or (float_max is not null and (type='float8') and (control='float'))));
 
-select sys.create_trigger_set_updated_at('sys.fields');
+  -- start: constraints for controls --
+  constraint valid_date_control_attributes
+  check ((control='date' and date_min is not null and date_max is not null and date_min <= date_max) or
+  	(control='date' and (date_min is null or date_max is null)) or
+	(control != 'date' and date_min is null and date_max is null)),
 
--- TO DO:
--- add constraint date_min_less_than_date_max
--- add constraint integer_min_less_than_integer_max
--- add constraint float_min_less_than_float_max
--- add constraint that ensures that when control='select' select_multiple and select_size are required
+  -- constraint valid_datetime_control_attributes
+  -- check ((control='datetime' and ???) or (control != 'datetime')),
+
+  constraint valid_integer_control_attributes
+  check (((control='integer' and integer_step is not null) and 
+  			     integer_min is not null and integer_max is not null and integer_min <= integer_max) or
+  	((control='integer' and integer_step is not null) and (integer_min is null or integer_max is null)) or
+	(control != 'integer' and integer_step is null and integer_min is null and integer_max is null)),
+
+  constraint valid_float_control_attributes
+  check (((control='float' and float_step is not null) and 
+  			     float_min is not null and float_max is not null and float_min <= float_max) or
+  	((control='float' and float_step is not null) and (float_min is null or float_max is null)) or
+	(control != 'float' and float_step is null and float_min is null and float_max is null)),
+
+  constraint valid_select_control_attributes
+  check ((control='select' and select_multiple is not null and select_size >= 0) or
+  	(control != 'select' and select_multiple is null and select_size is null)),
+
+  constraint valid_text_textarea_control_attributes
+  check (((control='text' or control='textarea') and text_max_length > 0) or 
+  	(control != 'text' and control != 'textarea' and text_max_length is null))
+
+  -- constraint valid_timestamp_control_attributes
+  -- check ((control='timestamp' and ???) or (control != 'timestamp')),
+
+  -- constraint valid_yes-no_control_attributes
+  -- check ((control='yes-no' and ???) or (control != 'yes-no'))
+  
+  -- end: constraints for controls --
+);
+
+select create_trigger_set_updated_at('sys.fields');
 
 -- ensures that there is only one primary key field per schema.table
 create unique index unique_pk on sys.fields (schema_name, table_name) where is_pk;
@@ -239,12 +274,11 @@ create table sys.event_classes_fields (
   id serial8 primary key,
   event_classes_id int8 references sys.event_classes (id) not null,
   fields_id int8 references sys.fields (id) not null,
-  position int8 not null,
+  location int8 not null check (location >= 0),  
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp,
-  constraint valid_position check (position >= 0));
+  updated_at timestamptz default current_timestamp);
   
 select sys.create_trigger_set_updated_at('sys.event_classes_fields');
 
@@ -323,7 +357,7 @@ create table sys.select_options (
   label text not null,
   text_value text,
   integer_value int8,
-  position int8,
+  location int8,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
@@ -332,12 +366,12 @@ create table sys.select_options (
   constraint valid_value
   check ((text_value is not null and integer_value is null) or (text_value is null and integer_value is not null)),
 
-  constraint valid_position 
-  check ((position is null) or (position >= 0)),
+  constraint valid_location 
+  check ((location is null) or (location >= 0)),
 
   foreign key (schema_name, table_name, field_name) references sys.fields (schema_name, table_name, field_name),
 
-  unique (schema_name, table_name, field_name, position));
+  unique (schema_name, table_name, field_name, location));
 
 select sys.create_trigger_set_updated_at('sys.select_options');
 

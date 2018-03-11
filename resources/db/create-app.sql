@@ -24,12 +24,19 @@ create table study.subjects (
 select sys.create_trigger_set_updated_at('study.subjects');
 
 
--- TO DO: Move this to the app schema
--- :name create-table-study-notes
+-- :name create-schema-app
 -- :command :execute
 -- :result :raw
--- :doc Create table study.notes
-create table study.notes (
+-- :doc Create schema app
+drop schema if exists app cascade;
+create schema app;
+
+
+-- :name create-table-app-notes
+-- :command :execute
+-- :result :raw
+-- :doc Create table app.notes
+create table app.notes (
   id serial8 primary key,
   subjects_id int8 references study.subjects (id),
   -- addresses_id int8 references study.addresses (id),
@@ -40,17 +47,9 @@ create table study.notes (
   updated_at timestamptz default current_timestamp,
   check ((subjects_id is not null)::integer = 1));
   
-select sys.create_trigger_set_updated_at('study.notes');
-create unique index on study.notes (subjects_id) where subjects_id is not null;
--- create unique index on study.notes (addresses_id) where addresses_id is not null;
-
-
--- :name create-schema-app
--- :command :execute
--- :result :raw
--- :doc Create schema app
-drop schema if exists app cascade;
-create schema app;
+select sys.create_trigger_set_updated_at('app.notes');
+create unique index on app.notes (subjects_id) where subjects_id is not null;
+-- create unique index on app.notes (addresses_id) where addresses_id is not null;
 
 
 -- :name create-table-app-select-options
@@ -65,7 +64,7 @@ create table app.select_options (
   label text not null,
   text_value text,
   integer_value int8,
-  position int8,
+  location int8,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
@@ -74,8 +73,8 @@ create table app.select_options (
   constraint valid_value
   check ((text_value is not null and integer_value is null) or (text_value is null and integer_value is not null)),
 
-  constraint valid_position
-  check ((position is null) or (position >= 0)),
+  constraint valid_location
+  check ((location is null) or (location >= 0)),
 
   foreign key (schema_name, table_name, field_name) references sys.fields (schema_name, table_name, field_name));
   
