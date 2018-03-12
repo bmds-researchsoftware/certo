@@ -14,6 +14,10 @@
    [certo.utilities :as u]))
 
 
+(defn format-title [t]
+  (str/join " " (map str/capitalize (str/split t #"_"))))
+
+
 (defn db-to-ui-datetime [dt]
   "yyyy-MM-ddThh:mm"
   (when dt
@@ -87,7 +91,7 @@
              1 (first pk)
              (throw (Exception. "Multiple found, but expected exactly one.")))
         pk_kw (keyword pk)
-        title (str/capitalize table)]
+        title (format-title table)]
     (page
      title
      [:br]
@@ -205,7 +209,7 @@
         ;; there should be exactly one pk field
         pk (first (filter #(:is_pk (get fields %)) stfs))
         pk_kw (keyword pk)
-        title (str/capitalize table)]
+        title (format-title table)]
     (page
      title
      
@@ -301,7 +305,7 @@
        [:tr [:th {:style "text-align:center" :colspan "3"} (str/capitalize schema)]]
        (for [[table cnt] tables]
          [:tr
-          [:td {:style "width: 30%"} (str/capitalize table)]
+          [:td {:style "width: 30%"} (format-title table)]
           [:td {:style "width: 35%"} [:a {:href (str "/" schema "/" table)} "All"] (str "&nbsp;&nbsp;(" cnt ")")]
           [:td {:style "width: 35%"} [:a {:href (str "/" schema "/" table "/new")} "New"]]])]
       [:br] [:br]))))
