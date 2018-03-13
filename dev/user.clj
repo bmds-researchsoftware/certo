@@ -67,7 +67,7 @@
 (defn- fields []
   (cmd/fields (db)))
 
-(defn hash-maps-to-db-sys [db]
+(defn sys-hash-maps-to-db [db]
   (u/hash-maps-to-db db "resources/db/sys-options-usergroups.clj" sql/insert-sys-options-usergroups)
   (u/hash-maps-to-db db "resources/db/sys-users.clj" sql/insert-sys-users)
   (u/hash-maps-to-db db "resources/db/sys-options-types.clj" sql/insert-sys-options-types)
@@ -76,14 +76,14 @@
   (u/hash-maps-to-db db "resources/db/sys-event-classes.clj" sql/insert-sys-event-classes)
   (u/hash-maps-to-db db "resources/db/sys-event-classes-fields.clj" sql/insert-sys-event-classes-fields))
 
-(defn hash-maps-to-db-app [db]
+(defn app-hash-maps-to-db [db]
   (u/hash-maps-to-db db "resources/db/app-sys-fields.clj" sql/insert-sys-fields)  
   (u/hash-maps-to-db db "resources/db/app-options-states.clj" sql/insert-app-options-states)
   (u/hash-maps-to-db db "resources/db/study-subjects.clj" sql/insert-study-subjects)
   (u/hash-maps-to-db db "resources/db/app-notes.clj" sql/insert-app-notes))
 
-(defn hash-maps-to-db-all [db]
-  (hash-maps-to-db-sys db)
-  (hash-maps-to-db-app db))
+(defn all-hash-maps-to-db [db]
+  (sys-hash-maps-to-db db)
+  (app-hash-maps-to-db db))
 ;; ----- end: helpers -----
 
