@@ -1,9 +1,37 @@
+-- :name create-schema-app
+-- :command :execute
+-- :result :raw
+-- :doc Create schema app
+drop schema if exists app cascade;
+create schema app;
+
+
 -- :name create-schema-study
 -- :command :execute
 -- :result :raw
 -- :doc Create schema study
 drop schema if exists study cascade;
 create schema study;
+
+
+-- :name create-table-app-options-states
+-- :command :execute
+-- :result :raw
+-- :doc Create table app.options_states
+create table app.options_states (
+  id serial8 primary key,
+  label text not null,
+  value text unique,
+  location int8,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp,
+
+  constraint valid_location
+  check ((location is null) or (location >= 0)));
+  
+select sys.create_trigger_set_updated_at('app.options_states');
 
 
 -- :name create-table-study-subjects
@@ -15,21 +43,14 @@ create table study.subjects (
   first_name text not null,
   last_name text not null,
   birth_date date,
-  birth_state text,
+  birth_state text references app.options_states (value),
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp);
 
 select sys.create_trigger_set_updated_at('study.subjects');
-
-
--- :name create-schema-app
--- :command :execute
--- :result :raw
--- :doc Create schema app
-drop schema if exists app cascade;
-create schema app;
+create index on study.subjects (birth_state);
 
 
 -- :name create-table-app-notes
@@ -50,33 +71,4 @@ create table app.notes (
 select sys.create_trigger_set_updated_at('app.notes');
 create unique index on app.notes (subjects_id) where subjects_id is not null;
 -- create unique index on app.notes (addresses_id) where addresses_id is not null;
-
-
--- :name create-table-app-select-options
--- :command :execute
--- :result :raw
--- :doc Create table app-select-options
-create table app.select_options (
-  id serial8 primary key,
-  schema_name text not null,
-  table_name text not null,
-  field_name text not null,
-  label text not null,
-  text_value text,
-  integer_value int8,
-  location int8,
-  created_by text references sys.users (username) not null,
-  created_at timestamptz default current_timestamp,
-  updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp,
-
-  constraint valid_value
-  check ((text_value is not null and integer_value is null) or (text_value is null and integer_value is not null)),
-
-  constraint valid_location
-  check ((location is null) or (location >= 0)),
-
-  foreign key (schema_name, table_name, field_name) references sys.fields (schema_name, table_name, field_name));
-  
-select sys.create_trigger_set_updated_at('app.select_options');
 

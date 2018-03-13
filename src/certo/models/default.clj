@@ -89,18 +89,13 @@
       fs))))
 
 
-(defn select-options [db schema]
-  (into
-   {}
-   (map
-    (fn [[k v]]
-      [(str/join "." k)
-       {:select-options
-        (map
-         (fn [option]
-           [(:label option) (or (:text_value option) (:integer_value option) (throw (Exception. (format "No value provided for option %s" (:label option)))))])
-         (sort-by :location v))}])
-    (group-by (juxt :schema_name :table_name :field_name) (jdbc/query db [(format "select * from %s.select_options" schema)])))))
+;; TO DO: Remove if nil?
+(defn select-options [db {:keys [:schema_table_field :options_schema_table]}]
+  {schema_table_field
+   {:options
+    (if (or  (nil? schema_table_field) (nil? options_schema_table))
+      []
+      (jdbc/query db [(format "select * from %s" options_schema_table)] {:row-fn (juxt :label :value)}))}})
 
 
 (defn common-fields [db]
@@ -175,6 +170,7 @@
     (into
      {}
      (map
+      ;; TO DO: Maybe do with a row-fn
       (fn [{schema-name :schema_name table-name :table_name field-name :field_name :as row}]
         [(str schema-name "." table-name "." field-name) row])
       (jdbc/query db ["select * from sys.fields"]))))
@@ -182,9 +178,14 @@
     into
     (map
      #(select-options db %)
-     ;; Get a list of schema that have select-options
-     ;; (jdbc/query db ["select distinct schema_name from sys.fields where control='select'"] {:row-fn :schema_name})
-     ["sys" "app"]))))
+     ;; Get a list of the fields that have a select control
+     (jdbc/query
+      db 
+      ["select * from sys.fields where control='select'"]
+      {:row-fn
+       #(hash-map
+         :schema_table_field (str (:schema_name %) "." (:table_name %) "." (:field_name %))
+         :options_schema_table (:options_schema_table %))})))))
 
 
 (defn fields-by-schema-table [fields schema table]

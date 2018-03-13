@@ -16,6 +16,7 @@
    [certo.utilities :as cu]
    [certo.views.default :as cvd]
    [certo.sql :as sql]
+   [certo.utilities :as u]   
 
    [qualified.core :as q]))
 
@@ -65,5 +66,24 @@
 
 (defn- fields []
   (cmd/fields (db)))
+
+(defn hash-maps-to-db-sys [db]
+  (u/hash-maps-to-db db "resources/db/sys-options-usergroups.clj" sql/insert-sys-options-usergroups)
+  (u/hash-maps-to-db db "resources/db/sys-users.clj" sql/insert-sys-users)
+  (u/hash-maps-to-db db "resources/db/sys-options-types.clj" sql/insert-sys-options-types)
+  (u/hash-maps-to-db db "resources/db/sys-options-controls.clj" sql/insert-sys-options-controls)
+  (u/hash-maps-to-db db "resources/db/sys-fields.clj" sql/insert-sys-fields)
+  (u/hash-maps-to-db db "resources/db/sys-event-classes.clj" sql/insert-sys-event-classes)
+  (u/hash-maps-to-db db "resources/db/sys-event-classes-fields.clj" sql/insert-sys-event-classes-fields))
+
+(defn hash-maps-to-db-app [db]
+  (u/hash-maps-to-db db "resources/db/app-sys-fields.clj" sql/insert-sys-fields)  
+  (u/hash-maps-to-db db "resources/db/app-options-states.clj" sql/insert-app-options-states)
+  (u/hash-maps-to-db db "resources/db/study-subjects.clj" sql/insert-study-subjects)
+  (u/hash-maps-to-db db "resources/db/app-notes.clj" sql/insert-app-notes))
+
+(defn hash-maps-to-db-all [db]
+  (hash-maps-to-db-sys db)
+  (hash-maps-to-db-app db))
 ;; ----- end: helpers -----
 

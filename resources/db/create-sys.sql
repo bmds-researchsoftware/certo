@@ -33,11 +33,26 @@ end;
 $$ language plpgsql;
 
 
--- :name create-trigger-set-updated-at
--- :command :query
+-- :name create-table-sys-options-usergroups
+-- :command :execute
 -- :result :raw
--- :doc Create trigger create_trigger_set_updated_at
--- select sys.create_trigger_set_updated_at(:table);
+-- :doc Create table sys.options_usergroups
+create table sys.options_usergroups (
+  id serial8 primary key,
+  label text not null,
+  value text unique,
+  location int8,
+  -- created_by text references sys.users (username) not null,
+  created_by text not null,
+  created_at timestamptz default current_timestamp,
+  -- updated_by text references sys.users (username) not null,
+  updated_by text not null,
+  updated_at timestamptz default current_timestamp,
+
+  constraint valid_location
+  check ((location is null) or (location >= 0)));
+
+select sys.create_trigger_set_updated_at('sys.options_usergroups');
 
 
 -- :name create-table-sys-users
@@ -46,71 +61,61 @@ $$ language plpgsql;
 -- :doc Create table sys.users
 create table sys.users (
   id uuid primary key default uuid_generate_v1mc(),
-  username text unique,
+  username text unique not null,
   password text not null,
-  usergroup text not null,
+  usergroup text references sys.options_usergroups (value) not null,
+  -- usergroup text not null,
   created_by text references sys.users (username),
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username),
   updated_at timestamptz default current_timestamp);
 
 select sys.create_trigger_set_updated_at('sys.users');
+create index on sys.users (usergroup);
+
+-- alter table sys.users add constraint valid_usergroup foreign key (usergroup) references sys.options_usergroups (value);
 
 
--- :name create-schema-val
+-- :name create-table-sys-options-types
 -- :command :execute
 -- :result :raw
--- :doc Create schema val
-drop schema if exists val cascade;
-create schema val;
-
-
--- :name create-table-val-usergroups
--- :command :execute
--- :result :raw
--- :doc Create table val.usergroups
-create table val.usergroups (
-  -- id serial8 primary key,
-  id uuid primary key default uuid_generate_v1mc(),
-  usergroup text unique not null,
-  created_by text references sys.users (username) not null,
+-- :doc Create table sys.options_types
+create table sys.options_types (
+  id serial8 primary key,
+  label text not null,
+  value text unique,
+  location int8,
+  -- created_by text references sys.users (username) not null,
+  created_by text not null,  
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp);
+  updated_at timestamptz default current_timestamp,
 
-select sys.create_trigger_set_updated_at('val.usergroups');
+  constraint valid_location
+  check ((location is null) or (location >= 0)));
+  
+select sys.create_trigger_set_updated_at('sys.options_types');
 
 
--- :name create-table-val-types
+-- :name create-table-sys-options-controls
 -- :command :execute
 -- :result :raw
--- :doc Create table val.types
-create table val.types (
-  -- id serial8 primary key,
-  id uuid primary key default uuid_generate_v1mc(),
-  type text unique,
-  created_by text references sys.users (username) not null,
+-- :doc Create table sys.options_controls
+create table sys.options_controls (
+  id serial8 primary key,
+  label text not null,
+  value text unique,
+  location int8,
+  -- created_by text references sys.users (username) not null,
+  created_by text not null,  
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp);
+  updated_at timestamptz default current_timestamp,
 
-select sys.create_trigger_set_updated_at('val.types');
-
-
--- :name create-table-val-controls
--- :command :execute
--- :result :raw
--- :doc Create table val.controls
-create table val.controls (
-  -- id serial8 primary key,
-  id uuid primary key default uuid_generate_v1mc(),
-  control text unique,
-  created_by text references sys.users (username) not null,
-  created_at timestamptz default current_timestamp,
-  updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp);
-
-select sys.create_trigger_set_updated_at('val.controls');
+  constraint valid_location
+  check ((location is null) or (location >= 0)));
+  
+select sys.create_trigger_set_updated_at('sys.options_controls');
 
 
 -- :name create-table-sys-tables
@@ -140,10 +145,12 @@ create table sys.fields (
   schema_name text not null,
   table_name text not null,
   field_name text not null,
-  type text references val.types (type) not null,
+  -- type text references val.types (type) not null,
+  type text references sys.options_types (value) not null,
   is_pk boolean not null,
   label text not null,
-  control text references val.controls (control) not null,
+  -- control text references val.controls (control) not null,
+  control text references sys.options_controls (value) not null,
   location int8 not null check (location >= 0),
   in_table_view boolean not null,
   disabled boolean not null,
@@ -163,9 +170,10 @@ create table sys.fields (
   float_step float,  
   float_min float,
   float_max float,
-  
+
   select_multiple boolean,
   select_size int8,
+  options_schema_table text,
 
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
@@ -228,8 +236,8 @@ create table sys.fields (
 	(control != 'float' and float_step is null and float_min is null and float_max is null)),
 
   constraint valid_select_control_attributes
-  check ((control='select' and select_multiple is not null and select_size >= 0) or
-  	(control != 'select' and select_multiple is null and select_size is null)),
+  check ((control='select' and select_multiple is not null and select_size >= 0 and options_schema_table is not null) or
+  	(control != 'select' and select_multiple is null and select_size is null and options_schema_table is null)),
 
   constraint valid_text_textarea_control_attributes
   check (((control='text' or control='textarea') and text_max_length > 0) or 
@@ -300,6 +308,7 @@ create table sys.events (
 select sys.create_trigger_set_updated_at('sys.events');
 
 
+/*~
 -- :name create-table-sys-events-queue
 -- :command :execute
 -- :result :raw
@@ -322,6 +331,7 @@ create index active_date_range_index on sys.events_queue using gist (active_date
   -- add more dimension tables as necessary
 create unique index on sys.events_queue (subjects_id) where subjects_id is not null;
 select sys.create_trigger_set_updated_at('sys.events_queue');
+~*/
 
 
 -- :name create-table-sys-notes
@@ -332,7 +342,7 @@ create table sys.notes (
   id serial8 primary key,
   event_classes_id int8 references sys.event_classes (id),
   events_id int8 references sys.events (id),
-  subjects_id int8 references study.subjects (id),
+  -- subjects_id int8 references study.subjects (id),
   note text not null,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
@@ -343,35 +353,4 @@ create table sys.notes (
 select sys.create_trigger_set_updated_at('sys.notes');
 create unique index on sys.notes (event_classes_id) where event_classes_id is not null;
 create unique index on sys.notes (events_id) where events_id is not null;
-
-
--- :name create-table-sys-select-options
--- :command :execute
--- :result :raw
--- :doc Create table sys.select_options
-create table sys.select_options (
-  id serial8 primary key,
-  schema_name text not null,
-  table_name text not null,
-  field_name text not null,
-  label text not null,
-  text_value text,
-  integer_value int8,
-  location int8,
-  created_by text references sys.users (username) not null,
-  created_at timestamptz default current_timestamp,
-  updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp,
-
-  constraint valid_value
-  check ((text_value is not null and integer_value is null) or (text_value is null and integer_value is not null)),
-
-  constraint valid_location 
-  check ((location is null) or (location >= 0)),
-
-  foreign key (schema_name, table_name, field_name) references sys.fields (schema_name, table_name, field_name),
-
-  unique (schema_name, table_name, field_name, location));
-
-select sys.create_trigger_set_updated_at('sys.select_options');
 

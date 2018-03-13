@@ -26,14 +26,24 @@ values
   (:schema_name, :table_name, :field_name, :label, :text_value, :location, :created_by, :updated_by);
 
 
+-- :name insert-app-options-states
+-- :command :execute
+-- :result :raw
+-- :doc Insert into app.options_states
+insert into app.options_states
+  (label, value, location, created_by, updated_by)
+values
+  (:label, :value, :location, :created_by, :updated_by);
+
+
 -- :name insert-study-subjects
 -- :command :execute
 -- :result :raw
 -- :doc Insert some study.subjects
 insert into study.subjects
-  (first_name, last_name, birth_date, created_by, updated_by) 
+  (first_name, last_name, birth_date, birth_state, created_by, updated_by) 
 values 
-  (:first_name, :last_name, :birth_date::date, :created_by, :updated_by)
+  (:first_name, :last_name, :birth_date::date, :birth_state, :created_by, :updated_by)
 
 
 -- :name insert-app-notes

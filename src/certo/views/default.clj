@@ -45,7 +45,7 @@
 (defn db-to-ui-select-table [fields field value]
   (some
    (fn [[lbl val]] (when (= val value) lbl))
-   (get-in fields [(name field) :select-options])))
+   (get-in fields [(name field) :options])))
 
 
 (defn db-to-table-one [fields field value]
@@ -195,7 +195,7 @@
       "float" (number-field attrs name value)
       ;;"integer" (number-field (assoc attrs :step 1) name value)
       "integer" (number-field attrs name value)
-      "select" (f/drop-down attrs name (:select-options field) value)
+      "select" (f/drop-down attrs name (:options field) value)
       "text" (f/text-field attrs name value)
       "textarea" (f/text-area attrs name value)
       "timestamp" (timestamp-field attrs name value)
