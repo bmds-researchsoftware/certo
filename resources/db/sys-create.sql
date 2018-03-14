@@ -145,11 +145,9 @@ create table sys.fields (
   schema_name text not null,
   table_name text not null,
   field_name text not null,
-  -- type text references val.types (type) not null,
   type text references sys.options_types (value) not null,
   is_pk boolean not null,
   label text not null,
-  -- control text references val.controls (control) not null,
   control text references sys.options_controls (value) not null,
   location int8 not null check (location >= 0),
   in_table_view boolean not null,
@@ -159,7 +157,10 @@ create table sys.fields (
 
   text_max_length int8,
   -- format text, <----- maybe use cl-format
-  
+
+  boolean_true text,
+  boolean_false text,
+
   date_min date,
   date_max date,
   
@@ -167,7 +168,7 @@ create table sys.fields (
   integer_min integer,
   integer_max integer,
   
-  float_step float,  
+  float_step float,
   float_min float,
   float_max float,
 
@@ -187,7 +188,7 @@ create table sys.fields (
 
   -- start: constraints for types --
   constraint valid_boolean_type_controls
-  check ((type = 'boolean' and (control='yes-no')) or (type != 'boolean')),
+  check ((type = 'boolean' and (control='boolean-select')) or (type != 'boolean')),
 
   constraint valid_date_type_controls
   check ((type = 'date' and (control='date')) or (type != 'date')),
@@ -215,6 +216,10 @@ create table sys.fields (
 
 
   -- start: constraints for controls --
+  constraint valid_boolean_select_control_attributes
+  check ((control='boolean-select' and boolean_true is not null and boolean_false is not null) or
+  	(control != 'boolean-select' and boolean_true is null and boolean_false is null)),
+
   constraint valid_date_control_attributes
   check ((control='date' and date_min is not null and date_max is not null and date_min <= date_max) or
   	(control='date' and (date_min is null or date_max is null)) or

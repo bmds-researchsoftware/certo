@@ -44,6 +44,7 @@ create table study.subjects (
   last_name text not null,
   birth_date date,
   birth_state text references app.options_states (value),
+  children boolean,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,

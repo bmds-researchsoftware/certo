@@ -75,6 +75,7 @@ values
 insert into sys.fields 
   (schema_name, table_name, field_name, type, is_pk, label, control, location, in_table_view, disabled, readonly, required,
   text_max_length,
+  boolean_true, boolean_false,
   date_min, date_max,
   integer_step, integer_min, integer_max,
   float_step, float_min, float_max,
@@ -83,6 +84,7 @@ insert into sys.fields
 values
   (:schema_name, :table_name, :field_name, :type, :is_pk, :label, :control, :location, :in_table_view, :disabled, :readonly, :required,
   :text_max_length,
+  :boolean_true, :boolean_false,
   :date_min::date, :date_max::date,
   :integer_step, :integer_min, :integer_max,
   :float_step, :float_min, :float_max,

@@ -89,11 +89,13 @@
       fs))))
 
 
-;; TO DO: Remove if nil?
+;; TO DO: Confirm db constraint will preven schema_table_field and
+;; options_schema_table from being nil, and then remove the nil? check
+;; below
 (defn select-options [db {:keys [:schema_table_field :options_schema_table]}]
   {schema_table_field
    {:options
-    (if (or  (nil? schema_table_field) (nil? options_schema_table))
+    (if (or (nil? schema_table_field) (nil? options_schema_table))
       []
       (jdbc/query db [(format "select * from %s" options_schema_table)] {:row-fn (juxt :label :value)}))}})
 

@@ -29,10 +29,10 @@
     (jt/format "MM/dd/YYYY, hh:mm:ss a" (jt/local-date-time ts))))
 
 
-(defn db-to-ui-boolean-table [value]
+(defn db-to-ui-boolean-table [fields field value]
   (cond
-    (true? value) "Yes"
-    (false? value) "No"
+    (true? value) (:boolean_true (get fields (name field)))
+    (false? value) (:boolean_false (get fields (name field)))
     :else
     (throw (Exception. (format "Invalid boolean value %s" value)))))
 
@@ -54,7 +54,7 @@
    (if (not (nil? value))
      (let [select? (= (get-in fields [(name field) :control]) "select")]
        (condp = (class value)
-         java.lang.Boolean (db-to-ui-boolean-table value)
+         java.lang.Boolean (db-to-ui-boolean-table fields field value)
          java.lang.Double value
          java.lang.Integer (if select? (db-to-ui-select-table value) value)         
          java.lang.Long (if select? (db-to-ui-select-table value) value)
@@ -129,7 +129,7 @@
 (defelem datetime-field
   "Creates a new datetime input field. This control expects the following format 2017-06-01T14:30"
   ([name] (datetime-field name nil))
-    ([name value] (#'f/input-field "datetime-local" name (db-to-ui-datetime value))))
+  ([name value] (#'f/input-field "datetime-local" name (db-to-ui-datetime value))))
 
 
 (defelem number-field
@@ -149,13 +149,13 @@
   ([name value] (f/text-field name (db-to-ui-timestamp value))))
 
 
-(defelem yes-no-field
-  "Creates a new yes-no input field."
-  ([name] (yes-no-field name nil))
-  ([name value]
+(defelem boolean-select-field
+  "Creates a new boolean-select input field."
+  ([name options] (boolean-select-field name options nil))
+  ([name options value]
    (f/drop-down
     name
-    [["" nil] ["Yes" "true"] ["No" "false"]]
+    options
     ;; value
     (cond
       (nil? value) nil
@@ -199,7 +199,12 @@
       "text" (f/text-field attrs name value)
       "textarea" (f/text-area attrs name value)
       "timestamp" (timestamp-field attrs name value)
-      "yes-no" (yes-no-field attrs name value)
+      "boolean-select"
+      ;; TO DO: Consider adding :options in models/default.clj just like select control
+      (let [options (map vector
+                         ["" (:boolean_true field) (:boolean_false field)]
+                         [nil "true" "false"])]
+        (boolean-select-field attrs name options value))
       (throw (Exception. (format "Invalid control: %s" control))))))
 
 
