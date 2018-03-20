@@ -15,7 +15,7 @@
 
 
 (defn format-title [t]
-  (str/join " " (map str/capitalize (str/split t #"_"))))
+  (str/join " " (map str/capitalize (str/split t #" |_"))))
 
 
 (defn db-to-ui-datetime [dt]
