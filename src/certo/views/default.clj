@@ -302,7 +302,7 @@
   (page
    title
    [:br] [:br]
-   [:div {:class "ct"} (str/capitalize title)]
+   [:div {:class "ct"} (format-title title)]
    [:br] [:br]
    (for [[schema tables] sts]
      (list
