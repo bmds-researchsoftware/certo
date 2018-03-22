@@ -236,8 +236,11 @@
                    value ((keyword stf) data)]]
          [:tr
           (if (or (= (:control field) "textarea")
+                  ;; TO DO: Remove this - db constraint requires
+                  ;; :select_size is not null for select controls.
                   ;; avoids NPE in the case where (:select_size value)
-                  ;; is nil, by using 0 as the default value of (:select_size value).
+                  ;; is nil, by using 0 as the default value of
+                  ;; (:select_size value).
                   (and (= (:control field) "select") (> (or (:select_size field) 0) 1)))
             [:td {:class "lbl" :style "vertical-align:top"} (form-label stf field)]
             [:td {:class "lbl"} (form-label stf field)])

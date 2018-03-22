@@ -11,6 +11,7 @@
    [java-time :as jt]
 
    [certo.controllers.default :as ccd]
+   [certo.middleware :as cm]   
    [certo.models.default :as cmd]
    [certo.system :as system]
    [certo.utilities :as cu]
@@ -30,8 +31,7 @@
 
 (defn init [& args]
   (alter-var-root #'system
-                  ;;(constantly (system/new-system system-name))
-                  (constantly (system/new-system q/system-name q/wrapped-handler))))
+                  (constantly (system/new-system q/system-name (partial cm/wrapped-handler q/handlerr)))))
 
 (defn touch [fs]
   (doseq [f fs]

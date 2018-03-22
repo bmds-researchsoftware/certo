@@ -2,7 +2,7 @@
   (:require [hugsql.core :as hugsql]
             [clojure.java.jdbc :as jdbc]
             [clojure.string :as str]
-               [certo.models.default :as models]
+            [certo.models.default :as models]
             [clojure.string :as str]))
 
 
