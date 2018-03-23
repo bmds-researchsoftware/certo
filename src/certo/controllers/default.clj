@@ -33,7 +33,7 @@
    (compojure/GET
     "/"
     []
-    (view/dashboard "Certo" (model/dashboard db md)))
+    (view/dashboard (:system-name md) (model/dashboard db md)))
 
    (compojure/GET
     "/sys/events/:id{[0-9]+}/new"

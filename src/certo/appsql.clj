@@ -1,4 +1,4 @@
-(ns certo.sql
+(ns certo.appsql
   (:require
    [hugsql.core :as hugsql]))
 
@@ -7,7 +7,7 @@
 ;; so the files referenced below are in
 ;; $PROJECT_DIRECTORY/resources/db/.
 
-(hugsql/def-db-fns "db/sys.sql")
+(hugsql/def-db-fns "db/app.sql")
 
-(hugsql/def-sqlvec-fns "db/sys.sql")
+(hugsql/def-sqlvec-fns "db/app.sql")
 

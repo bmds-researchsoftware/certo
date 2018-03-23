@@ -34,6 +34,6 @@
     (dissoc component :fields)))
 
 
-(defn new-metadata []
-  (map->Metadata {}))
+(defn new-metadata [system-name]
+  (map->Metadata {:system-name system-name}))
 

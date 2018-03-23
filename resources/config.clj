@@ -10,6 +10,6 @@
   :pgpass "./resources/db/.pgpass"}
 
   :webapp
- {:owner "Certo"
+ {:owner "Certoa"
   :port 8080}}
 

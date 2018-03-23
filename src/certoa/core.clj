@@ -1,4 +1,4 @@
-(ns qualified.core
+(ns certoa.core
   (:require
    [com.stuartsierra.component :as component]
    [compojure.core :refer [GET POST] :as compojure]   
@@ -9,13 +9,10 @@
   (:gen-class))
 
 
-(defonce system-name "certo")
-
-
-(defn handlerr [db md]
+(defn handler [db md]
   (compojure/routes
 
-   ;; (qualified.controllers.sample/sample-handler db)
+   ;; (certoa.controllers.sample/sample-handler db)
 
    (compojure/GET
     "/hello"
@@ -27,8 +24,14 @@
    (ccd/default-handler db md)))
 
 
+(defonce system-name "certoa")
+
+
+(defonce system-new-fn (fn [] (system/new-system system-name (partial cm/wrapped-handler handler))))
+
+
 (defn -main [& args]
   (let [system-name system-name
-        system (system/new-system system-name (partial cm/wrapped-handler handlerr))]
+        system (system-new-fn)]
     (component/start system)))
 

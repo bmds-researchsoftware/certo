@@ -1,6 +1,5 @@
 (ns certo.core-test
-  (:require [clojure.test :refer :all]
-            [certo.core :refer :all]))
+  (:require [clojure.test :refer :all]))
 
 (deftest a-test
   (testing "FIXME, I fail."
