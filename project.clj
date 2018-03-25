@@ -17,23 +17,5 @@
                  [org.clojure/java.jdbc "0.7.5"]
                  [org.postgresql/postgresql "9.4.1212"]
                  [clojure.java-time "0.3.1"]]
-  :main ^:skip-aot certo.core ;; only for applications, comment out for libraries
-  :target-path "target/%s" ;; only for applications, comment out for libraries
-  :local-repo ".m2"
-  :repl-options {:color false}
-  :profiles {:dev {:source-paths ["dev"]
-                   :dependencies [[clj-stacktrace "0.2.8"]
-                                  [org.clojure/tools.namespace "0.2.11"]
-                                  [org.clojure/java.classpath "0.2.3"]]
-                   :injections [(require 'complete.core) ;; used by inf-clojure
-                                ;;(require 'clojure.repl)
-                                (let [orig (ns-resolve (doto 'clojure.main require)
-                                                       'repl-caught)
-                                      new (ns-resolve (doto 'clj-stacktrace.repl require)
-                                                      'pst)]
-                                  (alter-var-root orig (constantly (deref new))))]}
-             :uberjar {:aot :all}} ;; only for application, comment out for libraries
-  :jvm-opts ["-Dclojure.server.repl={:port 5555 :accept clojure.core.server/repl :address \"0.0.0.0\"}"
-             "-Xms2g"
-             "-Xmx2g"
-             "-server"])
+  :local-repo ".m2")
+
