@@ -309,7 +309,7 @@
    [:br] [:br]
    (for [[schema tables] sts]
      (list
-      [:table {:style "width: 38%"}
+      [:table {:style "width: 45%"}
        [:tr [:th {:style "text-align:center" :colspan "3"} (str/capitalize schema)]]
        (for [[table cnt] tables]
          [:tr
