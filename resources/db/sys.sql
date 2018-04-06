@@ -38,6 +38,17 @@ values
   (:label, :value, :location, :created_by, :updated_by);
 
 
+
+-- :name insert-sys-options-foreign-key-queries
+-- :command :execute
+-- :result :raw
+-- :doc Insert into sys.options_foreign_key_queries
+insert into sys.options_foreign_key_queries
+  (label, value, query, location, created_by, updated_by)
+values
+  (:label, :value, :query, :location, :created_by, :updated_by);
+
+
 -- :name insert-val-controls
 -- :command :execute
 -- :result :raw
@@ -77,6 +88,7 @@ insert into sys.fields
   text_max_length,
   boolean_true, boolean_false,
   date_min, date_max,
+  foreign_key_query, foreign_key_size,
   integer_step, integer_min, integer_max,
   float_step, float_min, float_max,
   select_multiple, select_size, options_schema_table,
@@ -86,6 +98,7 @@ values
   :text_max_length,
   :boolean_true, :boolean_false,
   :date_min::date, :date_max::date,
+  :foreign_key_query, :foreign_key_size,
   :integer_step, :integer_min, :integer_max,
   :float_step, :float_min, :float_max,
   :select_multiple, :select_size, :options_schema_table,

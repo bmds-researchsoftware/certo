@@ -78,3 +78,22 @@
         (.write out row)
         (.write out "\n")))))
 
+
+
+;; (pads "The Clojure language" 10 "nbsp;" true) =>  "The Clo..."
+;; (pads "The Clojure language" 10 "nbsp;" false) => "The Clojur"
+;; (pads "The Clojure language" 25 "nbsp;" true) =>  "The Clojure languagenbsp;nbsp;nbsp;nbsp;nbsp;"
+(defn pads [s k p ellipsis?]
+  "Pad a string s with string p (optionally adding ellipsis) so that
+  the length of the result is k."
+  (let [cs (inc (count s))
+        s (str s p)]
+    (cond (> k cs)
+          (str s (str/join (repeat (- k cs) p)))
+          (< k cs)
+          (if ellipsis?
+            (str (subs s 0 (- k 4)) "..." p)
+            (str (subs s 0 (dec k)) p))
+          :else
+          s)))
+

@@ -89,7 +89,7 @@
       fs))))
 
 
-;; TO DO: Confirm db constraint will preven schema_table_field and
+;; TO DO: Confirm db constraint will prevent schema_table_field and
 ;; options_schema_table from being nil, and then remove the nil? check
 ;; below
 (defn select-options [db {:keys [:schema_table_field :options_schema_table]}]
@@ -98,6 +98,20 @@
     (if (or (nil? schema_table_field) (nil? options_schema_table))
       []
       (jdbc/query db [(format "select * from %s" options_schema_table)] {:row-fn (juxt :label :value)}))}})
+
+
+;; TO DO: Confirm db constraint will prevent schema_table_field,
+;; foreign_key_schema_table, and foreign_key_field from being nil, and
+;; then remove the nil? check below
+(defn foreign-key-options [db {:keys [:schema_table_field :value :query]}]
+  {schema_table_field
+   {:foreign-keys
+    (if (or (nil? schema_table_field) (nil? value) (nil? query))
+      []
+      (jdbc/query
+       db
+       [query]
+       {:row-fn (fn [{:keys [:foreign_key_value] :as all}] {:value foreign_key_value :label-fields (dissoc all :foreign_key_value)})}))}})
 
 
 (defn common-fields [db]
@@ -176,6 +190,7 @@
       (fn [{schema-name :schema_name table-name :table_name field-name :field_name :as row}]
         [(str schema-name "." table-name "." field-name) row])
       (jdbc/query db ["select * from sys.fields"]))))
+
    (reduce
     into
     (map
@@ -187,7 +202,21 @@
       {:row-fn
        #(hash-map
          :schema_table_field (str (:schema_name %) "." (:table_name %) "." (:field_name %))
-         :options_schema_table (:options_schema_table %))})))))
+         :options_schema_table (:options_schema_table %))})))
+
+   (reduce
+    into
+    (map
+     #(foreign-key-options db %)
+     ;; Get a list of the fields that have a foreign-key-static control
+     (jdbc/query
+      db 
+      ["select fs.schema_name, fs.table_name, fs.field_name, qs.value, qs.query from sys.fields as fs inner join sys.options_foreign_key_queries as qs on fs.foreign_key_query=qs.value where fs.control='foreign-key-static'"]
+      {:row-fn
+       #(hash-map
+         :schema_table_field (str (:schema_name %) "." (:table_name %) "." (:field_name %))
+         :value (:value %)
+         :query (:query %))})))))
 
 
 (defn fields-by-schema-table [fields schema table]

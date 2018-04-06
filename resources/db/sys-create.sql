@@ -118,6 +118,26 @@ create table sys.options_controls (
 select sys.create_trigger_set_updated_at('sys.options_controls');
 
 
+-- :name create-table-sys-options-foreign-key-queries
+-- :command :execute
+-- :result :raw
+-- :doc Create table sys.options_foreign_key_queries
+create table sys.options_foreign_key_queries (
+  id serial8 primary key,
+  label text not null,
+  value text unique,
+  query text,
+  location int8,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp,
+  constraint valid_location
+  check ((location is null) or (location >= 0)));
+  
+select sys.create_trigger_set_updated_at('sys.options_foreign_key_queries');
+
+
 -- :name create-table-sys-tables
 -- :command :execute
 -- :result :raw
@@ -163,6 +183,9 @@ create table sys.fields (
 
   date_min date,
   date_max date,
+
+  foreign_key_query text references sys.options_foreign_key_queries (value),
+  foreign_key_size int8,
   
   integer_step integer,
   integer_min integer,
@@ -197,11 +220,10 @@ create table sys.fields (
   check ((type = 'float8' and (control='float')) or (type != 'float')),
 
   constraint valid_int8_type_controls
-  check ((type = 'int8' and ((control='integer') or (control='select'))) or (type != 'float')),
+  check ((type = 'int8' and ((control='integer') or (control='integer-key') or (control='select') or (control='foreign-key-static'))) or (type != 'int8')),
 
-  -- TO DO: should make an integer-id control
   constraint valid_serial8_type_controls
-  check ((type = 'serial8' and (control='text')) or (type != 'serial8')),
+  check ((type = 'serial8' and (control='integer-key')) or (type != 'serial8')),
 
   constraint valid_text_type_controls
   check ((type = 'text' and ((control='text') or (control='textarea') or (control='select'))) or (type != 'text')),
@@ -228,11 +250,18 @@ create table sys.fields (
   -- constraint valid_datetime_control_attributes
   -- check ((control='datetime' and ???) or (control != 'datetime')),
 
+  constraint valid_foreign_key_static_control_attributes
+  check ((control='foreign-key-static' and foreign_key_query is not null and foreign_key_size >= 0) or (control != 'foreign-key-static' and foreign_key_query is null and foreign_key_size is null)),
+
   constraint valid_integer_control_attributes
   check (((control='integer' and integer_step is not null) and 
   			     integer_min is not null and integer_max is not null and integer_min <= integer_max) or
   	((control='integer' and integer_step is not null) and (integer_min is null or integer_max is null)) or
 	(control != 'integer' and integer_step is null and integer_min is null and integer_max is null)),
+
+
+  constraint valid_integer_key_control_attributes
+  check ((control='integer-key' and disabled='false' and readonly='true' and required='false') or (control != 'integer-key')),
 
   constraint valid_float_control_attributes
   check (((control='float' and float_step is not null) and 

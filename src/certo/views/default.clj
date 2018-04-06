@@ -14,6 +14,9 @@
    [certo.utilities :as u]))
 
 
+(def ^:const foreign-key-static-field-column-width 12)
+
+
 (defn format-title [t]
   (str/join " " (map str/capitalize (str/split t #" |_"))))
 
@@ -87,9 +90,9 @@
         ;; there should be exactly one pk field
         pk (filter #(:is_pk (get fields %)) stfs)        
         pk (case (count (take 2 pk))
-             0 (throw (Exception. "None found, but expected exactly one."))
+             0 (throw (Exception. "No primary key found, but expected exactly one."))             
              1 (first pk)
-             (throw (Exception. "Multiple found, but expected exactly one.")))
+             (throw (Exception. "Multiple primary keys found, but expected exactly one.")))
         pk_kw (keyword pk)
         title (format-title table)]
     (page
@@ -165,6 +168,41 @@
       (throw (Exception. (format "Invalid boolean value %s of class %s is nil? %s" value (class value) (nil? value))))))))
 
 
+(defn foreign-key-static-field-format [value]
+  (if (not (nil? value))
+    (condp = (class value)
+      java.lang.Boolean value ;; (db-to-ui-boolean-table fields field value)
+      java.lang.Double value
+      java.lang.Integer value
+      java.lang.Long value
+      java.lang.String value
+      java.sql.Date (db-to-ui-date-table value)
+      java.sql.Timestamp (db-to-ui-timestamp value)
+      java.util.UUID value
+      (throw (Exception. (format "Unknown %s for value %s" (class value) value))))
+    ""))
+
+
+(defelem foreign-key-static-field
+  "Creates a new foreign-key-static input field."
+  ([name foreign-keys] (foreign-key-static-field name foreign-keys nil))
+  ([name foreign-keys value]
+   ;;  Cheap way to get a table to select or display data: use a
+   ;;  select control with a fixed width font and pad fields with
+   ;;  non-breaking spaces so they line up in columns.
+   (f/drop-down
+    name
+    (map
+     (fn [foreign-key]
+       (vector
+        (map
+         (fn [[k v]] (u/pads (str (foreign-key-static-field-format v)) foreign-key-static-field-column-width "&nbsp;" true))
+         (:label-fields foreign-key))
+        (:value foreign-key)))
+     foreign-keys)
+    value)))
+
+
 (defn form-field [name field value]
   (let [control (:control field)
         attrs
@@ -177,6 +215,7 @@
            {:text_max_length :maxlength 
             :date_min :min
             :date_max :max
+            :foreign_key_size :size
             :integer_step :step
             :integer_min :min
             :integer_max :max
@@ -193,8 +232,11 @@
       "datetime" (datetime-field attrs name value)
       ;; "float" (number-field (assoc attrs :step 0.0000000001) name value)
       "float" (number-field attrs name value)
-      ;;"integer" (number-field (assoc attrs :step 1) name value)
+      "foreign-key-static"
+       (foreign-key-static-field (assoc attrs :class "fks") name (:foreign-keys field) value)
+      ;; "integer" (number-field (assoc attrs :step 1) name value)
       "integer" (number-field attrs name value)
+      "integer-key" (number-field attrs name value)
       "select" (f/drop-down attrs name (:options field) value)
       "text" (f/text-field attrs name value)
       "textarea" (f/text-area attrs name value)
@@ -236,6 +278,7 @@
                    value ((keyword stf) data)]]
          [:tr
           (if (or (= (:control field) "textarea")
+                  (= (:control field) "foreign-key-static")
                   ;; TO DO: Remove this - db constraint requires
                   ;; :select_size is not null for select controls.
                   ;; avoids NPE in the case where (:select_size value)
