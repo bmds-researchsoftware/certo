@@ -207,7 +207,7 @@
   (let [control (:control field)
         attrs
         (into
-         {}
+         {:class "fld"}
          (filter
           identity
           (map
