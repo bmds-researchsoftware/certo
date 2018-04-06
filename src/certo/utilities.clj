@@ -30,9 +30,12 @@
 
 (defn touch [fs]
   (doseq [f fs]
-    (.setLastModified
-     (clojure.java.io/file f)
-     (java-time/to-millis-from-epoch (java-time/instant)))))
+    (let [af (clojure.java.io/file f)]
+      (if (.exists af)
+        (.setLastModified
+         af
+         (java-time/to-millis-from-epoch (java-time/instant)))
+        (throw (Exception. (format "File %s not found" (.getCanonicalPath af))))))))
 
 
 (defn hash-maps-to-db [db filename f]

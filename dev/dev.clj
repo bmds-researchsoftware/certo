@@ -1,5 +1,6 @@
 (ns dev
   (:require
+   [clojure.string :as str]   
    [clojure.tools.namespace.repl :refer (refresh refresh-all)]
    [com.stuartsierra.component :as component]
    [certo.utilities :as u]))
@@ -8,6 +9,8 @@
 (alter-var-root #'*out* (constantly *out*))
 
 (alter-var-root #'*err* (constantly *err*))
+
+(def app-home nil)
 
 (def init-fn nil)
 
@@ -38,8 +41,11 @@
   (stop)
   ;; touch *.clj files so hugsql reloads them, and changes in the
   ;; *.sql files they use are realized
-  (u/touch ["src/certo/sql.clj"])
-  (u/touch ["src/certo/appsql.clj"])  
+  (u/touch ["checkouts/certo/src/certo/sql.clj"])
+  (let [app-home (.getCanonicalPath (clojure.java.io/file "."))
+        app-name (last (str/split app-home  #"[/]"))
+        app-sql-file (str app-home "/src/" app-name "/sql.clj")]
+    (u/touch [app-sql-file]))
   ;; (clojure.tools.namespace.repl/refresh-all :after 'user/go)
   (clojure.tools.namespace.repl/refresh :after 'dev/go))
 
