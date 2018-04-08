@@ -242,7 +242,6 @@
       "textarea" (f/text-area attrs name value)
       "timestamp" (timestamp-field attrs name value)
       "boolean-select"
-      ;; TO DO: Consider adding :options in models/default.clj just like select control
       (let [options (map vector
                          ["" (:boolean_true field) (:boolean_false field)]
                          [nil "true" "false"])]
