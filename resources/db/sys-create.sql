@@ -14,10 +14,10 @@ drop schema if exists sys cascade;
 create schema sys;
 
 
--- :name create-functions-and-triggers
+-- :name create-trigger-sys-set-updated-at
 -- :command :execute
 -- :result :raw
--- :doc Create functions and triggers
+-- :doc Create trigger sys.set_updated_at
 create or replace function sys.set_updated_at()
 returns trigger as $$
 begin
@@ -26,6 +26,11 @@ begin
 end;
 $$ language plpgsql;
 
+
+-- :name create-function-sys-create-trigger-set-updated-at
+-- :command :execute
+-- :result :raw
+-- :doc Create function sys.create_trigger_set_updated_at
 create or replace function sys.create_trigger_set_updated_at(tbl text) returns void as $$
 begin
   execute format('create trigger trigger_set_updated_at before update on %s for each row execute procedure sys.set_updated_at();', tbl);
