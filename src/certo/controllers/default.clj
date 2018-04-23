@@ -13,7 +13,8 @@
    [certo.models.events :as me]))
 
 
-(def uuid-or-integer-pk "/:pk{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]+}")
+;; text primary keys can contains lower case letters, number, hyphens, and underscores without whitespace
+(def uuid-or-integer-or-text-pk "/:pk{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]+|[a-zA-Z0-9\\-_)]+}")
 
 
 ;; For debugging
@@ -76,17 +77,17 @@
         (redirect-to-schema-table-root schema table))
        
        (compojure/GET
-        uuid-or-integer-pk
+        uuid-or-integer-or-text-pk
         [pk]
         (view/show (:fields md) schema table (model/select-one db md schema table pk)))
        
        (compojure/GET
-        (str uuid-or-integer-pk "/edit")
+        (str uuid-or-integer-or-text-pk "/edit")
         [pk]
         (view/edit (:fields md) schema table (model/select-one db md schema table pk)))
        
        (compojure/PUT
-        uuid-or-integer-pk
+        uuid-or-integer-or-text-pk
         {params :params username :basic-authentication}
         ;; note: discards the :pk in query-params but keeps the one in form-params
         (model/update! db md schema table
@@ -96,7 +97,7 @@
         (redirect-to-schema-table-root schema table))
        
        (compojure/DELETE
-        uuid-or-integer-pk
+        uuid-or-integer-or-text-pk
         [pk]
         (model/delete! db md schema table pk)
         (redirect-to-schema-table-root schema table)))))
