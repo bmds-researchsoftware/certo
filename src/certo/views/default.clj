@@ -14,7 +14,7 @@
    [certo.utilities :as u]))
 
 
-(def ^:const foreign-key-static-field-column-width 12)
+(def ^:const foreign-key-static-field-column-width 20)
 
 
 (defn format-title [t]
@@ -195,9 +195,11 @@
     (map
      (fn [foreign-key]
        (vector
-        (map
-         (fn [[k v]] (u/pads (str (foreign-key-static-field-format v)) foreign-key-static-field-column-width "&nbsp;" true))
-         (:label-fields foreign-key))
+        (if (:value foreign-key)
+          (map
+           (fn [[k v]] (u/pads (str (foreign-key-static-field-format v)) foreign-key-static-field-column-width "&nbsp;" true))
+           (:label-fields foreign-key))
+          "")
         (:value foreign-key)))
      foreign-keys)
     value)))
@@ -240,6 +242,7 @@
       "select" (f/drop-down attrs name (:options field) value)
       "text" (f/text-field attrs name value)
       "textarea" (f/text-area attrs name value)
+      "text-key" (f/text-field attrs name value)
       "timestamp" (timestamp-field attrs name value)
       "boolean-select"
       (let [options (map vector
@@ -323,8 +326,13 @@
           identity
           (map
            (fn [[k v]]
-             (cond (:is_pk v)
+             (cond (and (:is_pk v) (not (:is_pk_in_new v)))
                    false
+                   (and (:is_pk v) (:is_pk_in_new v))
+                   ;; Since creating a new record, if :is_pk and :is_pk_in_new then set readonly
+                   ;; to false, so user can set the primary key.  However, when editing an existing
+                   ;; record, leave readonly as true, so the user can't change the primary key.
+                   [k (assoc v :readonly false)]
                    ((set ["created_by" "created_at" "updated_by" "updated_at"]) (:field_name v))
                    false
                    :else [k v]))

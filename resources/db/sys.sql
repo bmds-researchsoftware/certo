@@ -38,7 +38,6 @@ values
   (:label, :value, :location, :created_by, :updated_by);
 
 
-
 -- :name insert-sys-options-foreign-key-queries
 -- :command :execute
 -- :result :raw
@@ -47,6 +46,16 @@ insert into sys.options_foreign_key_queries
   (label, value, query, location, created_by, updated_by)
 values
   (:label, :value, :query, :location, :created_by, :updated_by);
+
+
+-- :name insert-sys-options-function-names
+-- :command :execute
+-- :result :raw
+-- :doc Insert into sys.options_function_names
+insert into sys.options_function_names
+  (value, label, location, created_by, updated_by)
+values
+  (:value, :label, :location, :created_by, :updated_by);
 
 
 -- :name insert-val-controls
@@ -84,7 +93,8 @@ values
 -- :result :raw
 -- :doc Insert into sys.fields
 insert into sys.fields 
-  (schema_name, table_name, field_name, type, is_pk, label, control, location, in_table_view, disabled, readonly, required,
+  (schema_name, table_name, field_name, 
+	type, is_pk, is_pk_in_new, label, control, location, in_table_view, disabled, readonly, required,
   text_max_length,
   boolean_true, boolean_false,
   date_min, date_max,
@@ -94,7 +104,8 @@ insert into sys.fields
   select_multiple, select_size, options_schema_table,
   created_by, updated_by)
 values
-  (:schema_name, :table_name, :field_name, :type, :is_pk, :label, :control, :location, :in_table_view, :disabled, :readonly, :required,
+  (:schema_name, :table_name, :field_name, 
+	:type, :is_pk, :is_pk_in_new, :label, :control, :location, :in_table_view, :disabled, :readonly, :required,
   :text_max_length,
   :boolean_true, :boolean_false,
   :date_min::date, :date_max::date,
@@ -110,9 +121,9 @@ values
 -- :result :raw
 -- :doc Insert into sys.event_classes
 insert into sys.event_classes
-  (name, description, created_by, updated_by)
+  (event_classes_id, function_name, argument_name_id, description, created_by, updated_by)
 values
-  (:name, :description, :created_by, :updated_by);
+  (:event_classes_id, :function_name, :argument_name_id, :description, :created_by, :updated_by);
 
 
 -- :name insert-sys-event-classes-fields
@@ -120,7 +131,7 @@ values
 -- :result :raw
 -- :doc Insert into sys.event_classes_fields
 insert into sys.event_classes_fields 
-  (event_classes_id, fields_id, location, created_by, updated_by)
+  (event_classes_id, fields_id, location, disabled, readonly, required, created_by, updated_by)
 values 
-  (:event_classes_id, :fields_id, :location, :created_by, :updated_by);
+  (:event_classes_id, :fields_id, :location, :disabled, :readonly, :required, :created_by, :updated_by);
 
