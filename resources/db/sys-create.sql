@@ -157,10 +157,7 @@ select sys.create_trigger_set_updated_at('sys.tables');
 -- :result :raw
 -- :doc Create table sys.fields
 create table sys.fields (
-  fields_id serial8 primary key,
-  schema_name text not null,
-  table_name text not null,
-  field_name text not null,
+  fields_id text primary key,  
   type text references sys.options_types (value) not null,
   is_pk boolean not null,
   is_pk_in_new boolean,
@@ -201,8 +198,7 @@ create table sys.fields (
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp,
 
-  unique (schema_name, table_name, field_name),
-  unique (schema_name, table_name, field_name, location),
+  unique (fields_id, location),
 
   constraint valid_pk
   check ((is_pk = 'true') or (is_pk = 'false' and is_pk_in_new is null)),
@@ -285,8 +281,30 @@ create table sys.fields (
   -- end: constraints for controls --
 );
 select create_trigger_set_updated_at('sys.fields');
+
+create function schema_name(sys.fields)
+returns text as
+$$
+  select (string_to_array($1.fields_id, '.'))[1]
+$$
+language sql stable;
+
+create function table_name(sys.fields)
+returns text as
+$$
+  select (string_to_array($1.fields_id, '.'))[2]
+$$
+language sql stable;
+
+create function field_name(sys.fields)
+returns text as
+$$
+  select (string_to_array($1.fields_id, '.'))[3]
+$$
+language sql stable;
+
 -- ensures that there is only one primary key field per schema.table
-create unique index unique_pk on sys.fields (schema_name, table_name) where is_pk;
+create unique index unique_pk on sys.fields ((sys.fields.schema_name), (sys.fields.table_name)) where is_pk;
 
 
 -- :name create-table-sys-event-classes
@@ -300,7 +318,7 @@ create table sys.event_classes (
   -- then study.participant_id = 2345 is passed into the
   -- function whose name is 'screen-participant'.
   function_name text references sys.options_function_names (value) not null,
-  argument_name_id int8 references sys.fields (fields_id),
+  argument_name_id text references sys.fields (fields_id),
   description text,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
@@ -316,7 +334,7 @@ select sys.create_trigger_set_updated_at('sys.event_classes');
 create table sys.event_classes_fields (
   event_classes_fields_id serial8 primary key,
   event_classes_id text references sys.event_classes (event_classes_id) not null,
-  fields_id int8 references sys.fields (fields_id) not null,
+  fields_id text references sys.fields (fields_id) not null,
   location int8 constraint valid_sys_event_classes_fields_location check (location is not null and location >= 0),
   disabled boolean not null,
   readonly boolean not null,

@@ -164,7 +164,7 @@
         :disabled true}})
     (jdbc/query
      db
-     ["select schema_name, table_name from sys.fields group by schema_name, table_name"]
+     ["select sys.fields.schema_name, sys.fields.table_name from sys.fields group by schema_name, table_name"]
      {:row-fn (juxt :schema_name :table_name)}))))
 
 
@@ -189,7 +189,7 @@
       ;; TO DO: Maybe do with a row-fn
       (fn [{schema-name :schema_name table-name :table_name field-name :field_name :as row}]
         [(str schema-name "." table-name "." field-name) row])
-      (jdbc/query db ["select * from sys.fields"]))))
+      (jdbc/query db ["select *, sys.fields.schema_name, sys.fields.table_name, sys.fields.field_name from sys.fields"]))))
 
    (reduce
     into
@@ -198,7 +198,7 @@
      ;; Get a list of the fields that have a select control
      (jdbc/query
       db 
-      ["select * from sys.fields where control='select'"]
+      ["select *, sys.fields.schema_name, sys.fields.table_name, sys.fields.field_name from sys.fields where control='select'"]
       {:row-fn
        #(hash-map
          :schema_table_field (str (:schema_name %) "." (:table_name %) "." (:field_name %))
@@ -210,7 +210,7 @@
      #(foreign-key-options db %)
      ;; Get a list of the fields that have a foreign-key-static control
      (jdbc/query
-      db 
+      db
       ["select fs.schema_name, fs.table_name, fs.field_name, qs.value, qs.query from sys.fields as fs inner join sys.options_foreign_key_queries as qs on fs.foreign_key_query=qs.value where fs.control='foreign-key-static'"]
       {:row-fn
        #(hash-map
@@ -331,12 +331,12 @@
 ;; "Schema_2" ([table_2_1 count_2_1] [table_2_2 count_2_2] [table_2_3 count_2_3]))
 (defn dashboard [db md]
   (let [schemas
-        (jdbc/query db ["select schema_name from sys.fields group by schema_name order by schema_name"] {:row-fn :schema_name})]
+        (jdbc/query db ["select sys.fields.schema_name from sys.fields group by schema_name order by schema_name"] {:row-fn :schema_name})]
     (map
      (fn [schema]
        [schema 
         (jdbc/query
-         db ["select table_name from sys.fields where schema_name=? group by table_name order by table_name" schema]
+         db ["select sys.fields.table_name from sys.fields where sys.fields.schema_name=? group by sys.fields.table_name order by sys.fields.table_name" schema]
          {:row-fn #(let [table (:table_name %)
                          st (st schema table)]
                      [table (select-count-star db st)])})])

@@ -13,8 +13,8 @@
    [certo.models.events :as me]))
 
 
-;; text primary keys can contains lower case letters, number, hyphens, and underscores without whitespace
-(def uuid-or-integer-or-text-pk "/:pk{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]+|[a-zA-Z0-9\\-_)]+}")
+;; text primary keys can contains lower case letters, numbers, hyphens, periods, and underscores without whitespace
+(def uuid-or-integer-or-text-pk "/:pk{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]+|[a-zA-Z0-9\\-_\\.)]+}")
 
 
 ;; For debugging

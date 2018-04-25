@@ -93,8 +93,7 @@ values
 -- :result :raw
 -- :doc Insert into sys.fields
 insert into sys.fields 
-  (schema_name, table_name, field_name, 
-	type, is_pk, is_pk_in_new, label, control, location, in_table_view, disabled, readonly, required,
+  (fields_id, type, is_pk, is_pk_in_new, label, control, location, in_table_view, disabled, readonly, required,
   text_max_length,
   boolean_true, boolean_false,
   date_min, date_max,
@@ -104,8 +103,7 @@ insert into sys.fields
   select_multiple, select_size, options_schema_table,
   created_by, updated_by)
 values
-  (:schema_name, :table_name, :field_name, 
-	:type, :is_pk, :is_pk_in_new, :label, :control, :location, :in_table_view, :disabled, :readonly, :required,
+  (:fields_id, :type, :is_pk, :is_pk_in_new, :label, :control, :location, :in_table_view, :disabled, :readonly, :required,
   :text_max_length,
   :boolean_true, :boolean_false,
   :date_min::date, :date_max::date,
