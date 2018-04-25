@@ -45,7 +45,7 @@ $$ language plpgsql;
 create table sys.options_usergroups (
   id serial8 primary key,
   label text not null,
-  value text unique,
+  value text unique not null,
   location int8 constraint valid_sys_options_usergroups_location check (location is null or location >= 0),
   created_by text constraint valid_sys_options_usergroups_created_by check (created_by = 'root'),
   created_at timestamptz default current_timestamp,
@@ -59,8 +59,7 @@ select sys.create_trigger_set_updated_at('sys.options_usergroups');
 -- :result :raw
 -- :doc Create table sys.users
 create table sys.users (
-  id uuid primary key default uuid_generate_v1mc(),
-  username text unique not null,
+  username text primary key,
   password text not null,
   usergroup text references sys.options_usergroups (value) not null,
   created_by text references sys.users (username),
