@@ -3,9 +3,9 @@
 -- :result :raw
 -- :doc Insert into sys.options_usergroups
 insert into sys.options_usergroups
-  (label, value, location, created_by, updated_by)
+  (value, label, location, created_by, updated_by)
 values
-  (:label, :value, :location, :created_by, :updated_by);
+  (:value, :label, :location, :created_by, :updated_by);
 
 
 -- :name insert-sys-users
@@ -23,9 +23,9 @@ values
 -- :result :raw
 -- :doc Insert into sys.options_types
 insert into sys.options_types
-  (label, value, location, created_by, updated_by)
+  (value, label, location, created_by, updated_by)
 values
-  (:label, :value, :location, :created_by, :updated_by);
+  (:value, :label, :location, :created_by, :updated_by);
 
 
 -- :name insert-sys-options-controls
@@ -33,9 +33,9 @@ values
 -- :result :raw
 -- :doc Insert into sys.options_controls
 insert into sys.options_controls
-  (label, value, location, created_by, updated_by)
+  (value, label, location, created_by, updated_by)
 values
-  (:label, :value, :location, :created_by, :updated_by);
+  (:value, :label, :location, :created_by, :updated_by);
 
 
 -- :name insert-sys-options-foreign-key-queries
@@ -43,9 +43,9 @@ values
 -- :result :raw
 -- :doc Insert into sys.options_foreign_key_queries
 insert into sys.options_foreign_key_queries
-  (label, value, query, location, created_by, updated_by)
+  (value, label, query, location, created_by, updated_by)
 values
-  (:label, :value, :query, :location, :created_by, :updated_by);
+  (:value, :label, :query, :location, :created_by, :updated_by);
 
 
 -- :name insert-sys-options-function-names

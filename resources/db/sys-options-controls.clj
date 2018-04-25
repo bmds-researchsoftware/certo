@@ -1,22 +1,20 @@
-{:label "" :value nil :location 0 :created_by "root" :updated_by "root"}
+{:value "boolean-select" :label "Boolean Select" :location 1 :created_by "root" :updated_by "root"}
 
-{:label "Boolean Select" :value "boolean-select" :location 1 :created_by "root" :updated_by "root"}
+{:value "date" :label "Date" :location 2 :created_by "root" :updated_by "root"}
 
-{:label "Date" :value "date" :location 2 :created_by "root" :updated_by "root"}
+{:value "float" :label "Float" :location 3 :created_by "root" :updated_by "root"}
 
-{:label "Float" :value "float" :location 3 :created_by "root" :updated_by "root"}
+{:value "foreign-key-static" :label "Foreign Key Static" :location 4 :created_by "root" :updated_by "root"}
 
-{:label "Foreign Key Static" :value "foreign-key-static" :location 4 :created_by "root" :updated_by "root"}
+{:value "integer-key" :label "Integer Key" :location 5 :created_by "root" :updated_by "root"}
 
-{:label "Integer Key" :value "integer-key" :location 5 :created_by "root" :updated_by "root"}
+{:value "integer" :label "Integer" :location 6 :created_by "root" :updated_by "root"}
 
-{:label "Integer" :value "integer" :location 6 :created_by "root" :updated_by "root"}
+{:value "select" :label "Select" :location 7 :created_by "root" :updated_by "root"}
 
-{:label "Select" :value "select" :location 7 :created_by "root" :updated_by "root"}
+{:value "text-key" :label "Text Key" :location 8 :created_by "root" :updated_by "root"}
 
-{:label "Text Key" :value "text-key" :location 8 :created_by "root" :updated_by "root"}
+{:value "text" :label "Text" :location 9 :created_by "root" :updated_by "root"}
 
-{:label "Text" :value "text" :location 9 :created_by "root" :updated_by "root"}
-
-{:label "Textarea" :value "textarea" :location 10 :created_by "root" :updated_by "root"}
+{:value "textarea" :label "Textarea" :location 10 :created_by "root" :updated_by "root"}
 

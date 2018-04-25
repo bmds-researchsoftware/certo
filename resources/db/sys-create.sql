@@ -43,9 +43,8 @@ $$ language plpgsql;
 -- :result :raw
 -- :doc Create table sys.options_usergroups
 create table sys.options_usergroups (
-  id serial8 primary key,
+  value text primary key,
   label text not null,
-  value text unique not null,
   location int8 constraint valid_sys_options_usergroups_location check (location is null or location >= 0),
   created_by text constraint valid_sys_options_usergroups_created_by check (created_by = 'root'),
   created_at timestamptz default current_timestamp,
@@ -75,9 +74,8 @@ create index on sys.users (usergroup);
 -- :result :raw
 -- :doc Create table sys.options_types
 create table sys.options_types (
-  id serial8 primary key,
+  value text primary key,
   label text not null,
-  value text unique,
   location int8 constraint valid_sys_options_types_location check (location is null or location >= 0),
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
@@ -91,9 +89,8 @@ select sys.create_trigger_set_updated_at('sys.options_types');
 -- :result :raw
 -- :doc Create table sys.options_controls
 create table sys.options_controls (
-  id serial8 primary key,
+  value text primary key,
   label text not null,
-  value text unique,
   location int8 constraint valid_sys_options_controls_location check (location is null or location >= 0),
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
@@ -107,9 +104,8 @@ select sys.create_trigger_set_updated_at('sys.options_controls');
 -- :result :raw
 -- :doc Create table sys.options_foreign_key_queries
 create table sys.options_foreign_key_queries (
-  id serial8 primary key,
+  value text primary key,
   label text not null,
-  value text unique,
   query text,
   location int8 constraint valid_sys_options_foreign_key_queries_location check (location is null or location >= 0),
   created_by text references sys.users (username) not null,
