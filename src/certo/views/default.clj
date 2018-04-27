@@ -205,53 +205,74 @@
     value)))
 
 
-(defn form-field [name field value]
-  (let [control (:control field)
-        attrs
-        (into
-         {:class "fld"}
-         (filter
-          identity
-          (map
-           (fn [[in out]] (if (get field in) [out (get field in)] false))
-           {:text_max_length :maxlength
-            :textarea_cols :cols
-            :textarea_rows :rows
-            :date_min :min
-            :date_max :max
-            :foreign_key_size :size
-            :integer_step :step
-            :integer_min :min
-            :integer_max :max
-            :float_step :step
-            :float_min :min
-            :float_max :max
-            :select_multiple :multiple
-            :select_size :size
-            :disabled :disabled
-            :readonly :readonly
-            :required :required})))]
-    (case control
-      "date" (date-field attrs name value)
-      "datetime" (datetime-field attrs name value)
-      ;; "float" (number-field (assoc attrs :step 0.0000000001) name value)
-      "float" (number-field attrs name value)
-      "foreign-key-static"
-       (foreign-key-static-field (assoc attrs :class "fks") name (:foreign-keys field) value)
-      ;; "integer" (number-field (assoc attrs :step 1) name value)
-      "integer" (number-field attrs name value)
-      "integer-key" (number-field attrs name value)
-      "select" (f/drop-down attrs name (:options field) value)
-      "text" (f/text-field attrs name value)
-      "textarea" (f/text-area attrs name value)
-      "text-key" (f/text-field attrs name value)
-      "timestamp" (timestamp-field attrs name value)
-      "boolean-select"
-      (let [options (map vector
-                         ["" (:boolean_true field) (:boolean_false field)]
-                         [nil "true" "false"])]
-        (boolean-select-field attrs name options value))
-      (throw (Exception. (format "Invalid control: %s" control))))))
+(defn update-attrs [attrs field new-attrs-map]
+  (into
+   attrs
+   (filter
+    identity
+    (map
+     (fn [[in out]] (if (get field in) [out (get field in)] false))
+     new-attrs-map))))
+
+
+(defmulti form-field (fn [{:keys [:control]} name attrs value] [control]))
+
+
+(defmethod form-field ["date"] [field name attrs value]
+  (date-field (update-attrs attrs field {:date_min :min :date_max :max}) name value))
+
+
+(defmethod form-field ["datetime"] [field name attrs value]
+   (datetime-field attrs name value))
+
+
+(defmethod form-field ["float"] [field name attrs value]
+  ;; (number-field (assoc attrs :step 0.0000000001) name value)
+  (number-field (update-attrs attrs field {:float_step :step :float_min :min :float_max :max}) name value))
+
+
+(defmethod form-field ["foreign-key-static"] [field name attrs value]
+  (foreign-key-static-field (assoc (update-attrs attrs field {:foreign_key_size :size}) :class "fks") name (:foreign-keys field) value))
+
+
+(defmethod form-field ["integer"] [field name attrs value]
+  ;; (number-field (assoc attrs :step 1) name value)
+  (number-field (update-attrs attrs field {:integer_step :step :integer_min :min :integer_max :max}) name value))
+
+
+(defmethod form-field ["integer-key"] [field name attrs value]
+  (number-field attrs name value))
+
+
+(defmethod form-field ["select"] [field name attrs value]
+  (f/drop-down (update-attrs attrs field {:select_multiple :multiple :select_size :size}) name (:options field) value))
+
+
+(defmethod form-field ["text"] [field name attrs value]
+  (f/text-field (update-attrs attrs field {:text_max_length :maxlength}) name value))
+
+
+(defmethod form-field ["textarea"] [field name attrs value]
+  (f/text-area (update-attrs attrs field {:text_max_length :maxlength :textarea_cols :cols :textarea_rows :rows}) name value))
+
+
+(defmethod form-field ["text-key"] [field name attrs value]
+  (f/text-field attrs name value))
+
+
+(defmethod form-field ["timestamp"] [field name attrs value]
+  (timestamp-field attrs name value))
+
+
+(defmethod form-field ["boolean-select"] [field name attrs value]
+  (let [options (map vector
+                     ["" (:boolean_true field) (:boolean_false field)]
+                     [nil "true" "false"])]
+    (boolean-select-field attrs name options value)))
+
+
+(defmethod form-field :default [field name attrs value]
+  (throw (Exception. (format "form-field::invalid control: %s" (:control field)))))
 
 
 (defn form [fields schema table action data]
@@ -279,19 +300,21 @@
         [:td {:class "lnk" :style "text-align:right"} [:a {:href "/help.html"} "Help"]]]
        (for [stf stfs
              :let [field (get fields stf)
-                   value ((keyword stf) data)]]
+                   value ((keyword stf) data)
+                   required-attrs
+                   (into
+                    {:class "fld"}
+                    (map
+                     (fn [k] [k (get field k)]))
+                    ;; required attrs for all controls
+                    [:disabled :readonly :required])]]
          [:tr
           (if (or (= (:control field) "textarea")
                   (= (:control field) "foreign-key-static")
-                  ;; TO DO: Remove this - db constraint requires
-                  ;; :select_size is not null for select controls.
-                  ;; avoids NPE in the case where (:select_size value)
-                  ;; is nil, by using 0 as the default value of
-                  ;; (:select_size value).
-                  (and (= (:control field) "select") (> (or (:select_size field) 0) 1)))
+                  (and (= (:control field) "select") (> (:select_size field) 1)))
             [:td {:class "lbl" :style "vertical-align:top"} (form-label stf field)]
             [:td {:class "lbl"} (form-label stf field)])
-          [:td {:class "fld"} (form-field stf field value)]])])
+          [:td {:class "fld"} (form-field field stf required-attrs value)]])])
 
      [:br]
      
