@@ -214,7 +214,9 @@
           identity
           (map
            (fn [[in out]] (if (get field in) [out (get field in)] false))
-           {:text_max_length :maxlength 
+           {:text_max_length :maxlength
+            :textarea_cols :cols
+            :textarea_rows :rows
             :date_min :min
             :date_max :max
             :foreign_key_size :size

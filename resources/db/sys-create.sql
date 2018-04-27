@@ -167,6 +167,9 @@ create table sys.fields (
   text_max_length int8,
   -- format text, <----- maybe use cl-format
 
+  textarea_cols int8,
+  textarea_rows int8,
+
   boolean_true text,
   boolean_false text,
 
@@ -176,13 +179,13 @@ create table sys.fields (
   foreign_key_query text references sys.options_foreign_key_queries (value),
   foreign_key_size int8,
   
-  integer_step integer,
-  integer_min integer,
-  integer_max integer,
+  integer_step int8,
+  integer_min int8,
+  integer_max int8,
   
-  float_step float,
-  float_min float,
-  float_max float,
+  float_step float8,
+  float_min float8,
+  float_max float8,
 
   select_multiple boolean,
   select_size int8,
@@ -239,7 +242,8 @@ create table sys.fields (
   -- check ((control='datetime' and ???) or (control != 'datetime')),
 
   constraint valid_foreign_key_static_control_attributes
-  check ((control='foreign-key-static' and foreign_key_query is not null and foreign_key_size >= 0) or (control != 'foreign-key-static' and foreign_key_query is null and foreign_key_size is null)),
+  check ((control='foreign-key-static' and foreign_key_query is not null and foreign_key_size >= 0) or 
+  	(control != 'foreign-key-static' and foreign_key_query is null and foreign_key_size is null)),
 
   constraint valid_integer_control_attributes
   check (((control='integer' and integer_step is not null) and 
@@ -257,15 +261,22 @@ create table sys.fields (
 	(control != 'float' and float_step is null and float_min is null and float_max is null)),
 
   constraint valid_select_control_attributes
-  check ((control='select' and select_multiple is not null and select_size >= 0 and options_schema_table is not null) or
+  check ((control='select' and select_multiple is not null and select_size is not null and select_size >= 0 and options_schema_table is not null) or
   	(control != 'select' and select_multiple is null and select_size is null and options_schema_table is null)),
 
   constraint valid_text_key_control_attributes
   check ((control='text-key' and disabled='false' and readonly='true' and required='false') or (control != 'text-key')),
 
-  constraint valid_text_textarea_control_attributes
-  check (((control='foreign-key-static' or control='text' or control='textarea' or control='text-key') and text_max_length > 0) or 
-  	(control='foreign-key-static' or control != 'text' and control != 'textarea' and control != 'text-key' and text_max_length is null))
+  -- if text_max_length is not null and text_max_length > 0
+  -- then control='foreign-key-static' or control = 'text' or control = 'textarea' or control = 'text-key'
+  constraint valid_textual_control_attributes
+  check ((text_max_length is null or text_max_length <= 0) or
+  	(control='foreign-key-static' or control = 'text' or control = 'textarea' or control = 'text-key')),
+
+  -- if textarea_cols is not null and textarea_cols > 0 and textarea_rows is not null and textarea_rows > 0
+  -- then control = 'textarea'
+  constraint valid_textarea_control_attributes
+  check ((textarea_cols is null or textarea_cols <= 0 or textarea_rows is null or textarea_rows <= 0) or control = 'textarea')
 
   -- constraint valid_timestamp_control_attributes
   -- check ((control='timestamp' and ???) or (control != 'timestamp')),

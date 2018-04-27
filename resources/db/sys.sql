@@ -95,6 +95,7 @@ values
 insert into sys.fields 
   (fields_id, type, is_pk, is_pk_in_new, label, control, location, in_table_view, disabled, readonly, required,
   text_max_length,
+  textarea_cols, textarea_rows,
   boolean_true, boolean_false,
   date_min, date_max,
   foreign_key_query, foreign_key_size,
@@ -105,6 +106,7 @@ insert into sys.fields
 values
   (:fields_id, :type, :is_pk, :is_pk_in_new, :label, :control, :location, :in_table_view, :disabled, :readonly, :required,
   :text_max_length,
+  :textarea_cols, :textarea_rows,
   :boolean_true, :boolean_false,
   :date_min::date, :date_max::date,
   :foreign_key_query, :foreign_key_size,
