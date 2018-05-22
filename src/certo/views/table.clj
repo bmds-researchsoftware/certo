@@ -159,7 +159,7 @@
       ;; names for views.
       (when (not (:is_view (get tables (models/st schema table))))
         [:tr
-         {:class "srch"}
+         {:class "sc"}
          (f/form-to
           {:id "search-form"}
           [:get (str "/" schema "/" table)]
@@ -170,14 +170,14 @@
                       value (form/db-to-form field (models/ui-to-db-one fields stf (get data stf "")))
                       ;; common-attrs {:disabled false :readonly false :required false}
                       common-attrs {:class "fld" :disabled false :readonly false :required false}]]
-              [:td {:class "fld" :style "vertical-align:top"} (form/form-field field stf common-attrs value)]))])
+              [:td {:class "sc" :style "vertical-align:top"} (form/form-field field stf common-attrs value)]))])
 
       (when (not (:is_view (get tables (models/st schema table))))
         [:tr
-         {:class "srch"}
+         {:class "sb"}
          [:td {:colspan (count stfs)}
           [:div
-           {:class "srch"}
+           {:class "sb"}
            (let [sep (str/join (repeat 4 " &nbsp; "))]
              (list
               (str/join sep ["Order By"  "And/Or" "Fuzzy"])
