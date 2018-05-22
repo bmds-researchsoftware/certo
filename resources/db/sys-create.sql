@@ -69,6 +69,21 @@ select sys.create_trigger_set_updated_at('sys.users');
 create index on sys.users (usergroup);
 
 
+-- :name create-table-sys-options-schema_table
+-- :command :execute
+-- :result :raw
+-- :doc Create table sys.options_schema_tables
+create table sys.options_schema_tables (
+  value text primary key,
+  label text not null,
+  location int8 constraint valid_sys_options_schema_tables_location check (location is null or location >= 0),
+  created_by text constraint valid_sys_options_schema_tables_created_by check (created_by = 'root'),
+  created_at timestamptz default current_timestamp,
+  updated_by text constraint valid_sys_options_schema_tables_updated_by check (updated_by = 'root'),
+  updated_at timestamptz default current_timestamp);
+select sys.create_trigger_set_updated_at('sys.options_schema_tables');
+
+
 -- :name create-table-sys-options-types
 -- :command :execute
 -- :result :raw
@@ -99,20 +114,19 @@ create table sys.options_controls (
 select sys.create_trigger_set_updated_at('sys.options_controls');
 
 
--- :name create-table-sys-options-foreign-key-queries
+-- :name create-table-sys-options-select-result-function-names
 -- :command :execute
 -- :result :raw
--- :doc Create table sys.options_foreign_key_queries
-create table sys.options_foreign_key_queries (
+-- :doc Create table sys.options_select_result_function_names
+create table sys.options_select_result_function_names (
   value text primary key,
   label text not null,
-  query text,
-  location int8 constraint valid_sys_options_foreign_key_queries_location check (location is null or location >= 0),
+  location int8 constraint valid_sys_options_select_result_function_names_location check (location is null or location >= 0),
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp);
-select sys.create_trigger_set_updated_at('sys.options_foreign_key_queries');
+select sys.create_trigger_set_updated_at('sys.options_select_result_function_names');
 
 
 -- :name create-table-sys-options-function-names
@@ -135,16 +149,39 @@ select sys.create_trigger_set_updated_at('sys.options_function_names');
 -- :result :raw
 -- :doc Create table sys.tables
 create table sys.tables (
-  id serial8 primary key,
-  schema_name text not null,
-  table_name text not null,
-  view text,
+  tables_id text not null unique, -- populated by a before trigger as schema_name.table_name
+  schema_name text, -- part of pk
+  table_name text, -- part of pk
+  is_view boolean,
+  -- TO DO: order-by
+  -- either have this be the name of a postgres function that
+  -- returns the order by as a string, or have it be the name
+  -- in a one-to-many relationship, i.e. fields_id, ascending boolean, location int8
+  -- also see
+  -- http://clojure.github.io/java.jdbc/#:clojure.java.jdbc.spec/order-by
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp,
-  unique (schema_name, table_name));
+  primary key (schema_name, table_name));
 select sys.create_trigger_set_updated_at('sys.tables');
+
+
+create or replace function sys.update_sys_tables()
+returns trigger as $$
+begin
+  new.tables_id = new.schema_name || '.' || new.table_name;
+  return new;
+end;
+$$ language plpgsql;
+
+
+create trigger trigger_sys_update_sys_tables
+before insert or update on sys.tables
+for each row
+execute procedure sys.update_sys_tables();
+
+create unique index tables_id_index on sys.tables (tables_id);
 
 
 -- :name create-table-sys-fields
@@ -152,23 +189,32 @@ select sys.create_trigger_set_updated_at('sys.tables');
 -- :result :raw
 -- :doc Create table sys.fields
 create table sys.fields (
-  fields_id text primary key,  
+  fields_id text unique not null, -- populated by a before trigger as schema_name.table_name.field_name
+
+  schema_name text not null, -- part of pk
+  table_name text not null, -- part of pk
+  field_name text not null, -- part of pk
+
   type text references sys.options_types (value) not null,
-  is_pk boolean not null,
-  is_pk_in_new boolean,
+
+  is_function boolean not null,
+  is_id boolean not null,
+  is_uk boolean not null,
+  is_fk boolean not null,
+  is_settable boolean not null,
+
   label text not null,
   control text references sys.options_controls (value) not null,
-  location int8 constraint valid_sys_fields_location check (location is not null and location >= 0),
-  in_table_view boolean not null,
+
   disabled boolean not null,
   readonly boolean not null,
   required boolean not null,
 
-  text_max_length int8,
-  -- format text, <----- maybe use cl-format
+  location int8 constraint valid_sys_fields_location check (location is not null and location >= 0),
 
-  textarea_cols int8,
-  textarea_rows int8,
+  in_table_view boolean not null,
+  -- Used to generate link such as https://example.com/sys/people?study.people.particpants_id=1234
+  search_fields_id text references sys.fields (fields_id),
 
   boolean_true text,
   boolean_false text,
@@ -176,9 +222,9 @@ create table sys.fields (
   date_min date,
   date_max date,
 
-  foreign_key_query text references sys.options_foreign_key_queries (value),
-  foreign_key_size int8,
-  
+  datetime_min date,
+  datetime_max date,
+
   integer_step int8,
   integer_min int8,
   integer_max int8,
@@ -189,128 +235,218 @@ create table sys.fields (
 
   select_multiple boolean,
   select_size int8,
-  options_schema_table text,
+
+  select_option_schema_table text references sys.tables (tables_id),
+  
+  -- TO DO: sys.options_select_result_function_names should be populated from a hash-map of available functions and should not be editable by any user
+  select_result_function_name text references sys.options_select_result_function_names (value),
+
+  text_max_length int8,
+  -- TO DO: format text, maybe use cl-format
+  textarea_cols int8,
+  textarea_rows int8,
 
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp,
 
-  unique (fields_id, location),
+  foreign key (schema_name, table_name) references sys.tables (schema_name, table_name),
+  primary key (schema_name, table_name, field_name),
+  unique (schema_name, table_name, field_name, location),
 
-  constraint valid_pk
-  check ((is_pk = 'true') or (is_pk = 'false' and is_pk_in_new is null)),
+  -- is_settable='false' => disabled='true' and readonly='true' and required='false'
+  constraint valid_settable
+  -- check (is_settable='true' or (disabled='true' and readonly='true' and required='false') or is_settable='true'),
+  -- or equivalently
+  -- ++ confirm this !wxy!z = w V xy!z
+  check ((is_settable='false' and disabled='true' and readonly='true' and required='false') or is_settable='true'),
+
+  constraint valid_disabled_readonly_required
+  check ((disabled='false' and readonly='false') or 
+  	(disabled='true' and readonly='true' and required='false')),
+ -- or
+ -- 	(disabled is null and readonly is null and required is null)
+  -- TO DO: Should restrict to the following
+  -- select disabled, readonly, required from sys.fields group by disabled, readonly, required order by disabled, readonly, required;
+  --  disabled | readonly | required 
+  -- ----------+----------+----------
+  --  f        | f        | f
+  --  f        | f        | t
+  --  t        | t        | f
+
+  -- is_function = 'true' => is_settable = 'false'
+  constraint valid_function
+  check (is_function='false' or is_settable='false'),
 
   -- start: constraints for types --
   constraint valid_boolean_type_controls
-  check ((type = 'boolean' and (control='boolean-select')) or (type != 'boolean')),
+  check ((type = 'boolean' and control='select-boolean') or (type != 'boolean')),
 
   constraint valid_date_type_controls
-  check ((type = 'date' and (control='date')) or (type != 'date')),
+  check ((type = 'date' and control='date') or (type != 'date')),
 
   constraint valid_float8_type_controls
-  check ((type = 'float8' and (control='float')) or (type != 'float')),
+  check ((type = 'float8' and control='float') or (type != 'float')),
 
   constraint valid_int8_type_controls
-  check ((type = 'int8' and ((control='integer') or (control='integer-key') or (control='select') or (control='foreign-key-static'))) or (type != 'int8')),
+  check ((type = 'int8' and (control='integer' or control='select-option' or control='select-result')) or (type != 'int8')),
 
   constraint valid_serial8_type_controls
-  check ((type = 'serial8' and (control='integer-key')) or (type != 'serial8')),
+  check ((type = 'serial8' and control='integer') or (type != 'serial8')),
 
   constraint valid_text_type_controls
-  check ((type = 'text' and (control='foreign-key-static' or control='text-key' or control='text' or control='textarea' or control='select')) or (type != 'text')),
+  check ((type = 'text' and (control='select-result' or control='text' or control='textarea' or control='select-option')) or (type != 'text')),
 
   constraint valid_timestamptz_type_controls
-  check ((type = 'timestamptz' and ((control='timestamp') or (control='datetime'))) or (type != 'timestamptz')),
+  check ((type = 'timestamptz' and (control='timestamp' or control='datetime')) or (type != 'timestamptz')),
 
-  -- TO DO: should make a uuid-id control
   constraint valid_uuid_type_controls
-  check ((type = 'uuid' and (control='text')) or (type != 'uuid')),
+  check ((type = 'uuid' and control='text') or (type != 'uuid')),
   -- end: constraints for types --
 
   -- start: constraints for controls --
-  constraint valid_boolean_select_control_attributes
-  check ((control='boolean-select' and boolean_true is not null and boolean_false is not null) or
-  	(control != 'boolean-select' and boolean_true is null and boolean_false is null)),
+  constraint valid_select_boolean_control_attributes
+  check ((control='select-boolean' and boolean_true is not null and boolean_false is not null) or
+  	(control != 'select-boolean' and boolean_true is null and boolean_false is null)),
+
+  -- TO DO: Add a time control and type
 
   constraint valid_date_control_attributes
   check ((control='date' and date_min is not null and date_max is not null and date_min <= date_max) or
   	(control='date' and (date_min is null or date_max is null)) or
+	(control='date' and is_settable='false') or
 	(control != 'date' and date_min is null and date_max is null)),
 
-  -- constraint valid_datetime_control_attributes
-  -- check ((control='datetime' and ???) or (control != 'datetime')),
-
-  constraint valid_foreign_key_static_control_attributes
-  check ((control='foreign-key-static' and foreign_key_query is not null and foreign_key_size >= 0) or 
-  	(control != 'foreign-key-static' and foreign_key_query is null and foreign_key_size is null)),
+  constraint valid_datetime_control_attributes
+  check ((control='datetime' and datetime_min is not null and datetime_max is not null and datetime_min <= datetime_max) or
+  	(control='datetime' and (datetime_min is null or datetime_max is null)) or
+	(control='datetime' and is_settable='false') or
+	(control != 'datetime' and datetime_min is null and datetime_max is null)),
 
   constraint valid_integer_control_attributes
-  check (((control='integer' and integer_step is not null) and 
-  			     integer_min is not null and integer_max is not null and integer_min <= integer_max) or
-  	((control='integer' and integer_step is not null) and (integer_min is null or integer_max is null)) or
+  check ((control='integer' and is_settable='false') or
+  	((control='integer' and integer_step is not null) and integer_min is not null and integer_max is not null and integer_min <= integer_max) or
+ 	((control='integer' and integer_step is not null) and (integer_min is null or integer_max is null)) or
+	(control='integer' and is_settable='false') or
 	(control != 'integer' and integer_step is null and integer_min is null and integer_max is null)),
 
-  constraint valid_integer_key_control_attributes
-  check ((control='integer-key' and disabled='false' and readonly='true' and required='false') or (control != 'integer-key')),
-
   constraint valid_float_control_attributes
-  check (((control='float' and float_step is not null) and 
-  			     float_min is not null and float_max is not null and float_min <= float_max) or
+  check (((control='float' and float_step is not null) and float_min is not null and float_max is not null and float_min <= float_max) or
   	((control='float' and float_step is not null) and (float_min is null or float_max is null)) or
+	(control='float' and is_settable='false') or
 	(control != 'float' and float_step is null and float_min is null and float_max is null)),
 
   constraint valid_select_control_attributes
-  check ((control='select' and select_multiple is not null and select_size is not null and select_size >= 0 and options_schema_table is not null) or
-  	(control != 'select' and select_multiple is null and select_size is null and options_schema_table is null)),
+  check (((control='select-option' or control='select-result') and select_multiple is not null and select_size is not null and select_size >= 0) or
+  	(control != 'select-option' and control != 'select-result')),
 
-  constraint valid_text_key_control_attributes
-  check ((control='text-key' and disabled='false' and readonly='true' and required='false') or (control != 'text-key')),
+  constraint valid_select_option_control_attributes
+  check ((control='select-option' and select_option_schema_table is not null) or (control != 'select-option')),
 
-  -- if text_max_length is not null and text_max_length > 0
-  -- then control='foreign-key-static' or control = 'text' or control = 'textarea' or control = 'text-key'
+  constraint valid_select_result_static_control_attributes
+  check ((control='select-result' and select_result_function_name is not null) or (control != 'select-result')),
+  
   constraint valid_textual_control_attributes
-  check ((text_max_length is null or text_max_length <= 0) or
-  	(control='foreign-key-static' or control = 'text' or control = 'textarea' or control = 'text-key')),
+  check (((control = 'text' or control = 'textarea') and text_max_length is not null and text_max_length > 0) or
+ 	((control = 'text' or control = 'textarea') and is_settable='false') or
+	(control != 'text' and control != 'textarea')),
 
   -- if textarea_cols is not null and textarea_cols > 0 and textarea_rows is not null and textarea_rows > 0
   -- then control = 'textarea'
   constraint valid_textarea_control_attributes
-  check ((textarea_cols is null or textarea_cols <= 0 or textarea_rows is null or textarea_rows <= 0) or control = 'textarea')
-
-  -- constraint valid_timestamp_control_attributes
-  -- check ((control='timestamp' and ???) or (control != 'timestamp')),
-
-  -- constraint valid_yes-no_control_attributes
-  -- check ((control='yes-no' and ???) or (control != 'yes-no'))
-  
+  check ((control = 'textarea' and  (textarea_cols is not null and textarea_cols > 0 and textarea_rows is not null or textarea_rows > 0)) or
+  	(control = 'textarea' and is_settable='false') or
+  	(control != 'textarea'))
   -- end: constraints for controls --
 );
 select create_trigger_set_updated_at('sys.fields');
 
-create function schema_name(sys.fields)
-returns text as
-$$
-  select (string_to_array($1.fields_id, '.'))[1]
-$$
-language sql stable;
+create or replace function sys.update_sys_fields()
+returns trigger as $$
+begin
+  new.fields_id = new.schema_name || '.' || new.table_name || '.' || new.field_name;
+  return new;
+end;
+$$ language plpgsql;
 
-create function table_name(sys.fields)
-returns text as
-$$
-  select (string_to_array($1.fields_id, '.'))[2]
-$$
-language sql stable;
+create trigger trigger_sys_update_sys_fields
+before insert or update on sys.fields
+for each row
+execute procedure sys.update_sys_fields();
 
-create function field_name(sys.fields)
-returns text as
-$$
-  select (string_to_array($1.fields_id, '.'))[3]
-$$
-language sql stable;
+create unique index fields_id_index on sys.fields (fields_id);
 
--- ensures that there is only one primary key field per schema.table
-create unique index unique_pk on sys.fields ((sys.fields.schema_name), (sys.fields.table_name)) where is_pk;
+-- ensures that there is at most one id field per schema.table
+create unique index unique_id on sys.fields (schema_name, table_name, field_name) where is_id;
+
+create index sys_fields_schema_name_table_name on sys.fields (schema_name, table_name);
+
+-- :name create-table-sys-view-fields
+-- :command :execute
+-- :result :raw
+-- :doc Create table sys.view_fields
+create table sys.view_fields (
+  view_fields_id text unique not null, -- populated by a before trigger as schema_name.table_name.field_name
+
+  schema_name text not null, -- part of pk
+  table_name text not null, -- part of pk
+  field_name text not null, -- part of pk
+
+  fields_id text references sys.fields (fields_id),
+
+  label text not null,
+  location int8 constraint valid_sys_fields_location check (location is not null and location >= 0),
+
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp,
+
+  foreign key (schema_name, table_name) references sys.tables (schema_name, table_name),
+  primary key (schema_name, table_name, field_name),
+  unique (schema_name, table_name, field_name, location));
+select create_trigger_set_updated_at('sys.view_fields');
+
+create or replace function sys.update_sys_view_fields()
+returns trigger as $$
+begin
+  new.view_fields_id = new.schema_name || '.' || new.table_name || '.' || new.field_name;
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger trigger_sys_update_sys_view_fields
+before insert or update on sys.view_fields
+for each row
+execute procedure sys.update_sys_view_fields();
+
+create unique index view_fields_id_index on sys.view_fields (view_fields_id);
+
+
+-- Populates table sys.options_schema_tables with value =
+-- schema_name.table_name and reference it from
+-- sys.fields.options_table_schema
+create or replace function sys.update_sys_options_schema_tables()
+returns trigger as
+$$
+begin
+  if new.table_name like 'options_%' then
+    insert into sys.options_schema_tables
+      (value, label) 
+    values
+      (new.schema_name || '.' || new.table_name, new.schema_name || '.' || new.table_name)
+    on conflict (value) do nothing;
+  end if;
+  return new;
+end;
+$$
+language plpgsql;
+
+create trigger trigger_sys_update_sys_options_schema_tables
+after insert or update on sys.tables
+for each row
+execute procedure sys.update_sys_options_schema_tables();
 
 
 -- :name create-table-sys-event-classes
@@ -388,4 +524,31 @@ create table sys.events (
   updated_at timestamptz default current_timestamp);
 create index on sys.events (event_classes_id);
 select sys.create_trigger_set_updated_at('sys.events');
+
+
+create view sys.sys_event_classes_all as
+select event_classes_id as value, function_name 
+from sys.event_classes
+order by event_classes_id, function_name;
+
+create or replace function sys.sys_event_classes_all(x int8)
+returns setof sys.sys_event_classes_all as $$
+  select * from sys.sys_event_classes_all;
+$$ language sql;
+
+
+create view sys.sys_fields_all as
+select sys.fields.fields_id as value, sys.fields.schema_name as sn, sys.fields.table_name as tn, sys.fields.field_name as fn 
+from sys.fields;
+
+create or replace function sys.sys_fields_all(x int8)
+returns setof sys.sys_fields_all as $$
+  select * from sys.sys_fields_all;
+$$ language sql;
+
+
+create or replace function sys.sys_fields_all_tn(text)
+returns setof sys.sys_fields_all as $$
+  select * from sys.sys_fields_all as sfa where tn = $1;
+$$ language sql;
 

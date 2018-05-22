@@ -6,15 +6,14 @@
    [compojure.core :refer [GET POST] :as compojure]
    [compojure.route :as route]
    [ring.util.response :refer [redirect]]
-   
    [certo.models.default :as model]
-   [certo.views.default :as view]
-   [certo.metadata :as metadata] ;; TO DO: remove when implement proper cache
+   [certo.views.core :as view]
+   [certo.metadata :as metadata]
    [certo.models.events :as me]))
 
 
 ;; text primary keys can contains lower case letters, numbers, hyphens, periods, and underscores without whitespace
-(def uuid-or-integer-or-text-pk "/:pk{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]+|[a-zA-Z0-9\\-_\\.)]+}")
+(def uuid-or-integer-or-text-id "/:id{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]+|[a-zA-Z0-9\\-_\\.)]+}")
 
 
 ;; For debugging
@@ -34,7 +33,7 @@
    (compojure/GET
     "/"
     []
-    (view/dashboard (:system-name md) (model/dashboard db md)))
+    (view/dashboard (:system-name md) (model/dashboard db)))
 
    (compojure/GET
     "/sys/events/:id{[0-9]+}/new"
@@ -53,53 +52,84 @@
     [schema-table]
 
     (let [[schema table] (str/split schema-table #"/")
-          md (.start (.stop md))]
+
+          ;; TO DO: You can pass parameters into new, e.g. you could put a combo box, labeled "Add Event Class Field", that
+          ;; contains a list of all schema.table on the event class form.  When you pick a schema.table, the insert Event
+          ;; Class Fields form is opened, but the list of fields is only those for the schema.table.
+
+          tables (model/tables db schema table)
+
+          ;; TO DO: Try to change so model/fields returns a reducible-query and then need to lazily transform the select-result combo box rows
+
+          fields (model/fields db schema table)]
 
       (compojure/routes
 
        (compojure/GET
         "/"
-        []
-        (view/table (:fields md) schema table (model/select-all db md schema table)))
+        {query-params :query-params}
+        (let [op (get query-params "op")]
+          (when (and (not (nil? op)) (not= op "edit") (not= op "show"))
+            (throw (Exception. (format "Illegal op: %s" op))))
+
+          ;; TO DO: Must change model/select so that it uses a reducible-query.
+
+          (let [rs (model/select db fields tables schema table (dissoc query-params "op"))
+                cnt (count (take 2 rs))]
+            (cond
+              (= cnt 0) (throw (Exception. "None found"))
+              (and (= cnt 1) (= op "edit"))
+              (view/edit fields schema table (first rs))
+              (and (= cnt 1) (= op "show"))
+              (view/show fields schema table (first rs))
+              :else (view/table tables fields schema table rs (dissoc query-params "op"))))))
        
        (compojure/GET
         "/new"
-        []
-        (view/new (:fields md) schema table))
+        {query-params :query-params}
+        (view/new fields schema table query-params))
        
        (compojure/POST
         "/"
         {params :params username :basic-authentication}
-        (model/insert! db md schema table
+        (model/insert! db fields schema table
                        (assoc params
                               (model/stf schema  table "created_by") username
                               (model/stf schema table "updated_by") username))
         (redirect-to-schema-table-root schema table))
        
        (compojure/GET
-        uuid-or-integer-or-text-pk
-        [pk]
-        (view/show (:fields md) schema table (model/select-one db md schema table pk)))
+        uuid-or-integer-or-text-id
+        [id]
+        (view/show fields schema table (model/select-by-id db fields schema table id)))
+
+       ;; TO DO: postgresql function should take one parameter, i.e. the parent id
        
        (compojure/GET
-        (str uuid-or-integer-or-text-pk "/edit")
-        [pk]
-        (view/edit (:fields md) schema table (model/select-one db md schema table pk)))
+        (str uuid-or-integer-or-text-id "/edit")
+        [id]
+        (view/edit fields schema table (model/select-by-id db fields schema table id)))
        
        (compojure/PUT
-        uuid-or-integer-or-text-pk
-        {params :params username :basic-authentication}
-        ;; note: discards the :pk in query-params but keeps the one in form-params
-        (model/update! db md schema table
+        uuid-or-integer-or-text-id
+        {{id :id} :params  params :params username :basic-authentication}
+        ;; Note: discard :id from params passes it in as an argument,
+        ;; its value is the current value of the primary key, and is
+        ;; used in the update statement's where clause.  A potentially
+        ;; different value for the primary key is held in params.
+        ;; This approach allows us to update the value of a row's
+        ;; primary key.
+        (model/update! db fields schema table
                        (-> params
-                           (dissoc :pk)
-                           (assoc (model/stf schema table "updated_by") username)))
+                           (dissoc :id)
+                           (assoc (model/stf schema table "updated_by") username))
+                       id)
         (redirect-to-schema-table-root schema table))
        
        (compojure/DELETE
-        uuid-or-integer-or-text-pk
-        [pk]
-        (model/delete! db md schema table pk)
+        uuid-or-integer-or-text-id
+        [id]
+        (model/delete! db fields schema table id)
         (redirect-to-schema-table-root schema table)))))
 
    ;; Use these for debugging

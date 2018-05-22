@@ -7,10 +7,10 @@
 
 
 ;; Returns something like "study/subjects|sys/fields|vals/controls|vals/types"
-(defn routes-regex [fields]
+(defn routes-regex [tables]
   (str/join
    "|"
-   (into #{} (map (fn [[k v]] (str (:schema_name v) "/" (:table_name v))) fields))))
+   (into #{} (map (fn [[k v]] (str (:schema_name v) "/" (:table_name v))) tables))))
 
 
 (defrecord Metadata []
@@ -19,19 +19,19 @@
   (start [component]
     ;; if using connection or a connection-pool open it here and
     ;; assoc it to the component
-    (if (:fields component)
+    (if (:routes-regex component)
       component
-      (let [fields
-            (-> (get-in component [:database :db-spec])
-                (cmd/fields))]
-        (-> component
-            (assoc :fields fields
-                   :routes-regex (routes-regex fields))))))
-  
+      (assoc component
+             :routes-regex
+             (-> component
+                 (get-in [:database :db-spec])
+                 (cmd/tables)
+                 (routes-regex)))))
+
   (stop [component]
     ;; if using connection or a connection-pool close it here and
     ;; dissoc it with the component
-    (dissoc component :fields)))
+    (dissoc component :routes-regex)))
 
 
 (defn new-metadata [system-name]

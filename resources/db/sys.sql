@@ -38,14 +38,14 @@ values
   (:value, :label, :location, :created_by, :updated_by);
 
 
--- :name insert-sys-options-foreign-key-queries
+-- :name insert-sys-options-select-result-function-names
 -- :command :execute
 -- :result :raw
--- :doc Insert into sys.options_foreign_key_queries
-insert into sys.options_foreign_key_queries
-  (value, label, query, location, created_by, updated_by)
+-- :doc Insert into sys.options_select_result_function_names
+insert into sys.options_select_result_function_names
+  (value, label, location, created_by, updated_by)
 values
-  (:value, :label, :query, :location, :created_by, :updated_by);
+  (:value, :label, :location, :created_by, :updated_by);
 
 
 -- :name insert-sys-options-function-names
@@ -88,32 +88,52 @@ values
   (:usergroup, :created_by, :updated_by);
 
 
+-- :name insert-sys-tables
+-- :command :execute
+-- :result :raw
+-- :doc Insert into sys.tables
+insert into sys.tables
+  (schema_name, table_name, is_view, created_by, updated_by)
+values
+  (:schema_name, :table_name, :is_view, :created_by, :updated_by);
+
+
 -- :name insert-sys-fields
 -- :command :execute
 -- :result :raw
 -- :doc Insert into sys.fields
 insert into sys.fields 
-  (fields_id, type, is_pk, is_pk_in_new, label, control, location, in_table_view, disabled, readonly, required,
-  text_max_length,
-  textarea_cols, textarea_rows,
+  (schema_name, table_name, field_name, type, is_function, is_id, is_uk, is_fk, is_settable, label, control, disabled, readonly, required, location, in_table_view, search_fields_id, 
   boolean_true, boolean_false,
   date_min, date_max,
-  foreign_key_query, foreign_key_size,
+  datetime_min, datetime_max,
   integer_step, integer_min, integer_max,
   float_step, float_min, float_max,
-  select_multiple, select_size, options_schema_table,
+  select_multiple, select_size, select_option_schema_table, select_result_function_name,
+  text_max_length,
+  textarea_cols, textarea_rows,
   created_by, updated_by)
 values
-  (:fields_id, :type, :is_pk, :is_pk_in_new, :label, :control, :location, :in_table_view, :disabled, :readonly, :required,
-  :text_max_length,
-  :textarea_cols, :textarea_rows,
+  (:schema_name, :table_name, :field_name, :type, :is_function, :is_id, :is_uk, :is_fk, :is_settable, :label, :control, :disabled, :readonly, :required, :location, :in_table_view, :search_fields_id,
   :boolean_true, :boolean_false,
   :date_min::date, :date_max::date,
-  :foreign_key_query, :foreign_key_size,
+  :datetime_min::timestamptz, :datetime_max::timestamptz,
   :integer_step, :integer_min, :integer_max,
   :float_step, :float_min, :float_max,
-  :select_multiple, :select_size, :options_schema_table,
+  :select_multiple, :select_size, :select_option_schema_table, :select_result_function_name,
+  :text_max_length,
+  :textarea_cols, :textarea_rows,
   :created_by, :updated_by);
+  
+
+-- :name insert-sys-view-fields
+-- :command :execute
+-- :result :raw
+-- :doc Insert into sys.view_fields
+insert into sys.view_fields 
+  (schema_name, table_name, field_name, fields_id, label, location, created_by, updated_by)
+values
+  (:schema_name, :table_name, :field_name, :fields_id, :label, :location, :created_by, :updated_by);
   
 
 -- :name insert-sys-event-classes
@@ -134,4 +154,21 @@ insert into sys.event_classes_fields
   (event_classes_id, fields_id, location, disabled, readonly, required, created_by, updated_by)
 values 
   (:event_classes_id, :fields_id, :location, :disabled, :readonly, :required, :created_by, :updated_by);
+
+
+-- :name select-sys-event-classes-all
+-- :command :query
+-- :result many
+-- :doc Select all event classes
+select event_classes_id as value, function_name 
+from sys.event_classes 
+order by event_classes_id, function_name
+
+
+-- :name snoopy
+-- :command :query
+-- :result many
+-- :doc Select all fields
+select * from sys.sys_fields_all_tn(:table_name)
+
 

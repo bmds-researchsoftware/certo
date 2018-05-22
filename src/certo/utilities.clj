@@ -2,6 +2,7 @@
   (:require
    [clojure.edn :as edn]   
    [clojure.java.io :as io]
+   [clojure.data.csv :as csv]
    [clojure.java.jdbc :as jdbc]
    [clojure.pprint :as pprint]   
    [clojure.string :as str]
@@ -36,6 +37,14 @@
          af
          (java-time/to-millis-from-epoch (java-time/instant)))
         (throw (Exception. (format "File %s not found" (.getCanonicalPath af))))))))
+
+
+(defn read-csv-to-hash-map [filename separator]
+  (with-open [in-file (io/reader filename)]
+    (let [csv (doall (csv/read-csv in-file :separator separator))
+          header (map (fn [x] (keyword (str/lower-case (str/replace x #"\s+" "-")))) (first (take 1 csv)))
+          records (map #(zipmap header %) (drop 1 csv))]
+      records)))
 
 
 (defn hash-maps-to-db [db filename f]
@@ -85,7 +94,7 @@
 ;; (update-sys-fields "/home/djneu/projects/certo/resources/db/sys-fields.clj" "/tmp/sys-fields.clj")
 ;; (update-sys-fields "/home/djneu/projects/aether/resources/db/app-sys-fields.clj" "/tmp/app-sys-fields.clj")
 ;; (defn update-sys-fields [in-file out-file]
-;;   (let [ks [:fields_id :type :is_pk :is_pk_in_new :label :control :location :in_table_view :disabled :readonly :required :text_max_length :boolean_true :boolean_false :date_min :date_max :foreign_key_query :foreign_key_size :integer_step :integer_min :integer_max :float_step :float_min :float_max :select_multiple :select_size :options_schema_table :created_by :updated_by]
+;;   (let [ks [:fields_id :type :is_id :is_id_in_new :label :control :location :in_table_view :disabled :readonly :required :text_max_length :boolean_true :boolean_false :date_min :date_max :foreign_key_query :foreign_key_size :integer_step :integer_min :integer_max :float_step :float_min :float_max :select_multiple :select_size :options_schema_table :created_by :updated_by]
 ;;         sf (read-string (slurp in-file))
 ;;         updated-sf
 ;;         (map (fn [x]
@@ -116,4 +125,18 @@
             (str (subs s 0 (dec k)) p))
           :else
           s)))
+
+
+(defn write-hash-maps [rows filename]
+  (with-open [out (clojure.java.io/writer filename)]
+    (doseq [row rows]
+      (.write out (format "%s\n\n" row)))))
+
+
+(defmacro timeit
+  "Evaluates expr and prints the time it took.  Returns the elapsed time."
+  [expr]
+  `(let [start# (. System (nanoTime))
+         ret# ~expr]
+     (/ (double (- (. System (nanoTime)) start#)) 1000000.0)))
 
