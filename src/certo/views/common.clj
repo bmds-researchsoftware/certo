@@ -16,6 +16,7 @@
 
 (defn page [title & body]
   (p/html5
+   {:lang "en"}
    [:head
     (p/include-css "/styles.css")
     [:title title]]
