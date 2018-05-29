@@ -140,58 +140,61 @@
      title
      [:br]
      [:div {:class "ct"} title]
-     [:table
-      [:tr
-       [:td
-        {:class "lnk" :style "text-align:left;" } [:a {:href "/"} "Home"]]
-       ;; Only provide a New link for tables, i.e. not for views.
-       (when (not (:is_view (get tables (models/st schema table))))
-         [:td
-          {:class "lnk" :style "text-align:right" :colspan (str (dec (count stfs)))} [:a {:href (str "/" schema "/" table "/new")} "New"]])]
-      
-      [:tr
-       (for [field (map #(get fields %) stfs)]
-         [:th (:label field)])]
 
-      ;; TO DO: Search does not work on views, so exclude it for now.
-      ;; In models/default.clj need to update sql-identifier so that
-      ;; it is called "everywhere" and so that it double quotes column
-      ;; names for views.
-      (when (not (:is_view (get tables (models/st schema table))))
-        [:tr
-         {:class "sc"}
-         (f/form-to
-          {:id "search-form"}
-          [:get (str "/" schema "/" table)]
-          ;; HTTTP GET, so not using anti-forgery field
-          ;; (af/anti-forgery-field)
+     (f/form-to
+      {:id "search-form"}
+      [:get (str "/" schema "/" table)]
+      ;; HTTTP GET, so not using anti-forgery field
+      ;; (af/anti-forgery-field)
+
+      [:table
+       [:tr
+        [:td
+         {:class "lnk" :style "text-align:left;" } [:a {:href "/"} "Home"]]
+        ;; Only provide a New link for tables, i.e. not for views.
+        (when (not (:is_view (get tables (models/st schema table))))
+          [:td
+           {:class "lnk" :style "text-align:right" :colspan (str (dec (count stfs)))} [:a {:href (str "/" schema "/" table "/new")} "New"]])]
+
+       [:tr
+        (for [field (map #(get fields %) stfs)]
+          [:th (:label field)])]
+
+       ;; TO DO: Search does not work on views, so exclude it for now.
+       ;; In models/default.clj need to update sql-identifier so that
+       ;; it is called "everywhere" and so that it double quotes column
+       ;; names for views.
+       (when (not (:is_view (get tables (models/st schema table))))
+         [:tr
+          {:class "sc"}
           (for [stf stfs
                 :let [field (get fields stf)
                       value (form/db-to-form field (models/ui-to-db-one fields stf (get data stf "")))
                       ;; common-attrs {:disabled false :readonly false :required false}
                       common-attrs {:class "fld" :disabled false :readonly false :required false}]]
-              [:td {:class "sc" :style "vertical-align:top"} (form/form-field field stf common-attrs value)]))])
+            [:td {:class "sc" :style "vertical-align:top"} (form/form-field field stf common-attrs value)])])
 
-      (when (not (:is_view (get tables (models/st schema table))))
-        [:tr
-         {:class "sb"}
-         [:td {:colspan (count stfs)}
-          [:div
-           {:class "sb"}
-           (let [sep (str/join (repeat 4 " &nbsp; "))]
-             (list
-              (str/join sep ["Order By"  "And/Or" "Fuzzy"])
-              sep
-              (f/submit-button {:form "search-form"} "Search")))]]])
+       (when (not (:is_view (get tables (models/st schema table))))
+         [:tr
+          {:class "sb"}
+          [:td {:colspan (count stfs)}
+           [:div
+            {:class "sb"}
+            (let [sep (str/join (repeat 4 " &nbsp; "))]
+              (list
+               (str/join sep ["Order By"  "And/Or" "Fuzzy"])
+               sep
+               (f/submit-button {:form "search-form"} "Search")))]]])
 
-      ;; TO DO: If rows is a reducible-query this will work well
-      
-      (for [row rows]
-        [:tr
-         (for [stf stfs]
-           [:td
-            (db-to-table
-             (get fields stf)
-             (get row (keyword stf)))])])]
+       ;; TO DO: If rows is a reducible-query this will work well
+           
+       (for [row rows]
+         [:tr
+          (for [stf stfs]
+            [:td
+             (db-to-table
+              (get fields stf)
+              (get row (keyword stf)))])])])
+     
      [:br])))
 
