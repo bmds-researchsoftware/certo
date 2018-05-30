@@ -360,7 +360,7 @@ create table sys.fields (
   	(control != 'textarea'))
   -- end: constraints for controls --
 );
-select create_trigger_set_updated_at('sys.fields');
+select sys.create_trigger_set_updated_at('sys.fields');
 
 create or replace function sys.update_sys_fields()
 returns trigger as $$
@@ -406,7 +406,7 @@ create table sys.view_fields (
   foreign key (schema_name, table_name) references sys.tables (schema_name, table_name),
   primary key (schema_name, table_name, field_name),
   unique (schema_name, table_name, field_name, location));
-select create_trigger_set_updated_at('sys.view_fields');
+select sys.create_trigger_set_updated_at('sys.view_fields');
 
 create or replace function sys.update_sys_view_fields()
 returns trigger as $$
