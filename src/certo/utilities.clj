@@ -127,10 +127,15 @@
           s)))
 
 
-(defn write-hash-maps [rows filename]
-  (with-open [out (clojure.java.io/writer filename)]
-    (doseq [row rows]
-      (.write out (format "%s\n\n" row)))))
+
+(defn write-hash-maps
+  ([rows filename]
+   (write-hash-maps rows filename nil))
+  ([rows filename keys]
+   (let [f (if keys #(interleave keys ((apply juxt keys) %)) identity)]
+     (with-open [out (clojure.java.io/writer filename)]
+       (doseq [row rows]
+         (.write out (str (prn-str (f row)) "\n\n")))))))
 
 
 (defmacro timeit
