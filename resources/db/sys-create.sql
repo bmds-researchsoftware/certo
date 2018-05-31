@@ -211,7 +211,6 @@ create table sys.fields (
   required boolean not null,
 
   location int8 constraint valid_sys_fields_location check (location is not null and location >= 0),
-
   in_table_view boolean not null,
   -- Used to generate link such as https://example.com/sys/people?study.people.particpants_id=1234
   search_fields_id text references sys.fields (fields_id),
@@ -241,6 +240,7 @@ create table sys.fields (
   -- TO DO: sys.options_select_result_function_names should be populated from a hash-map of available functions and should not be editable by any user
   select_result_function_name text references sys.options_select_result_function_names (value),
 
+  size int8,
   text_max_length int8,
   -- TO DO: format text, maybe use cl-format
   textarea_cols int8,
@@ -346,16 +346,21 @@ create table sys.fields (
 
   constraint valid_select_result_static_control_attributes
   check ((control='select-result' and select_result_function_name is not null) or (control != 'select-result')),
-  
-  constraint valid_textual_control_attributes
+
+  constraint valid_control_size_attribute
+  check ((control = 'text' and size is not null and size > 0) or
+  	(control = 'text' and is_settable='false') or
+	(control != 'text' and size is null)),
+
+  constraint valid_control_max_length_attributes
   check (((control = 'text' or control = 'textarea') and text_max_length is not null and text_max_length > 0) or
- 	((control = 'text' or control = 'textarea') and is_settable='false') or
-	(control != 'text' and control != 'textarea')),
+  	((control = 'text' or control = 'textarea') and is_settable='false') or
+	(control != 'text' and control != 'textarea' and text_max_length is null)),
 
   -- if textarea_cols is not null and textarea_cols > 0 and textarea_rows is not null and textarea_rows > 0
   -- then control = 'textarea'
   constraint valid_textarea_control_attributes
-  check ((control = 'textarea' and  (textarea_cols is not null and textarea_cols > 0 and textarea_rows is not null or textarea_rows > 0)) or
+  check ((control = 'textarea' and textarea_cols is not null and textarea_cols > 0 and textarea_rows is not null or textarea_rows > 0) or
   	(control = 'textarea' and is_settable='false') or
   	(control != 'textarea'))
   -- end: constraints for controls --
