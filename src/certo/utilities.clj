@@ -134,8 +134,16 @@
   ([rows filename keys]
    (let [f (if keys #(interleave keys ((apply juxt keys) %)) identity)]
      (with-open [out (clojure.java.io/writer filename)]
-       (doseq [row rows]
-         (.write out (str (prn-str (f row)) "\n\n")))))))
+       (doseq [row rows
+               :let [row (f row)]]
+         (.write out "{")
+         (loop [row row]
+           (when row
+             (.write out (pr-str (first row)))
+             (when (next row)
+               (.write out " ")
+               (recur (next row)))))
+         (.write out "}\n\n"))))))
 
 
 (defmacro timeit
