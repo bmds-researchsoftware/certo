@@ -182,7 +182,13 @@
             {:class "sb"}
             (let [sep (str/join (repeat 4 " &nbsp; "))]
               (list
-               (str/join sep ["Order By"  "And/Or" "Fuzzy"])
+               ;; "Order By:"
+               ;; " &nbsp; "
+               ;; (f/drop-down "order-by" [["^ Protocol Name" "protocol_name"] ["v Protocol Name" "protocol_name"]])
+               ;; sep
+               (f/drop-down "operator" [["Or" "or"] ["And" "and"]] (get data "operator" "or"))
+               sep
+               (f/drop-down "comparator" [["Approximate" "approximate"] ["Exact" "exact"]] (get data "comparator" "approximate"))
                sep
                (f/submit-button {:form "search-form"} "Search")))]]])
 

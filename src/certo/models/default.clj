@@ -69,7 +69,7 @@
 
 
 (defn ui-to-db-one [fields field value]
-  "The value parameters is always a string"
+  "The values are always strings."
   (when (not (get fields field))
     (throw (Exception. (format "ui-to-db-one:: unknown field: %s" field))))
   (if (not (= value ""))
@@ -361,16 +361,17 @@
    used to create the where clause for a view."
    (if (empty? params)
      [""]
-     ;; TO DO: Add is-fuzzy-search and boolean-operator
-     (let [is-fuzzy-search false
-           boolean-operator " or "]
-       (loop [params params
+     (let [operator (or (#{"and" "or"} (get params "operator"))
+                        (throw (Exception. "Operator is invalid or not specified")))
+           comparator (or (#{"exact" "approximate"} (get params "comparator"))
+                          (throw (Exception. "Comparator is invalid or not specified")))]
+       (loop [params (dissoc params "operator" "comparator")
               where-strings []
               where-params []]
          (if (not params)
            (if (empty? where-params)
              [""]
-             (into [(str (if where? "where " "") (str/join boolean-operator where-strings))] where-params))
+             (into [(str (if where? "where " "") (str/join (str " " operator " ") where-strings))] where-params))
            (let [[stf value] (first params)
                  value (ui-to-db-one fields stf value)]
              (if (nil? value)
@@ -380,8 +381,12 @@
                 where-params)
                (recur
                 (next params)
-                (conj where-strings (str stf " = ?"))
-                (conj where-params value))))))))))
+                (if (and (= comparator "approximate") (= (:type (get fields stf)) "text"))
+                  (conj where-strings (str stf " ilike ?"))
+                  (conj where-strings (str stf " = ?")))
+                (if (and (= comparator "approximate") (= (:type (get fields stf)) "text"))
+                  (conj where-params (str "%" value "%"))
+                  (conj where-params value)))))))))))
 
 
 (defn columns-clause [fields schema table]
