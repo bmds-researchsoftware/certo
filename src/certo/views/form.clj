@@ -100,7 +100,7 @@
 
 
 (defmethod form-field [:text] [field name attrs value]
-  (f/text-field (update-attrs attrs field {:text_max_length :maxlength :size :text_size}) name value))
+  (f/text-field (update-attrs attrs field {:text_max_length :maxlength :text_size :size}) name value))
 
 
 (defmethod form-field [:textarea] [field name attrs value]
