@@ -31,11 +31,13 @@
               value])
            (or ukf fkf)
            (let [[schema_name table_name field_name] (str/split (or ukf fkf) #"[.]")]
-             [:a {:href (str "/" schema_name "/" table_name "?" (models/stf schema_name table_name field_name) "=" value "&op=" op)}
+             [:a {:href (str "/" schema_name "/" table_name "?"
+                             (models/stf schema_name table_name field_name) "=" value "&op=" op "&operator=and&comparator=exact")}
               label])
            sf
            (let [[schema_name table_name field_name] (str/split sf #"[.]")]
-             [:a {:href (str "/" schema_name "/" table_name "?" (models/stf schema_name table_name field_name) "=" value)}
+             [:a {:href (str "/" schema_name "/" table_name "?"
+                             (models/stf schema_name table_name field_name) "=" value "&operator=and&comparator=exact")}
               label])
            :else
            value))))
