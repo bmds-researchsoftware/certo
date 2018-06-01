@@ -75,7 +75,9 @@
 
 (defmethod form-field [:integer] [field name attrs value]
   ;; (number-field (assoc attrs :step 1) name value)
-  (cf/number-field (update-attrs attrs field {:integer_step :step :integer_min :min :integer_max :max}) name value))
+  ;; TO DO: 6em will allow a 6 digit integer to be input.
+  ;; This should be computed from the integer_max and integer_min.
+  (cf/number-field (update-attrs (assoc attrs :style "width: 6em;") field {:integer_step :step :integer_min :min :integer_max :max}) name value))
 
 
 ;; (defmethod form-field [:integer-key] [field name attrs value]
