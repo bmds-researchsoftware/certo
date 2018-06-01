@@ -172,9 +172,24 @@
           (for [stf stfs
                 :let [field (get fields stf)
                       value (form/db-to-form field (models/ui-to-db-one fields stf (get data stf "")))
-                      ;; common-attrs {:disabled false :readonly false :required false}
                       common-attrs {:class "fld" :disabled false :readonly false :required false}]]
-            [:td {:class "sc" :style "vertical-align:top"} (form/form-field field stf common-attrs value)])])
+            [:td {:class "sc" :style "vertical-align:top"}
+             (if (= (:control field) "select-result")
+               ;; "convert" select-result control to a text control for search
+               (->
+                (merge
+                 (select-keys
+                  field
+                  [:fields_id :schema_name :table_name :field_name :type :is_function
+                   :is_id :is_uk :is_fk :is_settable :label :location :in_table_view])
+                 (cond (= (:type field) "int8")
+                       {:control "integer"}
+                       (= (:type field) "text")
+                       ;; TO DO: Remove hard coded text_size and text_max_length
+                       {:control "text" :text_size 25 :text_max_length 40}
+                       :else (throw (Exception. (format "Invalid type: %s for control: select-result" (:type field))))))
+                (form/form-field stf common-attrs value))
+               (form/form-field field stf common-attrs value))])])
 
        (when (not (:is_view (get tables (models/st schema table))))
          [:tr
