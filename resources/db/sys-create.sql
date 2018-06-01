@@ -240,9 +240,11 @@ create table sys.fields (
   -- TO DO: sys.options_select_result_function_names should be populated from a hash-map of available functions and should not be editable by any user
   select_result_function_name text references sys.options_select_result_function_names (value),
 
-  size int8,
+  text_size int8,
   text_max_length int8,
-  -- TO DO: format text, maybe use cl-format
+  -- text_pattern text, TO DO: Implement pattern regexp for text controls
+  -- text_title text,  TO DO: Include a description of the required pattern when text_pattern is not null
+
   textarea_cols int8,
   textarea_rows int8,
 
@@ -348,9 +350,9 @@ create table sys.fields (
   check ((control='select-result' and select_result_function_name is not null) or (control != 'select-result')),
 
   constraint valid_control_size_attribute
-  check ((control = 'text' and size is not null and size > 0) or
+  check ((control = 'text' and text_size is not null and text_size > 0) or
   	(control = 'text' and is_settable='false') or
-	(control != 'text' and size is null)),
+	(control != 'text' and text_size is null)),
 
   constraint valid_control_max_length_attributes
   check (((control = 'text' or control = 'textarea') and text_max_length is not null and text_max_length > 0) or
