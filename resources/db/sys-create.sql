@@ -468,7 +468,8 @@ create table sys.event_classes (
   -- function whose name is 'screen-participant'.
   function_name text references sys.options_function_names (value) not null,
   argument_name_id text references sys.fields (fields_id),
-  description text,
+  precedence_expression text,
+  precedence_events text,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
