@@ -57,65 +57,87 @@
      new-attrs-map))))
 
 
-(defmulti form-field (fn [{:keys [:control]} name attrs value] [(keyword control)]))
+(defmulti form-field (fn [{:keys [:control]} name attrs value fields] [(keyword control)]))
 
 
-(defmethod form-field [:date] [field name attrs value]
+(defmethod form-field [:date] [field name attrs value _]
   (cf/date-field (update-attrs attrs field {:date_min :min :date_max :max}) name value))
 
 
-(defmethod form-field [:datetime] [field name attrs value]
+(defmethod form-field [:datetime] [field name attrs value _]
    (cf/datetime-field attrs name value))
 
 
-(defmethod form-field [:float] [field name attrs value]
+(defmethod form-field [:float] [field name attrs value _]
   ;; (number-field (assoc attrs :step 0.0000000001) name value)
   (cf/number-field (update-attrs attrs field {:float_step :step :float_min :min :float_max :max}) name value))
 
 
-(defmethod form-field [:integer] [field name attrs value]
+(defmethod form-field [:integer] [field name attrs value _]
   ;; (number-field (assoc attrs :step 1) name value)
   ;; TO DO: 6em will allow a 6 digit integer to be input.
   ;; This should be computed from the integer_max and integer_min.
   (cf/number-field (update-attrs (assoc attrs :style "width: 6em;") field {:integer_step :step :integer_min :min :integer_max :max}) name value))
 
 
-;; (defmethod form-field [:integer-key] [field name attrs value]
-;;   (cf/number-field attrs name value))
-
-
-(defmethod form-field [:select-boolean] [field name attrs value]
+(defmethod form-field [:select-boolean] [field name attrs value _]
   (let [options (map vector
                      ["" (:boolean_true field) (:boolean_false field)]
                      [nil "true" "false"])]
     (cf/select-boolean-field attrs name options value)))
 
 
-(defmethod form-field [:select-option] [field name attrs value]
+(defmethod form-field [:select-option] [field name attrs value _]
   (f/drop-down (update-attrs attrs field {:select_multiple :multiple :select_size :size}) name (conj (:options field) ["" nil]) value))
 
 
-(defmethod form-field [:select-result] [field name attrs value]
-  (cf/select-result-field (assoc (update-attrs attrs field {:select_size :size}) :class "sr") name (conj (:options field) ["" nil]) value))
+(defmethod form-field [:select-result] [field name attrs value fields]
+  ;; Cheap way to get a table to select or display data: use a select
+  ;; control with a fixed width font and pad fields with non-breaking
+  ;; spaces so they line up in columns.
+  ;;  (pprint/pprint (keys fields))
+  (cf/select-result-field
+   (assoc (update-attrs attrs field {:select_size :size}) :class "sr")
+   name
+   (as-> (into [] (:options field)) options
+     (map
+      (fn [{value :value :as all}]
+        (vector
+         (if value
+           (map
+            ;; TO DO: Should not be calling db-to-label.  Should call
+            ;; db-to-table (since it depends on both type and control)
+            ;; with a new argument that indicates should not return a
+            ;; link, just a value.
+            (fn [[k v]]
+              (when (nil? (get fields (clojure.core/name k)))
+                (throw (Exception. (format "form-field:: %s not found in fields" (clojure.core/name k)))))
+              (u/pads
+               (str (cf/db-to-label v))
+               ;; TO DO: Change to :size
+               (or (get-in fields [(clojure.core/name k) :text_size]) 25)
+               "&nbsp;" true))
+            (dissoc all :value))
+           "")
+         value))
+      options)
+     (conj options ["" nil]))
+   value))
 
 
-(defmethod form-field [:text] [field name attrs value]
+(defmethod form-field [:text] [field name attrs value _]
   (f/text-field (update-attrs attrs field {:text_max_length :maxlength :text_size :size}) name value))
 
 
-(defmethod form-field [:textarea] [field name attrs value]
+(defmethod form-field [:textarea] [field name attrs value _]
   (f/text-area (update-attrs attrs field {:text_max_length :maxlength :textarea_cols :cols :textarea_rows :rows}) name value))
 
 
-;; (defmethod form-field [:text-key] [field name attrs value]
-;;   (f/text-field attrs name value))
-
-
-(defmethod form-field [:timestamp] [field name attrs value]
+(defmethod form-field [:timestamp] [field name attrs value _]
   (cf/timestamp-field (update-attrs attrs field {:size :text_size}) name value))
 
 
-(defmethod form-field :default [field name attrs value]
+(defmethod form-field :default [field name attrs value _]
   (throw (Exception. (format "form-field::invalid control: %s" (:control field)))))
 ;; ----- end: form-field -----
 
@@ -126,8 +148,11 @@
     (f/label name (:label field))))
 
 
-(defn form [fields schema table action data]
-  (let [fields (models/sort-by-location fields)
+(defn form [all-fields schema table action data]
+  ;; exclude fields that are the columns in a select-result so they
+  ;; aren't displayed at the top level of the form
+  (let [fields (models/fields-by-schema-table all-fields schema table)
+        fields (models/sort-by-location fields)
         stfs (map key fields)
         ;; there should be exactly one id field
         id (first (filter #(:is_id (get fields %)) stfs))
@@ -166,7 +191,7 @@
             [:td {:class "lbl" :style "vertical-align:top"} (form-label stf field)]
             [:td {:class "lbl"} (form-label stf field)])
           
-          [:td {:class "fld"} (form-field field stf common-attrs value)]])])
+          [:td {:class "fld"} (form-field field stf common-attrs value all-fields)]])])
 
      [:br]
 
@@ -237,12 +262,10 @@
 
 
 (defn edit [fields schema table data]
-  (let [fields (models/fields-by-schema-table fields schema table)]
-    (form fields schema table "edit" data)))
+  (form fields schema table "edit" data))
 
 
 (defn show [fields schema table data]
-  (let [fields (models/fields-by-schema-table fields schema table)
-        fields (into {} (map (fn [[k v]] [k (assoc v :readonly true)]) fields))]
+  (let [fields (into {} (map (fn [[k v]] [k (assoc v :readonly true)]) fields))]
     (form fields schema table "show" data)))
 

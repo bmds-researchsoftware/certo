@@ -15,9 +15,6 @@
    [certo.views.common :as common]))
 
 
-(def ^:const select-result-field-column-width 15)
-
-
 (defelem date-field
   "Creates a new date input field."
   ([name] (date-field name nil))
@@ -73,42 +70,12 @@
     ""))
 
 
-;; TO DO: Do  something like this to organize a search box for the select-result-field
-;; <table border="1">
-;;   <tr> <td> Label 1 </td><td> Control 1 </td></tr>
-;;   <tr>
-;;     <td> Label 2 </td>
-;;     <td>
-;;     <div> Search </div>
-;;     <div> Table </div>
-;;     </td>
-;;   </tr>
-;;   <tr> <td> Label 3 </td><td> Control 3 </td></tr>
-;; </table>
-
-
 (defelem select-result-field
   "Creates a new select-result input field."
   ([name options] (select-result-field name options nil))
   ([name options value]
-   ;; Cheap way to get a table to select or display data: use a select
-   ;; control with a fixed width font and pad fields with non-breaking
-   ;; spaces so they line up in columns.
    (f/drop-down
     name
-    (map
-     (fn [option]
-       (vector
-        (if (:value option)
-          (map
-           ;; TO DO: Should not be calling db-to-label.  Should call
-           ;; db-to-table (since it depends on both type and control)
-           ;; with a new argument that indicates should not return a
-           ;; link, just a value.
-           (fn [[k v]] (u/pads (str (db-to-label v)) select-result-field-column-width "&nbsp;" true))
-           (:label-fields option))
-          "")
-        (:value option)))
-     options)
+    options
     value)))
 

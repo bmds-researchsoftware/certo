@@ -115,17 +115,17 @@
 (defn pads [s k p ellipsis?]
   "Pad a string s with string p (optionally adding ellipsis) so that
   the length of the result is k."
-  (let [cs (inc (count s))
-        s (str s p)]
+  (let [k (max 3 k)
+        cs (inc (count s))
+        s (str s p p)]
     (cond (> k cs)
-          (str s (str/join (repeat (- k cs) p)))
+          (str s (str/join (repeat (- k cs) p)) p)
           (< k cs)
           (if ellipsis?
-            (str (subs s 0 (- k 4)) "..." p)
-            (str (subs s 0 (dec k)) p))
+            (str (subs s 0 (- k 3)) "..." p p)
+            (str (subs s 0 (dec k)) p p))
           :else
-          s)))
-
+          (str s p))))
 
 
 (defn write-hash-maps

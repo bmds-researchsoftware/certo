@@ -109,7 +109,7 @@ insert into sys.fields
   datetime_min, datetime_max,
   integer_step, integer_min, integer_max,
   float_step, float_min, float_max,
-  select_multiple, select_size, select_option_schema_table, select_result_function_name,
+  select_multiple, select_size, select_option_schema_table, select_result_view,
   text_max_length,
   textarea_cols, textarea_rows,
   created_by, updated_by)
@@ -120,7 +120,7 @@ values
   :datetime_min::timestamptz, :datetime_max::timestamptz,
   :integer_step, :integer_min, :integer_max,
   :float_step, :float_min, :float_max,
-  :select_multiple, :select_size, :select_option_schema_table, :select_result_function_name,
+  :select_multiple, :select_size, :select_option_schema_table, :select_result_view,
   :text_max_length,
   :textarea_cols, :textarea_rows,
   :created_by, :updated_by);
@@ -131,9 +131,9 @@ values
 -- :result :raw
 -- :doc Insert into sys.view_fields
 insert into sys.view_fields 
-  (schema_name, table_name, field_name, fields_id, label, location, created_by, updated_by)
+  (schema_name, table_name, field_name, sys_fields_id, label, location, created_by, updated_by)
 values
-  (:schema_name, :table_name, :field_name, :fields_id, :label, :location, :created_by, :updated_by);
+  (:schema_name, :table_name, :field_name, :sys_fields_id, :label, :location, :created_by, :updated_by);
   
 
 -- :name insert-sys-event-classes
@@ -163,12 +163,5 @@ values
 select event_classes_id as value, function_name 
 from sys.event_classes 
 order by event_classes_id, function_name
-
-
--- :name snoopy
--- :command :query
--- :result many
--- :doc Select all fields
-select * from sys.sys_fields_all_tn(:table_name)
 
 

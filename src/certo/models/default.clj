@@ -1,7 +1,8 @@
 (ns certo.models.default
   (:require
    [clojure.string :as str]
-   [clojure.edn :as edn]   
+   [clojure.set :as set]
+   [clojure.edn :as edn]
    [clojure.java.jdbc :as jdbc]
    [clojure.pprint :as pprint]
    [certo.utilities :as cu])
@@ -63,9 +64,9 @@
           (fn [[k v]] (and (:is_id v) (= (:schema_name v) schema) (= (:table_name v) table)))
           fields))]
     (case (count (take 2 idfs))
-      0 (throw (Exception. "id-field::none found, but expected exactly one."))
+      0 (throw (Exception. (format "id-field::none found, but expected exactly one for schema: %s and table: %s." schema table)))
       1 (first idfs)
-      (throw (Exception. "id-field::multiple found, but expected exactly one.")))))
+      (throw (Exception. (format "id-field::multiple found, but expected exactly one for schema: %s and table: %s.." schema table))))))
 
 
 (defn ui-to-db-one [fields field value]
@@ -133,103 +134,87 @@
     :result-set-fn (fn [rs] (into {} rs))}))
 
 
-;; TO DO: Confirm db constraint will prevent schema_table_field and
-;; options_schema_table from being nil, and then remove the nil? check
-;; below
-(defn select-options [db schema_table_field select_option_schema_table]
-  {schema_table_field
-   {:options
-    (if (or (nil? schema_table_field) (nil? select_option_schema_table))
-      []
-      (jdbc/query db [(format "select * from %s" select_option_schema_table)] {:row-fn (juxt :label :value)}))}})
+(defn select-options [db row]
+  (assoc
+   row
+   :options
+   (jdbc/query
+    db
+    [(format "select * from %s" (:select_option_schema_table row))]
+    {:row-fn (juxt :label :value)})))
 
 
-;; TO DO: Confirm db constraint will prevent schema_table_field,
-;; foreign_key_schema_table, and foreign_key_field from being nil, and
-;; then remove the nil? check below
-(defn select-results [db schema_table_field value]
-  {schema_table_field
-   {:options
-    (if (or (nil? schema_table_field) (nil? value))
-      []
-      (jdbc/query
-       db
-       ;; TO DO: The Postgresql function should be passed the "parent_id"
-       ;; TO DO: value is read from an html form so watch sql injection
-       [(format "select * from %s(null)" value)]
-       {:row-fn (fn [{:keys [:value] :as all}] {:value value :label-fields all})}))}})
+(defn select-results [db row]
+  (assoc
+   row
+   :options
+   (jdbc/reducible-query
+    db
+    ;; TO DO: The Postgresql function should be passed the "parent_id"
+    ;; TO DO: select_result_vview is read from an html form so watch sql injection
+    [(format "select * from %s" (:select_result_view row))])))
 
 
-(defn common-fields [db & [schema table]]
-  (into
-   {}
-   (map
-    (fn [[schema table]]
-      {(str schema "." table ".created_by")
-       {:schema_name schema
-        :table_name table
-        :field_name "created_by"
-        :type "text"
-        :label "Created By"
-        :control "text"
-        :location (- Long/MAX_VALUE 3)
-        :in_table_view false
-        :size "22"
-        :is_settable true
-        :disabled true
-        :readonly true
-        :required false}
+(defn common-fields [db schema table]
+  {(str schema "." table ".created_by")
+   {:schema_name schema
+    :table_name table
+    :field_name "created_by"
+    :type "text"
+    :label "Created By"
+    :control "text"
+    :location (- Long/MAX_VALUE 3)
+    :in_table_view false
+    :size "22"
+    :is_settable true
+    :disabled true
+    :readonly true
+    :required false}
 
-       (str schema "." table ".created_at")
-       {:schema_name schema
-        :table_name table
-        :field_name "created_at"
-        :type "timestamptz"
-        :label "Created At"
-        :control "timestamp"
-        :location (- Long/MAX_VALUE 2)
-        :in_table_view false
-        :size "22"
-        :is_settable false
-        :disabled true
-        :readonly true
-        :required false}
+   (str schema "." table ".created_at")
+   {:schema_name schema
+    :table_name table
+    :field_name "created_at"
+    :type "timestamptz"
+    :label "Created At"
+    :control "timestamp"
+    :location (- Long/MAX_VALUE 2)
+    :in_table_view false
+    :size "22"
+    :is_settable false
+    :disabled true
+    :readonly true
+    :required false}
 
-       (str schema "." table ".updated_by")
-       {:schema_name schema
-        :table_name table
-        :field_name "updated_by"
-        :type "text"
-        :label "Updated By"
-        :control "text"
-        :location (- Long/MAX_VALUE 1)
-        :in_table_view false
-        :size "22"
-        :is_settable true
-        :disabled true
-        :readonly true
-        :required false}
+   (str schema "." table ".updated_by")
+   {:schema_name schema
+    :table_name table
+    :field_name "updated_by"
+    :type "text"
+    :label "Updated By"
+    :control "text"
+    :location (- Long/MAX_VALUE 1)
+    :in_table_view false
+    :size "22"
+    :is_settable true
+    :disabled true
+    :readonly true
+    :required false}
 
-       (str schema "." table ".updated_at")
-       {:schema_name schema
-        :table_name table
-        :field_name "updated_at"
-        :type "timestamptz"
-        :label "Updated At"
-        :control "timestamp"
-        :location Long/MAX_VALUE
-        :in_table_view false
-        :size "22"
-        :is_settable false
-        :disabled true
-        :readonly true
-        :required false}})
-    (jdbc/query
-     db
-     (if (and schema table)
-       ["select schema_name, table_name from sys.tables where schema_name=? and table_name=?" schema table]
-       ["select schema_name, table_name from sys.tables"])
-     {:row-fn (juxt :schema_name :table_name)}))))
+   (str schema "." table ".updated_at")
+   {:schema_name schema
+    :table_name table
+    :field_name "updated_at"
+    :type "timestamptz"
+    :label "Updated At"
+    :control "timestamp"
+    :location Long/MAX_VALUE
+    :in_table_view false
+    :size "22"
+    :is_settable false
+    :disabled true
+    :readonly true
+    :required false}})
 
 
 (defn sort-by-location [fields]
@@ -242,97 +227,93 @@
    fields))
 
 
-(defn table-fields [db & [schema table]]
-  (merge-with
-
-   merge
-
-   (common-fields db schema table)
-
-   (jdbc/query
-    db
-    (if (and schema table)
-      ["select * from sys.fields where schema_name=? and table_name=?" schema table]
-      ["select * from sys.fields"])
-    {:row-fn (fn [row] (vector (:fields_id row) row))
-     :result-set-fn (fn [rs] (into {} rs))})
-
-   (jdbc/query
-    db
-    ;; Get a list of the fields that have a select control
-    (if (and schema table)
-      ["select * from sys.fields where control='select-option' and schema_name=? and table_name=?" schema table]
-      ["select * from sys.fields where control='select-option'"])
-    {:row-fn
-     (fn [row] (select-options db (:fields_id row) (:select_option_schema_table row)))
-     :result-set-fn (fn [rs] (into {} rs))})
-
-   ;; TO DO: You should definitely not be carrying around this data.
-   ;; Most, importantly this needs to be updated before using in a
-   ;; form, since it may be been changed. Add it on in the controller
-   ;; when editing a record or making a new one.
-   (jdbc/query
-    db
-    ;; TO DO: Can you use a reducibe-query here?
-    ;; Get a list of the fields that have a select-result control
-    (if (and schema table)
-      ["select fs.fields_id, qs.value, qs.label from sys.fields as fs inner join sys.options_select_result_function_names as qs on fs.select_result_function_name=qs.value where fs.control='select-result' and schema_name=? and table_name=?" schema table]      
-      ["select fs.fields_id, qs.value, qs.label from sys.fields as fs inner join sys.options_select_result_function_names as qs on fs.select_result_function_name=qs.value where fs.control='select-result'"])
-    {:row-fn (fn [row] (select-results db (:fields_id row) (:value row)))
-     :result-set-fn (fn [rs] (into {} rs))})))
+(defn prepare-control [db row]
+  (cond
+    (= (:control row) "select-option")
+    (select-options db row)
+    (= (:control row) "select-result")
+    (select-results db row)
+    :else row))
 
 
-;; TO DO:
-;; Can you use reducible-query, maybe a function in models returns a reducible query
-;; and a function in controller or view transforms the it by calling db-to-ui for select-result
+(defn merge-sf-and-svf [db r]
+  (vector
+   (:vf_view_fields_id r)
+   (as->
+       (dissoc
+        r
+        :fields_id
+        :tables_id
+        :schema_name
+        :table_name
+        :field_name
+        :label
+        :location
+        :created_by
+        :created_at
+        :updated_by
+        :updated_at
+        :vf_sys_fields_id) nr
+     (set/rename-keys
+      nr
+      {:vf_view_fields_id :fields_id
+       :vf_tables_id :tables_id
+       :vf_schema_name :schema_name
+       :vf_table_name :table_name
+       :vf_field_name :field_name
+       :vf_label :label
+       :vf_location :location
+       :vf_created_by :created_by
+       :vf_created_at :created_at
+       :vf_updated_by :updated_by
+       :vf_updated_at :updated_at})
+     ;; if :is_id is true in the table field, then in the view
+     ;; field, set :is_uk to true and :search_fields_id, to be
+     ;; the value :fields_id from the table field
+     (if (:is_id r)
+       (assoc nr :is_uk true :search_fields_id (:fields_id r))
+       nr)
+     (dissoc nr :view_fields_id :fields_id :is_id)
+     (assoc nr :fields_id (:view_fields_id r))
+     (prepare-control db nr))))
 
 
-(defn fields [db & [schema table]]
-  "Update each view field with information from the corresponding
-  table field and then merge view fields with table fields."
-  (let [vfs
-        (jdbc/query ;; TO DO: Use reducible-query
+(defn fields [db schema table]
+  (let [is_view
+        (jdbc/query
          db
-         (if (and schema table)
-           ["select * from sys.view_fields where schema_name=? and table_name=?" schema table]
-           ["select * from sys.view_fields"]))
+         ["select is_view from sys.tables where schema_name=? and table_name=?" schema table]
+         {:result-set-fn first :row-fn :is_view})]
 
-        ;; TO DO: Use a join between sys.tables, sys.view_fields, and
-        ;; sys.fields to retrieve only the required rows from
-        ;; sys.fields, i.e. "select st.is_view, svf.view_fields_id,
-        ;; sf.* from sys.tables as st inner join sys.view_fields as
-        ;; svf on (st.schema_name=svf.schema_name and
-        ;; st.table_name=svf.table_name) inner join sys.fields as sf
-        ;; on svf.fields_id=sf.fields_id where st.is_view='true' and
-        ;; st.schema_name=? and st.table_name=?"
+    ;; TO DO: Maybe define these selects as Postgresql views or a HugSQL functions
 
-        ;; if (not (empty? vfs)) then schema.table is a view and we
-        ;; need all table-fields until we implement the optimization
-        ;; described above
-        tfs (if (empty? vfs)
-              (table-fields db schema table)
-              (table-fields db))
-        vfs
-        (into
-         {}
-         (map
-          (fn [vf]
-            (vector
-             (:view_fields_id vf)
-             (let [tf (get tfs (:fields_id vf))]
-               ;; if :is_id is true in the table field, then in the
-               ;; view field, set :is_uk to true and
-               ;; :search_fields_id, to be the value :fields_id from
-               ;; the table field
-               (as-> vf vf
-                 (merge tf vf)
-                 (if (:is_id tf)
-                   (assoc vf :is_uk true :search_fields_id (:fields_id tf))
-                   vf)
-                 (dissoc vf :view_fields_id :fields_id :is_id)
-                 (assoc vf :fields_id (:view_fields_id vf))))))
-          vfs))]
-    (merge tfs vfs)))
+    (merge
+
+     (common-fields db schema table)
+
+     (if is_view
+
+       (jdbc/query
+        db
+        ;; get all controls in the view schema.table
+        ["select sf.*, svf.view_fields_id \"vf_view_fields_id\", svf.tables_id \"vf_tables_id\", svf.schema_name \"vf_schema_name\", svf.table_name \"vf_table_name\", svf.field_name \"vf_field_name\", svf.sys_fields_id \"vf_sys_fields_id\", svf.label \"vf_label\", svf.location \"vf_location\", svf.created_by \"vf_created_by\", svf.created_at \"vf_created_at\", svf.updated_by \"vf_updated_by\", svf.updated_at \"vf_updated_at\" from sys.view_fields as svf inner join sys.fields as sf on svf.sys_fields_id=sf.fields_id where svf.schema_name=? and svf.table_name=?" schema table]
+        {:row-fn #(merge-sf-and-svf db %)
+         :result-set-fn (fn [rs] (into {} rs))})
+
+       (jdbc/query
+        db
+        ;; get all controls in the table schema.table
+        ["select * from sys.fields  where schema_name=? and table_name=?" schema table]
+        {:row-fn (fn [row] (vector (:fields_id row) (prepare-control db row)))
+         :result-set-fn (fn [rs] (into {} rs))}))
+
+     (jdbc/query
+      db
+      ;; get all controls that are in a select-result control
+      ["select sfv.*, svf.view_fields_id \"vf_view_fields_id\", svf.tables_id \"vf_tables_id\", svf.schema_name \"vf_schema_name\", svf.table_name \"vf_table_name\", svf.field_name \"vf_field_name\", svf.sys_fields_id \"vf_sys_fields_id\", svf.label \"vf_label\", svf.location \"vf_location\", svf.created_by \"vf_created_by\", svf.created_at \"vf_created_at\", svf.updated_by \"vf_updated_by\", svf.updated_at \"vf_updated_at\" from sys.fields as sf inner join sys.view_fields as svf on sf.select_result_view=svf.tables_id inner join sys.fields as sfv on svf.sys_fields_id=sfv.fields_id where sf.control='select-result' and sf.schema_name=? and sf.table_name=?" schema table]
+      {:row-fn
+       #(merge-sf-and-svf db %)
+       :result-set-fn (fn [rs] (into {} rs))}))))
 
 
 (defn fields-by-schema-table [fields schema table]
@@ -342,9 +323,9 @@
 (defn fields-by-schema-table-and-in-table-view [fields schema table]
   (into {} (filter (fn [[k v]] (and (= (:schema_name v) schema) (= (:table_name v) table) (:in_table_view v))) fields)))
 
+
 (defn fields-in-table-view [fields]
   (into {} (filter (fn [[k v]] (:in_table_view v)) fields)))
-
 
 
 (defn field-by-event [fields event]

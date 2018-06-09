@@ -73,15 +73,15 @@ create index on sys.users (usergroup);
 -- :command :execute
 -- :result :raw
 -- :doc Create table sys.options_schema_tables
-create table sys.options_schema_tables (
-  value text primary key,
-  label text not null,
-  location int8 constraint valid_sys_options_schema_tables_location check (location is null or location >= 0),
-  created_by text constraint valid_sys_options_schema_tables_created_by check (created_by = 'root'),
-  created_at timestamptz default current_timestamp,
-  updated_by text constraint valid_sys_options_schema_tables_updated_by check (updated_by = 'root'),
-  updated_at timestamptz default current_timestamp);
-select sys.create_trigger_set_updated_at('sys.options_schema_tables');
+-- create table sys.options_schema_tables (
+--   value text primary key,
+--   label text not null,
+--   location int8 constraint valid_sys_options_schema_tables_location check (location is null or location >= 0),
+--   created_by text constraint valid_sys_options_schema_tables_created_by check (created_by = 'root'),
+--   created_at timestamptz default current_timestamp,
+--   updated_by text constraint valid_sys_options_schema_tables_updated_by check (updated_by = 'root'),
+--   updated_at timestamptz default current_timestamp);
+-- select sys.create_trigger_set_updated_at('sys.options_schema_tables');
 
 
 -- :name create-table-sys-options-types
@@ -118,15 +118,15 @@ select sys.create_trigger_set_updated_at('sys.options_controls');
 -- :command :execute
 -- :result :raw
 -- :doc Create table sys.options_select_result_function_names
-create table sys.options_select_result_function_names (
-  value text primary key,
-  label text not null,
-  location int8 constraint valid_sys_options_select_result_function_names_location check (location is null or location >= 0),
-  created_by text references sys.users (username) not null,
-  created_at timestamptz default current_timestamp,
-  updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp);
-select sys.create_trigger_set_updated_at('sys.options_select_result_function_names');
+-- create table sys.options_select_result_function_names (
+--   value text primary key,
+--   label text not null,
+--   location int8 constraint valid_sys_options_select_result_function_names_location check (location is null or location >= 0),
+--   created_by text references sys.users (username) not null,
+--   created_at timestamptz default current_timestamp,
+--   updated_by text references sys.users (username) not null,
+--   updated_at timestamptz default current_timestamp);
+-- select sys.create_trigger_set_updated_at('sys.options_select_result_function_names');
 
 
 -- :name create-table-sys-options-function-names
@@ -166,7 +166,6 @@ create table sys.tables (
   primary key (schema_name, table_name));
 select sys.create_trigger_set_updated_at('sys.tables');
 
-
 create or replace function sys.update_sys_tables()
 returns trigger as $$
 begin
@@ -174,7 +173,6 @@ begin
   return new;
 end;
 $$ language plpgsql;
-
 
 create trigger trigger_sys_update_sys_tables
 before insert or update on sys.tables
@@ -190,6 +188,8 @@ create unique index tables_id_index on sys.tables (tables_id);
 -- :doc Create table sys.fields
 create table sys.fields (
   fields_id text unique not null, -- populated by a before trigger as schema_name.table_name.field_name
+
+  tables_id text references sys.tables (tables_id), -- populated by a before trigger as schema_name.table_name
 
   schema_name text not null, -- part of pk
   table_name text not null, -- part of pk
@@ -236,9 +236,8 @@ create table sys.fields (
   select_size int8,
 
   select_option_schema_table text references sys.tables (tables_id),
-  
-  -- TO DO: sys.options_select_result_function_names should be populated from a hash-map of available functions and should not be editable by any user
-  select_result_function_name text references sys.options_select_result_function_names (value),
+
+  select_result_view text references sys.tables (tables_id),
 
   text_size int8,
   text_max_length int8,
@@ -347,7 +346,7 @@ create table sys.fields (
   check ((control='select-option' and select_option_schema_table is not null) or (control != 'select-option')),
 
   constraint valid_select_result_static_control_attributes
-  check ((control='select-result' and select_result_function_name is not null) or (control != 'select-result')),
+  check ((control='select-result' and select_result_view is not null) or (control != 'select-result')),
 
   constraint valid_control_size_attribute
   check ((control = 'text' and text_size is not null and text_size > 0) or
@@ -372,6 +371,7 @@ select sys.create_trigger_set_updated_at('sys.fields');
 create or replace function sys.update_sys_fields()
 returns trigger as $$
 begin
+  new.tables_id = new.schema_name || '.' || new.table_name;
   new.fields_id = new.schema_name || '.' || new.table_name || '.' || new.field_name;
   return new;
 end;
@@ -389,6 +389,7 @@ create unique index unique_id on sys.fields (schema_name, table_name, field_name
 
 create index sys_fields_schema_name_table_name on sys.fields (schema_name, table_name);
 
+
 -- :name create-table-sys-view-fields
 -- :command :execute
 -- :result :raw
@@ -396,11 +397,13 @@ create index sys_fields_schema_name_table_name on sys.fields (schema_name, table
 create table sys.view_fields (
   view_fields_id text unique not null, -- populated by a before trigger as schema_name.table_name.field_name
 
+  tables_id text references sys.tables (tables_id), -- populated by a before trigger as schema_name.table_name
+
   schema_name text not null, -- part of pk
   table_name text not null, -- part of pk
   field_name text not null, -- part of pk
 
-  fields_id text references sys.fields (fields_id),
+  sys_fields_id text references sys.fields (fields_id),
 
   label text not null,
   location int8 constraint valid_sys_fields_location check (location is not null and location >= 0),
@@ -419,6 +422,7 @@ create or replace function sys.update_sys_view_fields()
 returns trigger as $$
 begin
   new.view_fields_id = new.schema_name || '.' || new.table_name || '.' || new.field_name;
+  new.tables_id = new.schema_name || '.' || new.table_name;
   return new;
 end;
 $$ language plpgsql;
@@ -434,26 +438,26 @@ create unique index view_fields_id_index on sys.view_fields (view_fields_id);
 -- Populates table sys.options_schema_tables with value =
 -- schema_name.table_name and reference it from
 -- sys.fields.options_table_schema
-create or replace function sys.update_sys_options_schema_tables()
-returns trigger as
-$$
-begin
-  if new.table_name like 'options_%' then
-    insert into sys.options_schema_tables
-      (value, label) 
-    values
-      (new.schema_name || '.' || new.table_name, new.schema_name || '.' || new.table_name)
-    on conflict (value) do nothing;
-  end if;
-  return new;
-end;
-$$
-language plpgsql;
+-- create or replace function sys.update_sys_options_schema_tables()
+-- returns trigger as
+-- $$
+-- begin
+--   if new.table_name like 'options_%' then
+--     insert into sys.options_schema_tables
+--       (value, label) 
+--     values
+--       (new.schema_name || '.' || new.table_name, new.schema_name || '.' || new.table_name)
+--     on conflict (value) do nothing;
+--   end if;
+--   return new;
+-- end;
+-- $$
+-- language plpgsql;
 
-create trigger trigger_sys_update_sys_options_schema_tables
-after insert or update on sys.tables
-for each row
-execute procedure sys.update_sys_options_schema_tables();
+-- create trigger trigger_sys_update_sys_options_schema_tables
+-- after insert or update on sys.tables
+-- for each row
+-- execute procedure sys.update_sys_options_schema_tables();
 
 
 -- :name create-table-sys-event-classes
@@ -477,6 +481,8 @@ create table sys.event_classes (
 select sys.create_trigger_set_updated_at('sys.event_classes');
 
 
+-- TO DO: RENAME TO event_class_fields
+
 -- :name create-table-sys-event-classes_fields
 -- :command :execute
 -- :result :raw
@@ -484,7 +490,7 @@ select sys.create_trigger_set_updated_at('sys.event_classes');
 create table sys.event_classes_fields (
   event_classes_fields_id serial8 primary key,
   event_classes_id text references sys.event_classes (event_classes_id) not null,
-  fields_id text references sys.fields (fields_id) not null,
+  fields_id text references sys.fields (fields_id) not null, -- TO DO: Rename to sys_fields_id
   location int8 constraint valid_sys_event_classes_fields_location check (location is not null and location >= 0),
   disabled boolean not null,
   readonly boolean not null,
@@ -534,29 +540,19 @@ create index on sys.events (event_classes_id);
 select sys.create_trigger_set_updated_at('sys.events');
 
 
-create view sys.sys_event_classes_all as
-select event_classes_id as value, function_name 
-from sys.event_classes
-order by event_classes_id, function_name;
-
-create or replace function sys.sys_event_classes_all(x int8)
-returns setof sys.sys_event_classes_all as $$
-  select * from sys.sys_event_classes_all;
-$$ language sql;
 
 
-create view sys.sys_fields_all as
-select sys.fields.fields_id as value, sys.fields.schema_name as sn, sys.fields.table_name as tn, sys.fields.field_name as fn 
+create view sys.tables_rs as
+select tables_id as value, tables_id as "sys.tables_rs.tables_id", schema_name as "sys.tables_rs.schema_name", table_name as "sys.tables_rs.table_name"
+from sys.tables;
+
+
+create view sys.fields_rs as
+select fields_id as value, fields_id as "sys.fields_rs.fields_id", schema_name as "sys.fields_rs.schema_name", table_name as "sys.fields_rs.table_name", field_name as "sys.fields_rs.field_name"
 from sys.fields;
 
-create or replace function sys.sys_fields_all(x int8)
-returns setof sys.sys_fields_all as $$
-  select * from sys.sys_fields_all;
-$$ language sql;
 
-
-create or replace function sys.sys_fields_all_tn(text)
-returns setof sys.sys_fields_all as $$
-  select * from sys.sys_fields_all as sfa where tn = $1;
-$$ language sql;
-
+create view sys.event_classes_rs as
+select event_classes_id as value, event_classes_id as "sys.event_classes_rs.event_classes_id", function_name as "sys.event_classes_rs.function_name"
+from sys.event_classes
+order by event_classes_id, function_name;

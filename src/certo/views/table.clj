@@ -188,8 +188,8 @@
                        ;; TO DO: Remove hard coded text_size and text_max_length
                        {:control "text" :text_size 25 :text_max_length 40}
                        :else (throw (Exception. (format "Invalid type: %s for control: select-result" (:type field))))))
-                (form/form-field stf common-attrs value))
-               (form/form-field field stf common-attrs value))])])
+                (form/form-field stf common-attrs value fields))
+               (form/form-field field stf common-attrs value fields))])])
 
        (when (not (:is_view (get tables (models/st schema table))))
          [:tr

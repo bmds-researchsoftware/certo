@@ -59,8 +59,6 @@
 
           tables (model/tables db schema table)
 
-          ;; TO DO: Try to change so model/fields returns a reducible-query and then need to lazily transform the select-result combo box rows
-
           fields (model/fields db schema table)]
 
       (compojure/routes
