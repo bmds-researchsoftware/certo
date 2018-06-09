@@ -114,21 +114,6 @@ create table sys.options_controls (
 select sys.create_trigger_set_updated_at('sys.options_controls');
 
 
--- :name create-table-sys-options-select-result-function-names
--- :command :execute
--- :result :raw
--- :doc Create table sys.options_select_result_function_names
--- create table sys.options_select_result_function_names (
---   value text primary key,
---   label text not null,
---   location int8 constraint valid_sys_options_select_result_function_names_location check (location is null or location >= 0),
---   created_by text references sys.users (username) not null,
---   created_at timestamptz default current_timestamp,
---   updated_by text references sys.users (username) not null,
---   updated_at timestamptz default current_timestamp);
--- select sys.create_trigger_set_updated_at('sys.options_select_result_function_names');
-
-
 -- :name create-table-sys-options-function-names
 -- :command :execute
 -- :result :raw
@@ -540,8 +525,6 @@ create index on sys.events (event_classes_id);
 select sys.create_trigger_set_updated_at('sys.events');
 
 
-
-
 create view sys.tables_sr as
 select tables_id as value, tables_id as "sys.tables_sr.tables_id", schema_name as "sys.tables_sr.schema_name", table_name as "sys.tables_sr.table_name"
 from sys.tables;
@@ -556,3 +539,4 @@ create view sys.event_classes_sr as
 select event_classes_id as value, event_classes_id as "sys.event_classes_sr.event_classes_id", function_name as "sys.event_classes_sr.function_name"
 from sys.event_classes
 order by event_classes_id, function_name;
+

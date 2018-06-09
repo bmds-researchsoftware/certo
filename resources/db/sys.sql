@@ -38,16 +38,6 @@ values
   (:value, :label, :location, :created_by, :updated_by);
 
 
--- :name insert-sys-options-select-result-function-names
--- :command :execute
--- :result :raw
--- :doc Insert into sys.options_select_result_function_names
-insert into sys.options_select_result_function_names
-  (value, label, location, created_by, updated_by)
-values
-  (:value, :label, :location, :created_by, :updated_by);
-
-
 -- :name insert-sys-options-function-names
 -- :command :execute
 -- :result :raw
