@@ -18,10 +18,10 @@
 
 
 
-{:schema_name "sys" :table_name "tables_rs" :is_view true :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "tables_sr" :is_view true :created_by "root" :updated_by "root"}
 
-{:schema_name "sys" :table_name "fields_rs" :is_view true :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "fields_sr" :is_view true :created_by "root" :updated_by "root"}
 
-{:schema_name "sys" :table_name "event_classes_rs" :is_view true :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "event_classes_sr" :is_view true :created_by "root" :updated_by "root"}
 
 

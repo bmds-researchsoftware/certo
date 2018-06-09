@@ -542,17 +542,17 @@ select sys.create_trigger_set_updated_at('sys.events');
 
 
 
-create view sys.tables_rs as
-select tables_id as value, tables_id as "sys.tables_rs.tables_id", schema_name as "sys.tables_rs.schema_name", table_name as "sys.tables_rs.table_name"
+create view sys.tables_sr as
+select tables_id as value, tables_id as "sys.tables_sr.tables_id", schema_name as "sys.tables_sr.schema_name", table_name as "sys.tables_sr.table_name"
 from sys.tables;
 
 
-create view sys.fields_rs as
-select fields_id as value, fields_id as "sys.fields_rs.fields_id", schema_name as "sys.fields_rs.schema_name", table_name as "sys.fields_rs.table_name", field_name as "sys.fields_rs.field_name"
+create view sys.fields_sr as
+select fields_id as value, fields_id as "sys.fields_sr.fields_id", schema_name as "sys.fields_sr.schema_name", table_name as "sys.fields_sr.table_name", field_name as "sys.fields_sr.field_name"
 from sys.fields;
 
 
-create view sys.event_classes_rs as
-select event_classes_id as value, event_classes_id as "sys.event_classes_rs.event_classes_id", function_name as "sys.event_classes_rs.function_name"
+create view sys.event_classes_sr as
+select event_classes_id as value, event_classes_id as "sys.event_classes_sr.event_classes_id", function_name as "sys.event_classes_sr.function_name"
 from sys.event_classes
 order by event_classes_id, function_name;
