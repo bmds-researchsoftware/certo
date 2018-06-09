@@ -69,21 +69,6 @@ select sys.create_trigger_set_updated_at('sys.users');
 create index on sys.users (usergroup);
 
 
--- :name create-table-sys-options-schema_table
--- :command :execute
--- :result :raw
--- :doc Create table sys.options_schema_tables
--- create table sys.options_schema_tables (
---   value text primary key,
---   label text not null,
---   location int8 constraint valid_sys_options_schema_tables_location check (location is null or location >= 0),
---   created_by text constraint valid_sys_options_schema_tables_created_by check (created_by = 'root'),
---   created_at timestamptz default current_timestamp,
---   updated_by text constraint valid_sys_options_schema_tables_updated_by check (updated_by = 'root'),
---   updated_at timestamptz default current_timestamp);
--- select sys.create_trigger_set_updated_at('sys.options_schema_tables');
-
-
 -- :name create-table-sys-options-types
 -- :command :execute
 -- :result :raw
@@ -418,31 +403,6 @@ for each row
 execute procedure sys.update_sys_view_fields();
 
 create unique index view_fields_id_index on sys.view_fields (view_fields_id);
-
-
--- Populates table sys.options_schema_tables with value =
--- schema_name.table_name and reference it from
--- sys.fields.options_table_schema
--- create or replace function sys.update_sys_options_schema_tables()
--- returns trigger as
--- $$
--- begin
---   if new.table_name like 'options_%' then
---     insert into sys.options_schema_tables
---       (value, label) 
---     values
---       (new.schema_name || '.' || new.table_name, new.schema_name || '.' || new.table_name)
---     on conflict (value) do nothing;
---   end if;
---   return new;
--- end;
--- $$
--- language plpgsql;
-
--- create trigger trigger_sys_update_sys_options_schema_tables
--- after insert or update on sys.tables
--- for each row
--- execute procedure sys.update_sys_options_schema_tables();
 
 
 -- :name create-table-sys-event-classes
