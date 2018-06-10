@@ -99,7 +99,8 @@
   ;; control with a fixed width font and pad fields with non-breaking
   ;; spaces so they line up in columns.
   (cf/select-result-field
-   (assoc (update-attrs attrs field {:select_size :size}) :class "sr" :onkeydown (format "return %s(event);" (filter-select-result-function-name name)))
+   (let [fsrfn (format "return %s(event);" (filter-select-result-function-name name))]
+     (assoc (update-attrs attrs field {:select_size :size}) :class "sr" :onkeydown fsrfn :onkeypress fsrfn))
    name
    (as-> (into [] (:options field)) options
      (map

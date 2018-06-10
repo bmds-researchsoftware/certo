@@ -490,12 +490,14 @@ select sys.create_trigger_set_updated_at('sys.events');
 
 create view sys.tables_sr as
 select tables_id as value, tables_id as "sys.tables_sr.tables_id", schema_name as "sys.tables_sr.schema_name", table_name as "sys.tables_sr.table_name"
-from sys.tables;
+from sys.tables
+order by tables_id;
 
 
 create view sys.fields_sr as
-select fields_id as value, fields_id as "sys.fields_sr.fields_id", schema_name as "sys.fields_sr.schema_name", table_name as "sys.fields_sr.table_name", field_name as "sys.fields_sr.field_name"
-from sys.fields;
+select fields_id as value, schema_name as "sys.fields_sr.schema_name", table_name as "sys.fields_sr.table_name", field_name as "sys.fields_sr.field_name"
+from sys.fields
+order by fields_id;
 
 
 create view sys.event_classes_sr as
