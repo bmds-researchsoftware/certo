@@ -116,7 +116,7 @@
   "Pad a string s with string p (optionally adding ellipsis) so that
   the length of the result is k."
   (let [k (max 3 k)
-        cs (inc (count s))
+        cs (count s)
         s (str s p p)]
     (cond (> k cs)
           (str s (str/join (repeat (- k cs) p)) p)
