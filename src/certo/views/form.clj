@@ -16,6 +16,9 @@
    [certo.views.def :as cf]))
 
 
+(defn filter-select-result-function-name [fields_id]
+  (str (str/replace fields_id "." "_") "_fsr"))
+
 ;; ----- start: db-to-form -----
 (defmulti db-to-form (fn [{:keys [:type :control]} value] [(keyword type) (keyword control)]))
 
@@ -95,9 +98,8 @@
   ;; Cheap way to get a table to select or display data: use a select
   ;; control with a fixed width font and pad fields with non-breaking
   ;; spaces so they line up in columns.
-  ;;  (pprint/pprint (keys fields))
   (cf/select-result-field
-   (assoc (update-attrs attrs field {:select_size :size}) :class "sr")
+   (assoc (update-attrs attrs field {:select_size :size}) :class "sr" :onkeydown (format "return %s(event);" (filter-select-result-function-name name)))
    name
    (as-> (into [] (:options field)) options
      (map
@@ -112,9 +114,13 @@
             (fn [[k v]]
               (when (nil? (get fields (clojure.core/name k)))
                 (throw (Exception. (format "form-field:: %s not found in fields" (clojure.core/name k)))))
+              ;; TO DO: All fields must have a size - enforce it with a database constraint
+              ;; (when (nil? (get-in fields [(clojure.core/name k) :size]))
+              ;;   (throw (Exception. (format "form-field:: size for %s not found" (clojure.core/name k)))))
               (u/pads
                (str (cf/db-to-label v))
                (or (get-in fields [(clojure.core/name k) :size]) 25)
+               ;; (get-in fields [(clojure.core/name k) :size])
                "&nbsp;" true))
             (dissoc all :value))
            "")
@@ -190,7 +196,10 @@
             [:td {:class "lbl" :style "vertical-align:top"} (form-label stf field)]
             [:td {:class "lbl"} (form-label stf field)])
           
-          [:td {:class "fld"} (form-field field stf common-attrs value all-fields)]])])
+          [:td {:class "fld"}
+           (when (= (:control field) "select-result")
+             [:script (format "var %s = filterSelectResult();" (filter-select-result-function-name (:fields_id field)))])
+           (form-field field stf common-attrs value all-fields)]])])
 
      [:br]
 
@@ -201,7 +210,7 @@
 
      (when-let [sys_event_classes_event_classes_id (:sys.event_classes.event_classes_id data)]
        [:tr
-        [:td {:class "lnk" :style "text-align:left;" }
+        [:td {:class "lnk" :style "text-align:left;"}
          [:a {:href (str "/sys/event_class_fields/new?sys.event_class_fields.event_classes_id=" sys_event_classes_event_classes_id)} "New"]]])
           
      [:div {:class "ct"}

@@ -19,6 +19,7 @@
    {:lang "en"}
    [:head
     (p/include-css "/styles.css")
+    (p/include-js "/scripts.js")
     [:title title]]
    [:body body]))
 
