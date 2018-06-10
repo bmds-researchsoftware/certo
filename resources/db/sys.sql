@@ -13,9 +13,9 @@ values
 -- :result :raw
 -- :doc Insert into sys.users
 insert into sys.users 
-  (username, password, usergroup, created_by, updated_by)
+  (username, password, full_name, display_name, email, usergroup, created_by, updated_by)
 values 
-  (:username, :password, :usergroup, :created_by, :updated_by);
+  (:username, :password, :full_name, :display_name, :email, :usergroup, :created_by, :updated_by);
 
 
 -- :name insert-sys-options-types

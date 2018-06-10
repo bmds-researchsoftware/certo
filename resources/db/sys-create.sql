@@ -60,6 +60,9 @@ select sys.create_trigger_set_updated_at('sys.options_usergroups');
 create table sys.users (
   username text primary key,
   password text not null,
+  full_name text not null,
+  display_name text,
+  email text not null,
   usergroup text references sys.options_usergroups (value) not null,
   created_by text references sys.users (username),
   created_at timestamptz default current_timestamp,
