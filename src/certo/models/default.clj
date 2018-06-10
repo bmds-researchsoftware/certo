@@ -506,3 +506,11 @@
                       :count (select-count-star db st)})})])
      schemas)))
 
+
+(defn user [db username]
+  (first
+   (jdbc/query
+    db
+    ["select su.*, sou.label as usergroup_label from sys.users as su inner join sys.options_usergroups as sou on su.usergroup=sou.value where username=?"
+     username])))
+

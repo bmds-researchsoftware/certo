@@ -18,7 +18,7 @@
    [certo.views.common :as common]))
 
 
-(defn dashboard [title sts] (d/dashboard title sts))
+(defn dashboard [title user sts] (d/dashboard title user sts))
 (defn table [tables fields schema table rows data] (t/table tables fields schema table rows data))
 (defn new [fields schema table data] (frm/new fields schema table data))
 (defn edit [fields schema table data] (frm/edit fields schema table data))

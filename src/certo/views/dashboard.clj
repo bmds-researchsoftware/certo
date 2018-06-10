@@ -16,12 +16,20 @@
 
 
 
-(defn dashboard [title sts]
+
+(defn dashboard [title user sts]
   (common/page
    title
    [:br] [:br]
    [:div {:class "ct"} (common/format-title title)]
-   [:br] [:br]
+   [:br]
+   [:table {:style "width: 45%"}
+    [:tr
+     [:th {:style "width: 35%; border: 0px; font-size: 85%; text-align:left"} (:display_name user)]
+     [:th {:style "width: 35%; border: 0px; font-size: 85%; text-align:center"} (:usergroup_label user)]
+     ;; [:th {:style "width: 35%; border: 0px; font-size: 85%; text-align:right"} (jt/format "MM/dd/yyyy"(u/date-now))]
+     [:th {:style "width: 30%; border: 0px; font-size: 85%; text-align:right"} "Version: 0.0.1"]]]
+   [:br]
    (for [[schema tables] sts]
      (list
       [:table {:style "width: 45%"}

@@ -32,8 +32,8 @@
 
    (compojure/GET
     "/"
-    []
-    (view/dashboard (:system-name md) (model/dashboard db)))
+    {username :basic-authentication}
+    (view/dashboard (:system-name md) (model/user db username) (model/dashboard db)))
 
    (compojure/GET
     "/sys/events/:id{[0-9]+}/new"
