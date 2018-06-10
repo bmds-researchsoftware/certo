@@ -61,23 +61,23 @@
 
 
 (defmethod form-field [:date] [field name attrs value _]
-  (cf/date-field (update-attrs attrs field {:date_min :min :date_max :max}) name value))
+  (cf/date-field (update-attrs (assoc attrs :style (format "width: %dem;" (count "01/01/0001"))) field {:date_min :min :date_max :max}) name value))
 
 
 (defmethod form-field [:datetime] [field name attrs value _]
-   (cf/datetime-field attrs name value))
+  (cf/datetime-field (assoc attrs :style (format "width: %dem;" (count "01/01/0001, 01:01:01"))) name value))
 
 
 (defmethod form-field [:float] [field name attrs value _]
   ;; (number-field (assoc attrs :step 0.0000000001) name value)
-  (cf/number-field (update-attrs attrs field {:float_step :step :float_min :min :float_max :max}) name value))
+  (cf/number-field (update-attrs (assoc attrs :style (format "width: %dem;" (:size field))) field {:float_step :step :float_min :min :float_max :max}) name value))
 
 
 (defmethod form-field [:integer] [field name attrs value _]
   ;; (number-field (assoc attrs :step 1) name value)
-  ;; TO DO: 6em will allow a 6 digit integer to be input.
-  ;; This should be computed from the integer_max and integer_min.
-  (cf/number-field (update-attrs (assoc attrs :style "width: 6em;") field {:integer_step :step :integer_min :min :integer_max :max}) name value))
+  ;; Note: 6em will allow a 6 digit integer to be input.
+  ;; TO DO: This should be computed from the integer_max and integer_min.
+  (cf/number-field (update-attrs (assoc attrs :style (format "width: %dem;" (:size field))) field {:integer_step :step :integer_min :min :integer_max :max}) name value))
 
 
 (defmethod form-field [:select-boolean] [field name attrs value _]
@@ -114,8 +114,7 @@
                 (throw (Exception. (format "form-field:: %s not found in fields" (clojure.core/name k)))))
               (u/pads
                (str (cf/db-to-label v))
-               ;; TO DO: Change to :size
-               (or (get-in fields [(clojure.core/name k) :text_size]) 25)
+               (or (get-in fields [(clojure.core/name k) :size]) 25)
                "&nbsp;" true))
             (dissoc all :value))
            "")
@@ -126,7 +125,7 @@
 
 
 (defmethod form-field [:text] [field name attrs value _]
-  (f/text-field (update-attrs attrs field {:text_max_length :maxlength :text_size :size}) name value))
+  (f/text-field (update-attrs attrs field {:text_max_length :maxlength :size :size}) name value))
 
 
 (defmethod form-field [:textarea] [field name attrs value _]
@@ -134,7 +133,7 @@
 
 
 (defmethod form-field [:timestamp] [field name attrs value _]
-  (cf/timestamp-field (update-attrs attrs field {:size :text_size}) name value))
+  (cf/timestamp-field (update-attrs attrs field {:size :size}) name value))
 
 
 (defmethod form-field :default [field name attrs value _]

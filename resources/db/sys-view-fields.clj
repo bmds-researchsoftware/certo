@@ -4,12 +4,12 @@
 
 
 
-{:schema_name "sys" :table_name "tables_sr" :field_name "tables_id" :sys_fields_id "sys.fields.schema_name" :label "Schema Name" :location 0 :created_by "root" :updated_by "root"}
-{:schema_name "sys" :table_name "tables_sr" :field_name "schema_name" :sys_fields_id "sys.fields.schema_name" :label "Schema Name" :location 1 :created_by "root" :updated_by "root"}
-{:schema_name "sys" :table_name "tables_sr" :field_name "table_name" :sys_fields_id "sys.fields.table_name" :label "Table Name" :location 2 :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "tables_sr" :field_name "tables_id" :sys_fields_id "sys.tables.tables_id" :label "Tables ID" :location 0 :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "tables_sr" :field_name "schema_name" :sys_fields_id "sys.tables.schema_name" :label "Schema Name" :location 1 :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "tables_sr" :field_name "table_name" :sys_fields_id "sys.tables.table_name" :label "Table Name" :location 2 :created_by "root" :updated_by "root"}
 
 
-{:schema_name "sys" :table_name "fields_sr" :field_name "fields_id" :sys_fields_id "sys.fields.schema_name"  :label "Schema Name" :location 0 :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "fields_sr" :field_name "fields_id" :sys_fields_id "sys.fields.fields_id"  :label "Fields ID" :location 0 :created_by "root" :updated_by "root"}
 {:schema_name "sys" :table_name "fields_sr" :field_name "schema_name" :sys_fields_id "sys.fields.schema_name"  :label "Schema Name" :location 1 :created_by "root" :updated_by "root"}
 {:schema_name "sys" :table_name "fields_sr" :field_name "table_name" :sys_fields_id "sys.fields.table_name" :label "Table Name" :location 2 :created_by "root" :updated_by "root"}
 {:schema_name "sys" :table_name "fields_sr" :field_name "field_name" :sys_fields_id "sys.fields.field_name" :label "Field Name" :location 3 :created_by "root" :updated_by "root"}

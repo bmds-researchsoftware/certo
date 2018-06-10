@@ -93,7 +93,7 @@ values
 -- :result :raw
 -- :doc Insert into sys.fields
 insert into sys.fields 
-  (schema_name, table_name, field_name, type, is_function, is_id, is_uk, is_fk, is_settable, label, control, disabled, readonly, required, text_size, location, in_table_view, search_fields_id, 
+  (schema_name, table_name, field_name, type, is_function, is_id, is_uk, is_fk, is_settable, label, control, size, disabled, readonly, required, location, in_table_view, search_fields_id, 
   boolean_true, boolean_false,
   date_min, date_max,
   datetime_min, datetime_max,
@@ -104,7 +104,7 @@ insert into sys.fields
   textarea_cols, textarea_rows,
   created_by, updated_by)
 values
-  (:schema_name, :table_name, :field_name, :type, :is_function, :is_id, :is_uk, :is_fk, :is_settable, :label, :control, :disabled, :readonly, :required, :text_size, :location, :in_table_view, :search_fields_id,
+  (:schema_name, :table_name, :field_name, :type, :is_function, :is_id, :is_uk, :is_fk, :is_settable, :label, :control, :size, :disabled, :readonly, :required, :location, :in_table_view, :search_fields_id,
   :boolean_true, :boolean_false,
   :date_min::date, :date_max::date,
   :datetime_min::timestamptz, :datetime_max::timestamptz,

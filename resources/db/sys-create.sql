@@ -175,6 +175,7 @@ create table sys.fields (
 
   label text not null,
   control text references sys.options_controls (value) not null,
+  size int8,
 
   disabled boolean not null,
   readonly boolean not null,
@@ -209,7 +210,6 @@ create table sys.fields (
 
   select_result_view text references sys.tables (tables_id),
 
-  text_size int8,
   text_max_length int8,
   -- text_pattern text, TO DO: Implement pattern regexp for text controls
   -- text_title text,  TO DO: Include a description of the required pattern when text_pattern is not null
@@ -319,9 +319,9 @@ create table sys.fields (
   check ((control='select-result' and select_result_view is not null) or (control != 'select-result')),
 
   constraint valid_control_size_attribute
-  check ((control = 'text' and text_size is not null and text_size > 0) or
-  	(control = 'text' and is_settable='false') or
-	(control != 'text' and text_size is null)),
+  check (((control = 'text' or control = 'integer' or control = 'float') and size is not null and size > 0) or
+  	((control = 'text' or control = 'integer' or control = 'float') and is_settable='false') or
+  	(control != 'text' and size is null)),
 
   constraint valid_control_max_length_attributes
   check (((control = 'text' or control = 'textarea') and text_max_length is not null and text_max_length > 0) or
