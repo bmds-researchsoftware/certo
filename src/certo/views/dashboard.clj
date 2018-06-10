@@ -15,8 +15,6 @@
    [certo.views.common :as common]))
 
 
-
-
 (defn dashboard [title user sts]
   (common/page
    title
@@ -43,5 +41,4 @@
              [:a {:href (str "/" schema "/" table "/new")} "New"]
              [:br])]])]
       [:br] [:br]))))
-
 
