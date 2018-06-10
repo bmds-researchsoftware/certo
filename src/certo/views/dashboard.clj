@@ -28,7 +28,7 @@
      [:th {:style "width: 35%; border: 0px; font-size: 85%; text-align:left"} (:display_name user)]
      [:th {:style "width: 35%; border: 0px; font-size: 85%; text-align:center"} (:usergroup_label user)]
      ;; [:th {:style "width: 35%; border: 0px; font-size: 85%; text-align:right"} (jt/format "MM/dd/yyyy"(u/date-now))]
-     [:th {:style "width: 30%; border: 0px; font-size: 85%; text-align:right"} "Version: 0.0.1"]]]
+     [:th {:style "width: 30%; border: 0px; font-size: 85%; text-align:right"} "Version: 0.1.0"]]]
    [:br]
    (for [[schema tables] sts]
      (list
