@@ -9,7 +9,7 @@
 
 ;; event_classes
 
-;; event_classes_fields
+;; event_class_fields
 
 ;; events_queue
 
@@ -23,4 +23,4 @@
 (defn event-classes-fields [db]
   (jdbc/query
    db
-   ["select f.*, ecf.location from sys.event_classes_fields ecf inner join sys.fields f on ecf.id=f.id where event_classes_id=1 order by ecf.location"]))
+   ["select f.*, ecf.location from sys.event_class_fields ecf inner join sys.fields f on ecf.id=f.id where event_classes_id=1 order by ecf.location"]))

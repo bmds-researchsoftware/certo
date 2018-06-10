@@ -434,12 +434,12 @@ select sys.create_trigger_set_updated_at('sys.event_classes');
 -- :name create-table-sys-event-classes_fields
 -- :command :execute
 -- :result :raw
--- :doc Create table sys.event_classes_fields
-create table sys.event_classes_fields (
-  event_classes_fields_id serial8 primary key,
+-- :doc Create table sys.event_class_fields
+create table sys.event_class_fields (
+  event_class_fields_id serial8 primary key,
   event_classes_id text references sys.event_classes (event_classes_id) not null,
   fields_id text references sys.fields (fields_id) not null, -- TO DO: Rename to sys_fields_id
-  location int8 constraint valid_sys_event_classes_fields_location check (location is not null and location >= 0),
+  location int8 constraint valid_sys_event_class_fields_location check (location is not null and location >= 0),
   disabled boolean not null,
   readonly boolean not null,
   required boolean not null,
@@ -447,9 +447,9 @@ create table sys.event_classes_fields (
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp);
-create index on sys.event_classes_fields (event_classes_id);
-create index on sys.event_classes_fields (fields_id);
-select sys.create_trigger_set_updated_at('sys.event_classes_fields');
+create index on sys.event_class_fields (event_classes_id);
+create index on sys.event_class_fields (fields_id);
+select sys.create_trigger_set_updated_at('sys.event_class_fields');
 
 
 -- :name create-table-sys-event-queue

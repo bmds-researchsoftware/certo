@@ -202,7 +202,7 @@
      (when-let [sys_event_classes_event_classes_id (:sys.event_classes.event_classes_id data)]
        [:tr
         [:td {:class "lnk" :style "text-align:left;" }
-         [:a {:href (str "/sys/event_classes_fields/new?sys.event_classes_fields.event_classes_id=" sys_event_classes_event_classes_id)} "New"]]])
+         [:a {:href (str "/sys/event_class_fields/new?sys.event_class_fields.event_classes_id=" sys_event_classes_event_classes_id)} "New"]]])
           
      [:div {:class "ct"}
       (cond

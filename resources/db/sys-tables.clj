@@ -14,7 +14,7 @@
 
 {:schema_name "sys" :table_name "event_classes" :is_view false :created_by "root" :updated_by "root"}
 
-{:schema_name "sys" :table_name "event_classes_fields" :is_view false :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "event_class_fields" :is_view false :created_by "root" :updated_by "root"}
 
 
 
