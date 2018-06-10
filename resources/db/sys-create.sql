@@ -209,7 +209,7 @@ create table sys.fields (
   select_multiple boolean,
   select_size int8,
 
-  select_option_schema_table text references sys.tables (tables_id),
+  select_option_table text references sys.tables (tables_id),
 
   select_result_view text references sys.tables (tables_id),
 
@@ -316,7 +316,7 @@ create table sys.fields (
   	(control != 'select-option' and control != 'select-result')),
 
   constraint valid_select_option_control_attributes
-  check ((control='select-option' and select_option_schema_table is not null) or (control != 'select-option')),
+  check ((control='select-option' and select_option_table is not null) or (control != 'select-option')),
 
   constraint valid_select_result_static_control_attributes
   check ((control='select-result' and select_result_view is not null) or (control != 'select-result')),

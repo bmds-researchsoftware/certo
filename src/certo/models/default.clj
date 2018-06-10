@@ -140,7 +140,7 @@
    :options
    (jdbc/query
     db
-    [(format "select * from %s" (:select_option_schema_table row))]
+    [(format "select * from %s" (:select_option_table row))]
     {:row-fn (juxt :label :value)})))
 
 
