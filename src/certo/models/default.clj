@@ -273,6 +273,11 @@
      (if (:is_id r)
        (assoc nr :is_uk true :search_fields_id (:fields_id r))
        nr)
+     ;; make is_settable=true so that fields which have
+     ;; is_settable=false in sys.fields, will be displayed in new
+     ;; forms as a select-result control, e.g. when the field is a
+     ;; foreign key in the new table.
+     (assoc nr :is_settable true)
      (dissoc nr :view_fields_id :fields_id :is_id)
      (assoc nr :fields_id (:view_fields_id r))
      (prepare-control db nr))))

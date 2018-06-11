@@ -238,9 +238,7 @@
 
 
 (defn new [fields schema table data]
-  (let [fields (models/fields-by-schema-table fields schema table)
-
-        fields
+  (let [fields
         (into
          {}
          (filter
