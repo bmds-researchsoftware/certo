@@ -509,12 +509,14 @@
        [schema 
         (jdbc/query
          db
-         ["select table_name, is_view from sys.tables where schema_name=? group by table_name, is_view order by table_name"
+         ["select table_name, is_option_table, is_view, is_result_view from sys.tables where schema_name=? group by table_name, is_option_table, is_view, is_result_view order by table_name"
           schema]
          {:row-fn #(let [table (:table_name %)
                          st (st schema table)]
                      {:table table
+                      :is_option_table (:is_option_table %)
                       :is_view (:is_view %)
+                      :is_result_view (:is_result_view %)
                       :count (select-count-star db st)})})])
      schemas)))
 

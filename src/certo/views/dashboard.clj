@@ -32,12 +32,12 @@
      (list
       [:table {:style "width: 45%"}
        [:tr [:th {:style "text-align:center" :colspan "3"} (str/capitalize schema)]]
-       (for [{:keys [table is_view count]} tables]
+       (for [{:keys [table is_option_table is_view is_result_view count]} tables]
          [:tr
           [:td {:style "width: 30%"} (common/format-title table)]
           [:td {:style "width: 35%"} [:a {:href (str "/" schema "/" table)} "All"] (str "&nbsp;&nbsp;(" count ")")]
           [:td {:style "width: 35%"}
-           (if (not is_view)
+           (if (not (or is_view is_result_view))
              [:a {:href (str "/" schema "/" table "/new")} "New"]
              [:br])]])]
       [:br] [:br]))))
