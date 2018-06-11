@@ -125,7 +125,9 @@ create table sys.tables (
   tables_id text not null unique, -- populated by a before trigger as schema_name.table_name
   schema_name text, -- part of pk
   table_name text, -- part of pk
-  is_view boolean,
+  is_option_table boolean not null,
+  is_view boolean not null,
+  is_result_view boolean not null,
   -- TO DO: order-by
   -- either have this be the name of a postgres function that
   -- returns the order by as a string, or have it be the name
@@ -153,6 +155,21 @@ for each row
 execute procedure sys.update_sys_tables();
 
 create unique index tables_id_index on sys.tables (tables_id);
+
+
+create or replace function sys.check_is_option_table(sot text) returns boolean as $$
+    select exists (select 1 from sys.tables where tables_id = sot and is_option_table);
+$$ language sql;
+
+
+create or replace function sys.check_is_view(v text) returns boolean as $$
+    select exists (select 1 from sys.tables where tables_id = v and is_view);
+$$ language sql;
+
+
+create or replace function sys.check_is_result_view(srv text) returns boolean as $$
+    select exists (select 1 from sys.tables where tables_id = srv and is_result_view);
+$$ language sql;
 
 
 -- :name create-table-sys-fields
@@ -228,6 +245,10 @@ create table sys.fields (
   foreign key (schema_name, table_name) references sys.tables (schema_name, table_name),
   primary key (schema_name, table_name, field_name),
   unique (schema_name, table_name, field_name, location),
+
+  constraint valid_select_option_table check (select_option_table is null or sys.check_is_option_table(select_option_table)),
+
+  constraint valid_result_view check (select_result_view is null or sys.check_is_result_view(select_result_view)),
 
   -- is_settable='false' => disabled='true' and readonly='true' and required='false'
   constraint valid_settable
@@ -491,6 +512,19 @@ select sys.create_trigger_set_updated_at('sys.events');
 create view sys.tables_sr as
 select tables_id as value, tables_id as "sys.tables_sr.tables_id", schema_name as "sys.tables_sr.schema_name", table_name as "sys.tables_sr.table_name"
 from sys.tables
+order by tables_id;
+
+create view sys.option_tables_sr as
+select tables_id as value, tables_id as "sys.option_tables_sr.tables_id", schema_name as "sys.option_tables_sr.schema_name", table_name as "sys.option_tables_sr.table_name"
+from sys.tables
+where is_option_table
+order by tables_id;
+
+
+create view sys.result_views_sr as
+select tables_id as value, tables_id as "sys.result_views_sr.tables_id", schema_name as "sys.result_views_sr.schema_name", table_name as "sys.result_views_sr.table_name"
+from sys.tables
+where is_result_view
 order by tables_id;
 
 

@@ -279,7 +279,13 @@
 
 
 (defn fields [db schema table]
-  (let [is_view
+  (let [;; is_view_like
+        ;; (jdbc/query
+        ;;  db
+        ;;  ["select is_view or is_result_view as is_view_like from sys.tables where schema_name=? and table_name=?" schema table]
+        ;;  {:result-set-fn first :row-fn :is_view_like})
+
+        is_view
         (jdbc/query
          db
          ["select is_view from sys.tables where schema_name=? and table_name=?" schema table]
@@ -405,7 +411,8 @@
          (into
           (vector
            (str
-            (if (get-in tables [(st schema table) :is_view])
+            (if (or (get-in tables [(st schema table) :is_view])
+                    (get-in tables [(st schema table) :is_result_view]))
               (str "select * from " (get-in tables [(st schema table) :tables_id]))
               (columns-clause fields schema table))
             " "

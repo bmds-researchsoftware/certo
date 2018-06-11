@@ -83,9 +83,9 @@ values
 -- :result :raw
 -- :doc Insert into sys.tables
 insert into sys.tables
-  (schema_name, table_name, is_view, created_by, updated_by)
+  (schema_name, table_name, is_option_table, is_view, is_result_view, created_by, updated_by)
 values
-  (:schema_name, :table_name, :is_view, :created_by, :updated_by);
+  (:schema_name, :table_name, :is_option_table, :is_view, :is_result_view, :created_by, :updated_by);
 
 
 -- :name insert-sys-fields
