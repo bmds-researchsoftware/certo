@@ -236,7 +236,7 @@
     :else row))
 
 
-(defn merge-sf-and-svf [db r]
+(defn merge-sf-and-svf [db r in-select-result]
   (vector
    (:vf_view_fields_id r)
    (as->
@@ -254,47 +254,47 @@
         :updated_by
         :updated_at
         :vf_sys_fields_id) nr
-     (set/rename-keys
-      nr
-      {:vf_view_fields_id :fields_id
-       :vf_tables_id :tables_id
-       :vf_schema_name :schema_name
-       :vf_table_name :table_name
-       :vf_field_name :field_name
-       :vf_label :label
-       :vf_location :location
-       :vf_created_by :created_by
-       :vf_created_at :created_at
-       :vf_updated_by :updated_by
-       :vf_updated_at :updated_at})
-     ;; if :is_id is true in the table field, then in the view
-     ;; field, set :is_uk to true and :search_fields_id, to be
-     ;; the value :fields_id from the table field
-     (if (:is_id r)
-       (assoc nr :is_uk true :search_fields_id (:fields_id r))
-       nr)
-     ;; make is_settable=true so that fields which have
-     ;; is_settable=false in sys.fields, will be displayed in new
-     ;; forms as a select-result control, e.g. when the field is a
-     ;; foreign key in the new table.
-     (assoc nr :is_settable true)
-     (dissoc nr :view_fields_id :fields_id :is_id)
-     (assoc nr :fields_id (:view_fields_id r))
-     (prepare-control db nr))))
+       (set/rename-keys
+        nr
+        {:vf_view_fields_id :fields_id
+         :vf_tables_id :tables_id
+         :vf_schema_name :schema_name
+         :vf_table_name :table_name
+         :vf_field_name :field_name
+         :vf_label :label
+         :vf_location :location
+         :vf_created_by :created_by
+         :vf_created_at :created_at
+         :vf_updated_by :updated_by
+         :vf_updated_at :updated_at})
+       ;; if :is_id is true in the table field, then in the view
+       ;; field, set :is_uk to true and :search_fields_id, to be
+       ;; the value :fields_id from the table field
+       (if (:is_id r)
+         (assoc nr :is_uk true :search_fields_id (:fields_id r))
+         nr)
+       ;; make is_settable=true so that fields which have
+       ;; is_settable=false in sys.fields, will be displayed in new
+       ;; forms as a select-result control, e.g. when the field is a
+       ;; foreign key in the new table.
+       (assoc nr :is_settable true)
+       ;; make in_table_view=true so that fields which are in a
+       ;; select-result will be displayed (primarily during
+       ;; development) in a table view of the underlying view
+       (if in-select-result
+         (assoc nr :in_table_view true)
+         nr)
+       (dissoc nr :view_fields_id :fields_id :is_id)
+       (assoc nr :fields_id (:view_fields_id r))
+       (prepare-control db nr))))
 
 
 (defn fields [db schema table]
-  (let [;; is_view_like
-        ;; (jdbc/query
-        ;;  db
-        ;;  ["select is_view or is_result_view as is_view_like from sys.tables where schema_name=? and table_name=?" schema table]
-        ;;  {:result-set-fn first :row-fn :is_view_like})
-
-        is_view
+  (let [{:keys [:is_view :is_result_view]}
         (jdbc/query
          db
-         ["select is_view from sys.tables where schema_name=? and table_name=?" schema table]
-         {:result-set-fn first :row-fn :is_view})]
+         ["select is_view, is_result_view from sys.tables where schema_name=? and table_name=?" schema table]
+         {:result-set-fn first})]
 
     ;; TO DO: Maybe define these selects as Postgresql views or a HugSQL functions
 
@@ -302,13 +302,13 @@
 
      (common-fields db schema table)
 
-     (if is_view
+     (if (or is_view is_result_view)
 
        (jdbc/query
         db
         ;; get all controls in the view schema.table
         ["select sf.*, svf.view_fields_id \"vf_view_fields_id\", svf.tables_id \"vf_tables_id\", svf.schema_name \"vf_schema_name\", svf.table_name \"vf_table_name\", svf.field_name \"vf_field_name\", svf.sys_fields_id \"vf_sys_fields_id\", svf.label \"vf_label\", svf.location \"vf_location\", svf.created_by \"vf_created_by\", svf.created_at \"vf_created_at\", svf.updated_by \"vf_updated_by\", svf.updated_at \"vf_updated_at\" from sys.view_fields as svf inner join sys.fields as sf on svf.sys_fields_id=sf.fields_id where svf.schema_name=? and svf.table_name=?" schema table]
-        {:row-fn #(merge-sf-and-svf db %)
+        {:row-fn #(merge-sf-and-svf db % is_result_view)
          :result-set-fn (fn [rs] (into {} rs))})
 
        (jdbc/query
@@ -323,7 +323,7 @@
       ;; get all controls that are in a select-result control
       ["select sfv.*, svf.view_fields_id \"vf_view_fields_id\", svf.tables_id \"vf_tables_id\", svf.schema_name \"vf_schema_name\", svf.table_name \"vf_table_name\", svf.field_name \"vf_field_name\", svf.sys_fields_id \"vf_sys_fields_id\", svf.label \"vf_label\", svf.location \"vf_location\", svf.created_by \"vf_created_by\", svf.created_at \"vf_created_at\", svf.updated_by \"vf_updated_by\", svf.updated_at \"vf_updated_at\" from sys.fields as sf inner join sys.view_fields as svf on sf.select_result_view=svf.tables_id inner join sys.fields as sfv on svf.sys_fields_id=sfv.fields_id where sf.control='select-result' and sf.schema_name=? and sf.table_name=?" schema table]
       {:row-fn
-       #(merge-sf-and-svf db %)
+       #(merge-sf-and-svf db % is_result_view)
        :result-set-fn (fn [rs] (into {} rs))}))))
 
 

@@ -132,8 +132,7 @@
 
 
 (defn table [tables fields schema table rows data]
-  (let [fields (models/sort-by-location ;;fields
-                ;; (models/fields-in-table-view fields)
+  (let [fields (models/sort-by-location
                 (models/fields-by-schema-table-and-in-table-view fields schema table))
         stfs (map key fields)
         title (common/format-title table)]
@@ -150,13 +149,17 @@
       ;; (af/anti-forgery-field)
 
       [:table
+
        [:tr
         [:td
          {:class "lnk" :style "text-align:left;" } [:a {:href "/"} "Home"]]
-        ;; Only provide a New link for tables, i.e. not for views.
-        (when (not (:is_view (get tables (models/st schema table))))
+        ;; Only provide a New link for tables, i.e. not for views or result_views.
+        (when (as-> (get tables (models/st schema table)) t
+                (not (or (:is_view t) (:is_result_view t))))
           [:td
-           {:class "lnk" :style "text-align:right" :colspan (str (dec (count stfs)))} [:a {:href (str "/" schema "/" table "/new")} "New"]])]
+           {:class "lnk"
+            :style "text-align:right"
+            :colspan (str (dec (count stfs)))} [:a {:href (str "/" schema "/" table "/new")} "New"]])]
 
        [:tr
         (for [field (map #(get fields %) stfs)]
