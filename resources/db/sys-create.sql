@@ -509,33 +509,33 @@ create index on sys.events (event_classes_id);
 select sys.create_trigger_set_updated_at('sys.events');
 
 
-create view sys.tables_sr as
-select tables_id as value, tables_id as "sys.tables_sr.tables_id", schema_name as "sys.tables_sr.schema_name", table_name as "sys.tables_sr.table_name"
+create view sys.rv_tables as
+select tables_id as value, tables_id as "sys.rv_tables.tables_id", schema_name as "sys.rv_tables.schema_name", table_name as "sys.rv_tables.table_name"
 from sys.tables
 order by tables_id;
 
-create view sys.option_tables_sr as
-select tables_id as value, tables_id as "sys.option_tables_sr.tables_id", schema_name as "sys.option_tables_sr.schema_name", table_name as "sys.option_tables_sr.table_name"
+create view sys.rv_option_tables as
+select tables_id as value, tables_id as "sys.rv_option_tables.tables_id", schema_name as "sys.rv_option_tables.schema_name", table_name as "sys.rv_option_tables.table_name"
 from sys.tables
 where is_option_table
 order by tables_id;
 
 
-create view sys.result_views_sr as
-select tables_id as value, tables_id as "sys.result_views_sr.tables_id", schema_name as "sys.result_views_sr.schema_name", table_name as "sys.result_views_sr.table_name"
+create view sys.rv_result_views as
+select tables_id as value, tables_id as "sys.rv_result_views.tables_id", schema_name as "sys.rv_result_views.schema_name", table_name as "sys.rv_result_views.table_name"
 from sys.tables
 where is_result_view
 order by tables_id;
 
 
-create view sys.fields_sr as
-select fields_id as value, schema_name as "sys.fields_sr.schema_name", table_name as "sys.fields_sr.table_name", field_name as "sys.fields_sr.field_name"
+create view sys.rv_fields as
+select fields_id as value, schema_name as "sys.rv_fields.schema_name", table_name as "sys.rv_fields.table_name", field_name as "sys.rv_fields.field_name"
 from sys.fields
 order by fields_id;
 
 
-create view sys.event_classes_sr as
-select event_classes_id as value, event_classes_id as "sys.event_classes_sr.event_classes_id", function_name as "sys.event_classes_sr.function_name"
+create view sys.rv_event_classes as
+select event_classes_id as value, event_classes_id as "sys.rv_event_classes.event_classes_id", function_name as "sys.rv_event_classes.function_name"
 from sys.event_classes
 order by event_classes_id, function_name;
 

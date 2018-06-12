@@ -18,13 +18,13 @@
 
 
 
-{:schema_name "sys" :table_name "tables_sr" :is_option_table false :is_view false :is_result_view true :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "rv_tables" :is_option_table false :is_view false :is_result_view true :created_by "root" :updated_by "root"}
 
-{:schema_name "sys" :table_name "fields_sr" :is_option_table false :is_view false :is_result_view true :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "rv_fields" :is_option_table false :is_view false :is_result_view true :created_by "root" :updated_by "root"}
 
-{:schema_name "sys" :table_name "event_classes_sr" :is_option_table false :is_view false :is_result_view true :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "rv_event_classes" :is_option_table false :is_view false :is_result_view true :created_by "root" :updated_by "root"}
 
-{:schema_name "sys" :table_name "option_tables_sr" :is_option_table false :is_view false :is_result_view true :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "rv_option_tables" :is_option_table false :is_view false :is_result_view true :created_by "root" :updated_by "root"}
 
-{:schema_name "sys" :table_name "result_views_sr" :is_option_table false :is_view false :is_result_view true :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "rv_result_views" :is_option_table false :is_view false :is_result_view true :created_by "root" :updated_by "root"}
 
