@@ -31,15 +31,15 @@ function filterSelectResult()
     {
       if (event.target.options[i].label.toString().replace(nbspRegExp,'').slice(0,(search.length)).toLowerCase() == search.toLowerCase())
       {
-	if (i < si)
-	{
-	  si = i
-	}
-	event.target.options[i].disabled = false;
+    	if (i < si)
+    	{
+    	  si = i
+    	}
+	event.target.options[i].classList.remove('dn');
       }
       else
       {
-	event.target.options[i].disabled = true;
+	event.target.options[i].classList.add('dn');
       }
     }
     event.target.selectedIndex = si;
