@@ -1,12 +1,12 @@
-{:schema_name "sys" :table_name "options_usergroups" :is_option_table true :is_view false :is_result_view false :created_by "root" :updated_by "root"} 
+{:schema_name "sys" :table_name "ot_usergroups" :is_option_table true :is_view false :is_result_view false :created_by "root" :updated_by "root"} 
 
 {:schema_name "sys" :table_name "users" :is_option_table false :is_view false :is_result_view false :created_by "root" :updated_by "root"}
 
-{:schema_name "sys" :table_name "options_controls" :is_option_table true :is_view false :is_result_view false :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "ot_controls" :is_option_table true :is_view false :is_result_view false :created_by "root" :updated_by "root"}
 
-{:schema_name "sys" :table_name "options_types" :is_option_table true :is_view false :is_result_view false :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "ot_types" :is_option_table true :is_view false :is_result_view false :created_by "root" :updated_by "root"}
 
-{:schema_name "sys" :table_name "options_function_names" :is_option_table true :is_view false :is_result_view false :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "ot_function_names" :is_option_table true :is_view false :is_result_view false :created_by "root" :updated_by "root"}
 
 {:schema_name "sys" :table_name "tables" :is_option_table false :is_view false :is_result_view false :created_by "root" :updated_by "root"}
 

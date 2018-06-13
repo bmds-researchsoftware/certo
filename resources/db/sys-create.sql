@@ -38,19 +38,19 @@ end;
 $$ language plpgsql;
 
 
--- :name create-table-sys-options-usergroups
+-- :name create-table-sys-ot-usergroups
 -- :command :execute
 -- :result :raw
--- :doc Create table sys.options_usergroups
-create table sys.options_usergroups (
+-- :doc Create table sys.ot_usergroups
+create table sys.ot_usergroups (
   value text primary key,
   label text not null,
-  location int8 constraint valid_sys_options_usergroups_location check (location is null or location >= 0),
-  created_by text constraint valid_sys_options_usergroups_created_by check (created_by = 'root'),
+  location int8 constraint valid_sys_ot_usergroups_location check (location is null or location >= 0),
+  created_by text constraint valid_sys_ot_usergroups_created_by check (created_by = 'root'),
   created_at timestamptz default current_timestamp,
-  updated_by text constraint valid_sys_options_usergroups_updated_by check (updated_by = 'root'),
+  updated_by text constraint valid_sys_ot_usergroups_updated_by check (updated_by = 'root'),
   updated_at timestamptz default current_timestamp);
-select sys.create_trigger_set_updated_at('sys.options_usergroups');
+select sys.create_trigger_set_updated_at('sys.ot_usergroups');
 
 
 -- :name create-table-sys-users
@@ -63,7 +63,7 @@ create table sys.users (
   full_name text not null,
   display_name text,
   email text not null,
-  usergroup text references sys.options_usergroups (value) not null,
+  usergroup text references sys.ot_usergroups (value) not null,
   created_by text references sys.users (username),
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username),
@@ -72,49 +72,49 @@ select sys.create_trigger_set_updated_at('sys.users');
 create index on sys.users (usergroup);
 
 
--- :name create-table-sys-options-types
+-- :name create-table-sys-ot-types
 -- :command :execute
 -- :result :raw
--- :doc Create table sys.options_types
-create table sys.options_types (
+-- :doc Create table sys.ot_types
+create table sys.ot_types (
   value text primary key,
   label text not null,
-  location int8 constraint valid_sys_options_types_location check (location is null or location >= 0),
+  location int8 constraint valid_sys_ot_types_location check (location is null or location >= 0),
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp);
-select sys.create_trigger_set_updated_at('sys.options_types');
+select sys.create_trigger_set_updated_at('sys.ot_types');
 
 
--- :name create-table-sys-options-controls
+-- :name create-table-sys-ot-controls
 -- :command :execute
 -- :result :raw
--- :doc Create table sys.options_controls
-create table sys.options_controls (
+-- :doc Create table sys.ot_controls
+create table sys.ot_controls (
   value text primary key,
   label text not null,
-  location int8 constraint valid_sys_options_controls_location check (location is null or location >= 0),
+  location int8 constraint valid_sys_ot_controls_location check (location is null or location >= 0),
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp);
-select sys.create_trigger_set_updated_at('sys.options_controls');
+select sys.create_trigger_set_updated_at('sys.ot_controls');
 
 
--- :name create-table-sys-options-function-names
+-- :name create-table-sys-ot-function-names
 -- :command :execute
 -- :result :raw
--- :doc Create table sys.options_function_names
-create table sys.options_function_names (
+-- :doc Create table sys.ot_function_names
+create table sys.ot_function_names (
   value text primary key,
   label text not null,
-  location int8 constraint valid_sys_options_function_names_location check (location is null or location >= 0),
+  location int8 constraint valid_sys_ot_function_names_location check (location is null or location >= 0),
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp);
-select sys.create_trigger_set_updated_at('sys.options_function_names');
+select sys.create_trigger_set_updated_at('sys.ot_function_names');
 
 
 -- :name create-table-sys-tables
@@ -185,7 +185,7 @@ create table sys.fields (
   table_name text not null, -- part of pk
   field_name text not null, -- part of pk
 
-  type text references sys.options_types (value) not null,
+  type text references sys.ot_types (value) not null,
 
   is_function boolean not null,
   is_id boolean not null,
@@ -194,7 +194,7 @@ create table sys.fields (
   is_settable boolean not null,
 
   label text not null,
-  control text references sys.options_controls (value) not null,
+  control text references sys.ot_controls (value) not null,
   size int8,
 
   disabled boolean not null,
@@ -439,7 +439,7 @@ create table sys.event_classes (
   -- sys.fields contains the row (id = 54, schema_name=study, table_name=people, field_name=participant_id),
   -- then study.participant_id = 2345 is passed into the
   -- function whose name is 'screen-participant'.
-  function_name text references sys.options_function_names (value) not null,
+  function_name text references sys.ot_function_names (value) not null,
   argument_name_id text references sys.fields (fields_id),
   precedence_expression text,
   precedence_events text,

@@ -94,7 +94,7 @@
 ;; (update-sys-fields "/home/djneu/projects/certo/resources/db/sys-fields.clj" "/tmp/sys-fields.clj")
 ;; (update-sys-fields "/home/djneu/projects/aether/resources/db/app-sys-fields.clj" "/tmp/app-sys-fields.clj")
 ;; (defn update-sys-fields [in-file out-file]
-;;   (let [ks [:fields_id :type :is_id :is_id_in_new :label :control :location :in_table_view :disabled :readonly :required :text_max_length :boolean_true :boolean_false :date_min :date_max :foreign_key_query :foreign_key_size :integer_step :integer_min :integer_max :float_step :float_min :float_max :select_multiple :select_size :options_schema_table :created_by :updated_by]
+;;   (let [ks [:fields_id :type :is_id :is_id_in_new :label :control :location :in_table_view :disabled :readonly :required :text_max_length :boolean_true :boolean_false :date_min :date_max :foreign_key_query :foreign_key_size :integer_step :integer_min :integer_max :float_step :float_min :float_max :select_multiple :select_size :ot_schema_table :created_by :updated_by]
 ;;         sf (read-string (slurp in-file))
 ;;         updated-sf
 ;;         (map (fn [x]

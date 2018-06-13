@@ -1,8 +1,8 @@
--- :name insert-sys-options-usergroups
+-- :name insert-sys-ot-usergroups
 -- :command :execute
 -- :result :raw
--- :doc Insert into sys.options_usergroups
-insert into sys.options_usergroups
+-- :doc Insert into sys.ot_usergroups
+insert into sys.ot_usergroups
   (value, label, location, created_by, updated_by)
 values
   (:value, :label, :location, :created_by, :updated_by);
@@ -18,31 +18,31 @@ values
   (:username, :password, :full_name, :display_name, :email, :usergroup, :created_by, :updated_by);
 
 
--- :name insert-sys-options-types
+-- :name insert-sys-ot-types
 -- :command :execute
 -- :result :raw
--- :doc Insert into sys.options_types
-insert into sys.options_types
+-- :doc Insert into sys.ot_types
+insert into sys.ot_types
   (value, label, location, created_by, updated_by)
 values
   (:value, :label, :location, :created_by, :updated_by);
 
 
--- :name insert-sys-options-controls
+-- :name insert-sys-ot-controls
 -- :command :execute
 -- :result :raw
--- :doc Insert into sys.options_controls
-insert into sys.options_controls
+-- :doc Insert into sys.ot_controls
+insert into sys.ot_controls
   (value, label, location, created_by, updated_by)
 values
   (:value, :label, :location, :created_by, :updated_by);
 
 
--- :name insert-sys-options-function-names
+-- :name insert-sys-ot-function-names
 -- :command :execute
 -- :result :raw
--- :doc Insert into sys.options_function_names
-insert into sys.options_function_names
+-- :doc Insert into sys.ot_function_names
+insert into sys.ot_function_names
   (value, label, location, created_by, updated_by)
 values
   (:value, :label, :location, :created_by, :updated_by);
