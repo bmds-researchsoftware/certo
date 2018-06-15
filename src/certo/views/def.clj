@@ -69,13 +69,3 @@
       (throw (Exception. (format "Unknown %s for value %s" (class value) value))))
     ""))
 
-
-(defelem select-result-field
-  "Creates a new select-result input field."
-  ([name options] (select-result-field name options nil))
-  ([name options value]
-   (f/drop-down
-    name
-    options
-    value)))
-

@@ -5,6 +5,7 @@
 function filterSelectResult()
 {
   var search = '';
+
   return function(event)
   {
     var key = event.which || event.keyCode;
@@ -31,18 +32,28 @@ function filterSelectResult()
     {
       if (event.target.options[i].label.toString().replace(nbspRegExp,'').slice(0,(search.length)).toLowerCase() == search.toLowerCase())
       {
-    	if (i < si)
+    	if (i <= si)
     	{
     	  si = i
     	}
-	event.target.options[i].classList.remove('dn');
+    	event.target.options[i].classList.remove('dn');	
       }
       else
       {
-	event.target.options[i].classList.add('dn');
+	if (event.target.options[i].value != '')
+	{
+	  event.target.options[i].classList.add('dn');
+	}
       }
     }
-    event.target.selectedIndex = si;
+
+    if (si == event.target.length)
+    {
+      event.target.selectedIndex = 0;
+    }
+    else
+    {
+      event.target.selectedIndex = si;
+    }
   }
 }
-
