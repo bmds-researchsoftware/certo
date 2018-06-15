@@ -205,17 +205,7 @@
             [:td {:class "lbl"} (form-label stf field)])
           
           [:td {:class "fld"}
-           (form-field field stf common-attrs value all-fields)
-           ;; (if (= (:control field) "select-result")
-             
-           ;;   [:div ;;{:style "padding: 6px 0px;"}
-           ;;    [:script (format "var %s = filterSelectResult();" (filter-select-result-function-name (:fields_id field)))]
-           ;;    (f/text-field {:placeholder "Enter search text"} (filter-select-result-search-field-name (:fields_id field)))
-           ;;    [:div {:style "padding: 2px 0px;"}]
-           ;;    (form-field field stf common-attrs value all-fields)]
-             
-           ;;   (form-field field stf common-attrs value all-fields))
-           ]])])
+           (form-field field stf common-attrs value all-fields)]])])
 
      [:br]
 
