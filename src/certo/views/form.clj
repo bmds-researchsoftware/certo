@@ -106,7 +106,7 @@
   ;; control with a fixed width font and pad fields with non-breaking
   ;; spaces so they line up in columns.
   (if (:readonly attrs)
-    (f/text-field {:readonly true :size (count value) :class "fld"} name value)
+    (f/text-field {:readonly true :size (count (str value)) :class "fld"} name value)
     [:div
      [:script
       (format "var %s = filterSelectResult(\"%s\", \"%s\");"
