@@ -19,8 +19,10 @@
 (defn filter-select-result-function-name [fields_id]
   (str (str/replace fields_id "." "_") "_fsr_fn"))
 
+
 (defn filter-select-result-search-field-name [fields_id]
   (str (str/replace fields_id "." "_") "_fsr_sfn"))
+
 
 ;; ----- start: db-to-form -----
 (defmulti db-to-form (fn [{:keys [:type :control]} value] [(keyword type) (keyword control)]))
@@ -94,49 +96,64 @@
 
 
 (defmethod form-field [:select-option] [field name attrs value _]
-  (f/drop-down (update-attrs attrs field {:select_multiple :multiple :select_size :size}) name (conj (:options field) ["" nil]) value))
+  (if (:readonly attrs)
+    (f/text-field {:readonly true :size (count value) :class "fld"} name value)
+    (f/drop-down (update-attrs attrs field {:select_multiple :multiple :select_size :size}) name (conj (:options field) ["" nil]) value)))
 
 
 (defmethod form-field [:select-result] [field name attrs value fields]
   ;; Cheap way to get a table to select or display data: use a select
   ;; control with a fixed width font and pad fields with non-breaking
   ;; spaces so they line up in columns.
-  [:div
-   [:script (format "var %s = filterSelectResult();" (filter-select-result-function-name (:fields_id field)))]
-   (let [fsrfn (format "return %s(event);" (filter-select-result-function-name name))]
-     (f/text-field {:placeholder "Enter search text" :oninput fsrfn} (filter-select-result-search-field-name (:fields_id field))))
-   [:div {:class "fsrsf"}]
-   (f/drop-down
-    (let [fsrfn (format "return %s(event);" (filter-select-result-function-name name))]
-      (assoc (update-attrs attrs field {:select_size :size}) :class "sr" :onkeydown fsrfn :onkeypress fsrfn))
-    name
-    (as-> (into [] (:options field)) options
-      (map
-       (fn [{value :value :as all}]
-         (vector
-          (if value
-            (map
-             ;; TO DO: Should not be calling db-to-label.  Should call
-             ;; db-to-table (since it depends on both type and control)
-             ;; with a new argument that indicates should not return a
-             ;; link, just a value.
-             (fn [[k v]]
-               (when (nil? (get fields (clojure.core/name k)))
-                 (throw (Exception. (format "form-field:: %s not found in fields" (clojure.core/name k)))))
-               ;; TO DO: All fields must have a size - enforce it with a database constraint
-               ;; (when (nil? (get-in fields [(clojure.core/name k) :size]))
-               ;;   (throw (Exception. (format "form-field:: size for %s not found" (clojure.core/name k)))))
-               (u/pads
-                (str (cf/db-to-label v))
-                (or (get-in fields [(clojure.core/name k) :size]) 25)
-                ;; (get-in fields [(clojure.core/name k) :size])
-                "&nbsp;" true))
-             (dissoc all :value))
-            "")
-          value))
-       options)
-      (conj options ["" nil]))
-    value)])
+  (if (:readonly attrs)
+    (f/text-field {:readonly true :size (count value) :class "fld"} name value)
+    [:div
+     [:script
+      (format "var %s = filterSelectResult(\"%s\", \"%s\");"
+              (filter-select-result-function-name (:fields_id field))
+              (filter-select-result-search-field-name (:fields_id field))
+              (:fields_id field))]
+     (let [fsrfn (format "return %s(event);" (filter-select-result-function-name name))]
+       (f/text-field
+        {:class "fld"
+         :id (filter-select-result-search-field-name (:fields_id field))
+         :placeholder "Enter search text" :oninput fsrfn}
+        (filter-select-result-search-field-name (:fields_id field))))
+     [:div {:class "fsrsf"}]
+     (f/drop-down
+      (assoc (update-attrs attrs field {:select_size :size}) :class "sr")
+      name
+      (as-> (into [] (:options field)) options
+        (map
+         (fn [{value :value :as all}]
+           (vector
+            (if value
+              (map
+               ;; TO DO: Should not be calling db-to-label.  Should call
+               ;; db-to-table (since it depends on both type and control)
+               ;; with a new argument that indicates should not return a
+               ;; link, just a value.
+               (fn [[k v]]
+                 (when (nil? (get fields (clojure.core/name k)))
+                   (throw (Exception. (format "form-field:: %s not found in fields" (clojure.core/name k)))))
+                 ;; TO DO: All fields must have a size - enforce it with a database constraint
+                 ;; (when (nil? (get-in fields [(clojure.core/name k) :size]))
+                 ;;   (throw (Exception. (format "form-field:: size for %s not found" (clojure.core/name k)))))
+                 (u/pads
+                  (str (cf/db-to-label v))
+                  (or (get-in fields [(clojure.core/name k) :size]) 25)
+                  ;; (get-in fields [(clojure.core/name k) :size])
+                  "&nbsp;" true))
+               (dissoc all :value))
+              "")
+            value))
+         options)
+        (conj
+         options
+         [""
+          nil]))
+      value)]))
+
 
 (defmethod form-field [:text] [field name attrs value _]
   (f/text-field (update-attrs attrs field {:text_max_length :maxlength :size :size}) name value))
@@ -208,18 +225,9 @@
            (form-field field stf common-attrs value all-fields)]])])
 
      [:br]
-
-     (when-let [study_people_participants_id (:study.people.participants_id data)]
-       [:tr
-        [:td {:class "lnk" :style "text-align:left;" }
-         [:a {:href (str "/study/participants_people/new?study.participants_people.participants_id=" study_people_participants_id)} "New"]]])
-
-     (when-let [sys_event_classes_event_classes_id (:sys.event_classes.event_classes_id data)]
-       [:tr
-        [:td {:class "lnk" :style "text-align:left;"}
-         [:a {:href (str "/sys/event_class_fields/new?sys.event_class_fields.event_classes_id=" sys_event_classes_event_classes_id)} "New"]]])
           
      [:div {:class "ct"}
+
       (cond
         (= action "edit")
         (list
@@ -237,6 +245,23 @@
         (list
          (f/submit-button {:form (str action "-form")} "Insert")
          "&nbsp;" "&nbsp;"))
+
+      (when-let [sys_event_classes_event_classes_id (:sys.event_classes.event_classes_id data)]
+        (list
+         [:input
+          {:type "button"
+           :onclick (format "location.href='%s'" (str "/sys/event_class_fields/new?sys.event_class_fields.event_classes_id=" sys_event_classes_event_classes_id))
+           :value "Add Event Class Fields"}]
+         "&nbsp;" "&nbsp;"))
+
+      (when-let [study_people_participants_id (:study.people.participants_id data)]
+        (list
+         [:input
+          {:type "button"
+           :onclick (format "location.href='%s'" (str "/study/participants_people/new?study.participants_people.participants_id=" study_people_participants_id))
+           :value "Add People"}]
+         "&nbsp;" "&nbsp;"))
+
       [:input {:type "button" :onclick (format "location.href='/%s/%s'" schema table) :value "Cancel"}]]
 
      [:br])))
@@ -261,7 +286,7 @@
 
         fields
         ;; set disabled to true for fields that are in data (query-params)
-        (into {} (map (fn [[k v]] [k (if (get data k) (assoc v :disabled true) v)]) fields))
+        (into {} (map (fn [[k v]] [k (if (get data k) (assoc v :readonly true) v)]) fields))
         
         data
         (into

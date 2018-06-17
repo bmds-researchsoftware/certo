@@ -1,59 +1,34 @@
 // -*- mode: js; js-indent-level: 2; -*-
 
 'use strict';
-   
-function filterSelectResult()
-{
-  var search = '';
 
+function filterSelectResult(search_id, select_id)
+{
   return function(event)
   {
-    var key = event.which || event.keyCode;
-
-    if (event.type == "keydown" && key != 8)
+    var search = document.getElementById(search_id).value;
+    var select = document.getElementById(select_id);
+    var si = select.length;
+    var nbspRegExp = new RegExp(String.fromCharCode(160)+'+', 'g');
+    for (var i = 0; i < select.length; i++)
     {
-      return;
-    }
-    // backspace -> 8
-    else if (event.type == "keydown" && key == 8 && search.length > 0)
-    {
-      search = search.slice(0, -1);
-    }
-    else if (event.type == "keypress")
-    {
-      search += String.fromCharCode(key);
-    }
-
-    var si = event.target.length;
-
-    var nbspRegExp = new RegExp(String.fromCharCode(160), "g");
-
-    for (var i = 0; i < event.target.length; i++)
-    {
-      if (event.target.options[i].label.toString().replace(nbspRegExp,'').slice(0,(search.length)).toLowerCase() == search.toLowerCase())
+      if (select.options[i].label.toString().replace(nbspRegExp,' ').toLowerCase().includes(search.toLowerCase()))
       {
+      	select.options[i].classList.remove('dn');
     	if (i <= si)
-    	{
-    	  si = i
-    	}
-    	event.target.options[i].classList.remove('dn');	
+      	{
+      	  si = i
+      	  select.selectedIndex = si;
+      	}
       }
       else
       {
-	if (event.target.options[i].value != '')
-	{
-	  event.target.options[i].classList.add('dn');
-	}
+      	if (select.options[i].label != '')
+      	{
+      	  select.options[i].classList.add('dn');
+      	}
       }
-    }
-
-    if (si == event.target.length)
-    {
-      event.target.selectedIndex = 0;
-    }
-    else
-    {
-      event.target.selectedIndex = si;
     }
   }
 }
+
