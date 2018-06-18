@@ -4,10 +4,17 @@
 
 function filterSelectResult(search_id, select_id)
 {
+  var selectMinWidthSet = false;
+
   return function(event)
   {
     var search = document.getElementById(search_id).value;
     var select = document.getElementById(select_id);
+    if (!selectMinWidthSet)
+    {
+      select.style.minWidth = select.offsetWidth.toString() + "px";
+      selectMinWidthSet = true;
+    }
     var si = select.length;
     var nbspRegExp = new RegExp(String.fromCharCode(160)+'+', 'g');
     for (var i = 0; i < select.length; i++)
@@ -17,7 +24,7 @@ function filterSelectResult(search_id, select_id)
       	select.options[i].classList.remove('dn');
     	if (i <= si)
       	{
-      	  si = i
+      	  si = i;
       	  select.selectedIndex = si;
       	}
       }
