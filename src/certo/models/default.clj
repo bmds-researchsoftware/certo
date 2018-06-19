@@ -128,8 +128,9 @@
   (jdbc/query
    db
    (if (and schema table)
-     ["select * from sys.tables where schema_name=? and table_name=?" schema table]
-     ["select * from sys.tables"])
+     ;; TO DO: This should be just sys.v_tables
+     ["select * from sys.v2_tables where schema_name=? and table_name=?" schema table]
+     ["select * from sys.v2_tables"])
    {:row-fn (fn [row] (vector (:tables_id row) row))
     :result-set-fn (fn [rs] (into {} rs))}))
 
@@ -290,17 +291,27 @@
 
 
 (defn fields [db schema table]
-  (let [{:keys [:is_view :is_result_view]}
+  (let [{:keys [:is_table :is_option_table :is_view :is_result_view]}
         (jdbc/query
          db
-         ["select is_view, is_result_view from sys.tables where schema_name=? and table_name=?" schema table]
-         {:result-set-fn first})]
+         ["select * from sys.v_tables where \"sys.v_tables.schema_name\" = ? and \"sys.v_tables.table_name\" = ?" schema table]
+         {:keywordize? false
+          :row-fn #(hash-map
+                    :schema (get % "sys.v_tables.schema_name")
+                    :table (get % "sys.v_tables.table_name")
+                    :is_table (get % "sys.v_tables.is_table")
+                    :is_option_table (get % "sys.v_tables.is_option_table")
+                    :is_view (get % "sys.v_tables.is_view")
+                    :is_result_view (get % "sys.v_tables.is_result_view"))
+          :result-set-fn first})]
 
     ;; TO DO: Maybe define these selects as Postgresql views or a HugSQL functions
 
     (merge
 
-     (common-fields db schema table)
+     (if (or is_table is_option_table)
+       (common-fields db schema table)
+       {})
 
      (if (or is_view is_result_view)
 
@@ -503,20 +514,25 @@
   (\"Schema_1\" ([table_1_1 is_view_1_1 count_1_1] [table_1_2 is_view_1_2 count_1_2])
    \"Schema_2\" ([table_2_1 is_view_2_1 count_2_1] [table_2_2 is_view_2_2 count_2_2] [table_2_3 is_view_2_3 count_2_3]))"
   (let [schemas
-        (jdbc/query db ["select schema_name from sys.tables group by schema_name order by schema_name"] {:row-fn :schema_name})]
+        (jdbc/query
+         db
+         ["select schema_name from sys.tables group by schema_name"]
+         {:row-fn :schema_name})]
     (map
      (fn [schema]
        [schema 
         (jdbc/query
          db
-         ["select table_name, is_option_table, is_view, is_result_view from sys.tables where schema_name=? group by table_name, is_option_table, is_view, is_result_view order by table_name"
-          schema]
-         {:row-fn #(let [table (:table_name %)
+         ["select * from sys.v_tables where \"sys.v_tables.schema_name\" = ?" schema]
+         {:keywordize? false
+          :row-fn #(let [schema (get % "sys.v_tables.schema_name")
+                         table (get % "sys.v_tables.table_name")
                          st (st schema table)]
                      {:table table
-                      :is_option_table (:is_option_table %)
-                      :is_view (:is_view %)
-                      :is_result_view (:is_result_view %)
+                      :is_table (get % "sys.v_tables.is_table")
+                      :is_option_table (get % "sys.v_tables.is_option_table")
+                      :is_view (get % "sys.v_tables.is_view")
+                      :is_result_view (get % "sys.v_tables.is_result_view")
                       :count (select-count-star db st)})})])
      schemas)))
 
