@@ -72,6 +72,21 @@ select sys.create_trigger_set_updated_at('sys.users');
 create index on sys.users (usergroup);
 
 
+-- :name create-table-sys-ot-table-types
+-- :command :execute
+-- :result :raw
+-- :doc Create table sys.ot_table_types
+create table sys.ot_table_types (
+  value text primary key,
+  label text not null,
+  location int8 constraint valid_sys_ot_table_types_location check (location is null or location >= 0),
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp);
+select sys.create_trigger_set_updated_at('sys.ot_table_types');
+
+
 -- :name create-table-sys-ot-types
 -- :command :execute
 -- :result :raw
@@ -125,6 +140,14 @@ create table sys.tables (
   tables_id text not null unique, -- populated by a before trigger as schema_name.table_name
   schema_name text, -- part of pk
   table_name text, -- part of pk
+  table_type text references sys.ot_table_types (value) not null,
+  is_table boolean not null,
+  is_view boolean not null,
+  views_id text references sys.tables (tables_id) unique,
+  is_result_view boolean not null,
+  result_views_id text references sys.tables (tables_id) unique,
+  is_option_table boolean not null,
+  option_tables_id text references sys.tables (tables_id) unique,
   -- TO DO: order-by
   -- either have this be the name of a postgres function that
   -- returns the order by as a string, or have it be the name
@@ -138,10 +161,30 @@ create table sys.tables (
   primary key (schema_name, table_name));
 select sys.create_trigger_set_updated_at('sys.tables');
 
+
 create or replace function sys.update_sys_tables()
 returns trigger as $$
 begin
   new.tables_id = new.schema_name || '.' || new.table_name;
+  new.is_table = false;
+  new.is_view = false;
+  new.views_id = null;
+  new.is_result_view = false;
+  new.result_views_id = null;
+  new.is_option_table = false;
+  new.option_tables_id = null;
+  if new.table_type = 'table' then
+     new.is_table = true;
+  elsif new.table_type = 'view' then
+     new.is_view = true;
+     new.views_id = new.tables_id;
+  elsif new.table_type = 'result-view' then
+     new.is_result_view = true;
+     new.result_views_id = new.tables_id;
+  elsif new.table_type = 'option-table' then
+     new.is_option_table = true;
+     new.option_tables_id = new.tables_id;
+  end if;
   return new;
 end;
 $$ language plpgsql;
@@ -150,48 +193,6 @@ create trigger trigger_sys_update_sys_tables
 before insert or update on sys.tables
 for each row
 execute procedure sys.update_sys_tables();
-
-create unique index tables_id_index on sys.tables (tables_id);
-
-
--- :name create-table-sys-views
--- :command :execute
--- :result :raw
--- :doc Create table sys.views
-create table sys.views (
-  views_id text  references sys.tables (tables_id) not null,  
-  created_by text references sys.users (username) not null,
-  created_at timestamptz default current_timestamp,
-  updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp,
-  primary key (views_id));
-select sys.create_trigger_set_updated_at('sys.views');
-
-
--- :name create-table-sys-result-views
--- :command :execute
--- :result :raw
--- :doc Create table sys.result_views
-create table sys.result_views (
-  result_views_id text primary key,
-  created_by text references sys.users (username) not null,
-  created_at timestamptz default current_timestamp,
-  updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp);
-select sys.create_trigger_set_updated_at('sys.result_views');
-
-
--- :name create-table-sys-option-tables
--- :command :execute
--- :result :raw
--- :doc Create table sys.option_tables
-create table sys.option_tables (
-  option_tables_id text primary key,
-  created_by text references sys.users (username) not null,
-  created_at timestamptz default current_timestamp,
-  updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp);
-select sys.create_trigger_set_updated_at('sys.option_tables');
 
 
 -- :name create-table-sys-fields
@@ -248,9 +249,9 @@ create table sys.fields (
   select_multiple boolean,
   select_size int8,
 
-  select_option_table text references sys.tables (tables_id),
+  select_option_table text constraint valid_select_option_table references sys.tables (option_tables_id),
 
-  select_result_view text references sys.tables (tables_id),
+  select_result_view text constraint valid_select_result_view references sys.tables (result_views_id),
 
   text_max_length int8,
   -- text_pattern text, TO DO: Implement pattern regexp for text controls
@@ -402,14 +403,18 @@ create unique index unique_id on sys.fields (schema_name, table_name, field_name
 create index sys_fields_schema_name_table_name on sys.fields (schema_name, table_name);
 
 
--- :name create-table-sys-view-fields
+-- :name create-table-sys-field_sets
 -- :command :execute
 -- :result :raw
--- :doc Create table sys.view_fields
-create table sys.view_fields (
-  view_fields_id text unique not null, -- populated by a before trigger as schema_name.table_name.field_name
+-- :doc Create table sys.field_sets
+create table sys.field_sets (
+  field_sets_id text unique not null, -- populated by a before trigger as schema_name.table_name.field_name
 
   tables_id text references sys.tables (tables_id), -- populated by a before trigger as schema_name.table_name
+
+  views_id text, -- references sys.tables (views_id),
+  result_views_id text, -- references sys.tables (result_views_id),
+  option_tables_id text, -- references sys.tables (option_tables_id),
 
   schema_name text not null, -- part of pk
   table_name text not null, -- part of pk
@@ -428,23 +433,36 @@ create table sys.view_fields (
   foreign key (schema_name, table_name) references sys.tables (schema_name, table_name),
   primary key (schema_name, table_name, field_name),
   unique (schema_name, table_name, field_name, location));
-select sys.create_trigger_set_updated_at('sys.view_fields');
+select sys.create_trigger_set_updated_at('sys.field_sets');
 
-create or replace function sys.update_sys_view_fields()
+create or replace function sys.update_sys_field_sets()
 returns trigger as $$
 begin
-  new.view_fields_id = new.schema_name || '.' || new.table_name || '.' || new.field_name;
+  new.field_sets_id = new.schema_name || '.' || new.table_name || '.' || new.field_name;
   new.tables_id = new.schema_name || '.' || new.table_name;
+
+  new.views_id = null;
+  new.result_views_id = null;
+  new.option_tables_id = null;
+
+  -- if new.table_type = 'view' then
+  --    new.views_id = new.tables_id;
+  -- elsif new.table_type = 'result-view' then
+  --    new.result_views_id = new.tables_id;
+  -- elsif new.table_type = 'option-table' then
+  --    new.option_tables_id = new.tables_id;
+  -- end if;
+
   return new;
 end;
 $$ language plpgsql;
 
-create trigger trigger_sys_update_sys_view_fields
-before insert or update on sys.view_fields
+create trigger trigger_sys_update_sys_field_sets
+before insert or update on sys.field_sets
 for each row
-execute procedure sys.update_sys_view_fields();
+execute procedure sys.update_sys_field_sets();
 
-create unique index view_fields_id_index on sys.view_fields (view_fields_id);
+create unique index field_sets_id_index on sys.field_sets (field_sets_id);
 
 
 -- :name create-table-sys-event-classes
@@ -467,8 +485,6 @@ create table sys.event_classes (
   updated_at timestamptz default current_timestamp);
 select sys.create_trigger_set_updated_at('sys.event_classes');
 
-
--- TO DO: RENAME TO event_class_fields
 
 -- :name create-table-sys-event-classes_fields
 -- :command :execute
@@ -532,28 +548,25 @@ select event_classes_id as value, event_classes_id as "sys.rv_event_classes.even
 from sys.event_classes
 order by event_classes_id, function_name;
 
+
 create view sys.rv_fields as
 select fields_id as value, schema_name as "sys.rv_fields.schema_name", table_name as "sys.rv_fields.table_name", field_name as "sys.rv_fields.field_name"
 from sys.fields
 order by fields_id;
 
-create view sys.v_tables as
-select tables_id as "sys.v_tables.tables_id", schema_name as "sys.v_tables.schema_name", table_name as "sys.v_tables.table_name", case when (sv.views_id is null and srv.result_views_id is null and sot.option_tables_id is null) then true else false end as "sys.v_tables.is_table", case when sv.views_id is null then false else true end as "sys.v_tables.is_view", case when srv.result_views_id is null then false else true end as "sys.v_tables.is_result_view", case when sot.option_tables_id is null then false else true end as "sys.v_tables.is_option_table" from sys.tables as st left outer join sys.views as sv on st.tables_id=sv.views_id left outer join sys.result_views as srv on st.tables_id=srv.result_views_id left outer join sys.option_tables as sot on st.tables_id=sot.option_tables_id
-order by tables_id;
-
-create view sys.v2_tables as
-select tables_id, schema_name, table_name, case when (sv.views_id is null and srv.result_views_id is null and sot.option_tables_id is null) then true else false end as is_table, case when sv.views_id is null then false else true end as is_view, case when srv.result_views_id is null then false else true end as is_result_view, case when sot.option_tables_id is null then false else true end as is_option_table from sys.tables as st left outer join sys.views as sv on st.tables_id=sv.views_id left outer join sys.result_views as srv on st.tables_id=srv.result_views_id left outer join sys.option_tables as sot on st.tables_id=sot.option_tables_id
-order by tables_id;
 
 create view sys.rv_option_tables as
-select "sys.v_tables.tables_id" as value, "sys.v_tables.tables_id" as "sys.rv_option_tables.tables_id", "sys.v_tables.schema_name" as "sys.rv_option_tables.schema_name", "sys.v_tables.table_name" as "sys.rv_option_tables.table_name" from sys.v_tables where "sys.v_tables.is_option_table";
+select tables_id as value, tables_id as "sys.rv_option_tables.tables_id", schema_name as "sys.rv_option_tables.schema_name", table_name as "sys.rv_option_tables.table_name" from sys.tables where table_type='option-table';
+
 
 create view sys.rv_result_views as
-select "sys.v_tables.tables_id" as value, "sys.v_tables.tables_id" as "sys.rv_result_views.tables_id", "sys.v_tables.schema_name" as "sys.rv_result_views.schema_name", "sys.v_tables.table_name" as "sys.rv_result_views.table_name" from sys.v_tables where "sys.v_tables.is_result_view";
+select tables_id as value, tables_id as "sys.rv_result_views.tables_id", schema_name as "sys.rv_result_views.schema_name", table_name as "sys.rv_result_views.table_name" from sys.tables where table_type='result-view';
 
-create view sys.rv_tables as
-select "sys.v_tables.tables_id" as value, "sys.v_tables.tables_id" as "sys.rv_tables.tables_id", "sys.v_tables.schema_name" as "sys.rv_tables.schema_name", "sys.v_tables.table_name" as "sys.rv_tables.table_name" from sys.v_tables where "sys.v_tables.is_table";
 
 create view sys.rv_views as
-select "sys.v_tables.tables_id" as value, "sys.v_tables.tables_id" as "sys.rv_views.tables_id", "sys.v_tables.schema_name" as "sys.rv_views.schema_name", "sys.v_tables.table_name" as "sys.rv_views.table_name" from sys.v_tables where "sys.v_tables.is_view";
+select tables_id as value, tables_id as "sys.rv_views.tables_id", schema_name as "sys.rv_views.schema_name", table_name as "sys.rv_views.table_name" from sys.tables where table_type='view';
+
+
+create view sys.rv_tables as
+select tables_id as value, tables_id as "sys.rv_tables.tables_id", schema_name as "sys.rv_tables.schema_name", table_name as "sys.rv_tables.table_name" from sys.tables where table_type='table';
 

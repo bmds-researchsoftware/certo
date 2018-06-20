@@ -128,9 +128,8 @@
   (jdbc/query
    db
    (if (and schema table)
-     ;; TO DO: This should be just sys.v_tables
-     ["select * from sys.v2_tables where schema_name=? and table_name=?" schema table]
-     ["select * from sys.v2_tables"])
+     ["select * from sys.tables where schema_name = ? and table_name = ?" schema table]
+     ["select * from sys.tables"])
    {:row-fn (fn [row] (vector (:tables_id row) row))
     :result-set-fn (fn [rs] (into {} rs))}))
 
@@ -294,16 +293,8 @@
   (let [{:keys [:is_table :is_option_table :is_view :is_result_view]}
         (jdbc/query
          db
-         ["select * from sys.v_tables where \"sys.v_tables.schema_name\" = ? and \"sys.v_tables.table_name\" = ?" schema table]
-         {:keywordize? false
-          :row-fn #(hash-map
-                    :schema (get % "sys.v_tables.schema_name")
-                    :table (get % "sys.v_tables.table_name")
-                    :is_table (get % "sys.v_tables.is_table")
-                    :is_option_table (get % "sys.v_tables.is_option_table")
-                    :is_view (get % "sys.v_tables.is_view")
-                    :is_result_view (get % "sys.v_tables.is_result_view"))
-          :result-set-fn first})]
+         ["select * from sys.tables where schema_name = ? and table_name = ?" schema table]
+         {:result-set-fn first})]
 
     ;; TO DO: Maybe define these selects as Postgresql views or a HugSQL functions
 
@@ -318,7 +309,7 @@
        (jdbc/query
         db
         ;; get all controls in the view schema.table
-        ["select sf.*, svf.view_fields_id \"vf_view_fields_id\", svf.tables_id \"vf_tables_id\", svf.schema_name \"vf_schema_name\", svf.table_name \"vf_table_name\", svf.field_name \"vf_field_name\", svf.sys_fields_id \"vf_sys_fields_id\", svf.label \"vf_label\", svf.location \"vf_location\", svf.created_by \"vf_created_by\", svf.created_at \"vf_created_at\", svf.updated_by \"vf_updated_by\", svf.updated_at \"vf_updated_at\" from sys.view_fields as svf inner join sys.fields as sf on svf.sys_fields_id=sf.fields_id where svf.schema_name=? and svf.table_name=?" schema table]
+        ["select sf.*, svf.field_sets_id \"vf_view_fields_id\", svf.tables_id \"vf_tables_id\", svf.schema_name \"vf_schema_name\", svf.table_name \"vf_table_name\", svf.field_name \"vf_field_name\", svf.sys_fields_id \"vf_sys_fields_id\", svf.label \"vf_label\", svf.location \"vf_location\", svf.created_by \"vf_created_by\", svf.created_at \"vf_created_at\", svf.updated_by \"vf_updated_by\", svf.updated_at \"vf_updated_at\" from sys.field_sets as svf inner join sys.fields as sf on svf.sys_fields_id=sf.fields_id where svf.schema_name=? and svf.table_name=?" schema table]
         {:row-fn #(merge-sf-and-svf db % is_result_view)
          :result-set-fn (fn [rs] (into {} rs))})
 
@@ -332,7 +323,7 @@
      (jdbc/query
       db
       ;; get all controls that are in a select-result control
-      ["select sfv.*, svf.view_fields_id \"vf_view_fields_id\", svf.tables_id \"vf_tables_id\", svf.schema_name \"vf_schema_name\", svf.table_name \"vf_table_name\", svf.field_name \"vf_field_name\", svf.sys_fields_id \"vf_sys_fields_id\", svf.label \"vf_label\", svf.location \"vf_location\", svf.created_by \"vf_created_by\", svf.created_at \"vf_created_at\", svf.updated_by \"vf_updated_by\", svf.updated_at \"vf_updated_at\" from sys.fields as sf inner join sys.view_fields as svf on sf.select_result_view=svf.tables_id inner join sys.fields as sfv on svf.sys_fields_id=sfv.fields_id where sf.control='select-result' and sf.schema_name=? and sf.table_name=?" schema table]
+      ["select sfv.*, svf.field_sets_id \"vf_view_fields_id\", svf.tables_id \"vf_tables_id\", svf.schema_name \"vf_schema_name\", svf.table_name \"vf_table_name\", svf.field_name \"vf_field_name\", svf.sys_fields_id \"vf_sys_fields_id\", svf.label \"vf_label\", svf.location \"vf_location\", svf.created_by \"vf_created_by\", svf.created_at \"vf_created_at\", svf.updated_by \"vf_updated_by\", svf.updated_at \"vf_updated_at\" from sys.fields as sf inner join sys.field_sets as svf on sf.select_result_view=svf.tables_id inner join sys.fields as sfv on svf.sys_fields_id=sfv.fields_id where sf.control='select-result' and sf.schema_name=? and sf.table_name=?" schema table]
       {:row-fn
        #(merge-sf-and-svf db % is_result_view)
        :result-set-fn (fn [rs] (into {} rs))}))))
@@ -523,17 +514,8 @@
        [schema 
         (jdbc/query
          db
-         ["select * from sys.v_tables where \"sys.v_tables.schema_name\" = ?" schema]
-         {:keywordize? false
-          :row-fn #(let [schema (get % "sys.v_tables.schema_name")
-                         table (get % "sys.v_tables.table_name")
-                         st (st schema table)]
-                     {:table table
-                      :is_table (get % "sys.v_tables.is_table")
-                      :is_option_table (get % "sys.v_tables.is_option_table")
-                      :is_view (get % "sys.v_tables.is_view")
-                      :is_result_view (get % "sys.v_tables.is_result_view")
-                      :count (select-count-star db st)})})])
+         ["select * from sys.tables where schema_name = ?" schema]
+         {:row-fn #(assoc % :table (:table_name %) :count (select-count-star db (st schema (:table_name %))))})])
      schemas)))
 
 

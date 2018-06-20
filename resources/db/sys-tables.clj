@@ -2,6 +2,8 @@
 
 {:schema_name "sys" :table_name "users" :table_type "table" :created_by "root" :updated_by "root"}
 
+{:schema_name "sys" :table_name "ot_table_types" :table_type "option-table" :created_by "root" :updated_by "root"} 
+
 {:schema_name "sys" :table_name "ot_controls" :table_type "option-table" :created_by "root" :updated_by "root"}
 
 {:schema_name "sys" :table_name "ot_types" :table_type "option-table" :created_by "root" :updated_by "root"}
@@ -21,8 +23,6 @@
 {:schema_name "sys" :table_name "rv_event_classes" :table_type "result-view" :created_by "root" :updated_by "root"}
 
 {:schema_name "sys" :table_name "rv_fields" :table_type "result-view" :created_by "root" :updated_by "root"}
-
-{:schema_name "sys" :table_name "v_tables" :table_type "view" :created_by "root" :updated_by "root"}
 
 {:schema_name "sys" :table_name "rv_option_tables" :table_type "result-view" :created_by "root" :updated_by "root"}
 

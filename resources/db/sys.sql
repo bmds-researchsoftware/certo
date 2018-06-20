@@ -18,6 +18,16 @@ values
   (:username, :password, :full_name, :display_name, :email, :usergroup, :created_by, :updated_by);
 
 
+-- :name insert-sys-ot-table-types
+-- :command :execute
+-- :result :raw
+-- :doc Insert into sys.ot_table_types
+insert into sys.ot_table_types
+  (value, label, location, created_by, updated_by)
+values
+  (:value, :label, :location, :created_by, :updated_by);
+
+
 -- :name insert-sys-ot-types
 -- :command :execute
 -- :result :raw
@@ -83,48 +93,9 @@ values
 -- :result :raw
 -- :doc Insert into sys.tables
 insert into sys.tables
-  (schema_name, table_name, created_by, updated_by)
+  (schema_name, table_name, table_type, created_by, updated_by)
 values
-  (:schema_name, :table_name, :created_by, :updated_by)
-
-
--- :name insert-sys-views
--- :command :execute
--- :result :raw
--- :doc Insert into sys.views
-with tables as (
-insert into sys.tables
-  (schema_name, table_name, created_by, updated_by)
-values
-  (:schema_name, :table_name, :created_by, :updated_by)
-  returning tables_id)
-insert into sys.views (views_id, created_by, updated_by) values ((select tables_id from tables), :created_by, :updated_by);
-
-
--- :name insert-sys-result-views
--- :command :execute
--- :result :raw
--- :doc Insert into sys.result_views
-with tables as (
-insert into sys.tables
-  (schema_name, table_name, created_by, updated_by)
-values
-  (:schema_name, :table_name, :created_by, :updated_by)
-  returning tables_id)
-insert into sys.result_views (result_views_id, created_by, updated_by) values ((select tables_id from tables), :created_by, :updated_by);
-
-
--- :name insert-sys-option-tables
--- :command :execute
--- :result :raw
--- :doc Insert into sys.option_tables
-with tables as (
-insert into sys.tables
-  (schema_name, table_name, created_by, updated_by)
-values
-  (:schema_name, :table_name, :created_by, :updated_by)
-  returning tables_id)
-insert into sys.option_tables (option_tables_id, created_by, updated_by) values ((select tables_id from tables), :created_by, :updated_by);
+  (:schema_name, :table_name, :table_type, :created_by, :updated_by)
 
 
 -- :name insert-sys-fields
@@ -155,11 +126,11 @@ values
   :created_by, :updated_by);
   
 
--- :name insert-sys-view-fields
+-- :name insert-sys-field-sets
 -- :command :execute
 -- :result :raw
--- :doc Insert into sys.view_fields
-insert into sys.view_fields 
+-- :doc Insert into sys.field_sets
+insert into sys.field_sets
   (schema_name, table_name, field_name, sys_fields_id, label, location, created_by, updated_by)
 values
   (:schema_name, :table_name, :field_name, :sys_fields_id, :label, :location, :created_by, :updated_by);
