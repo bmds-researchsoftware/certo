@@ -194,6 +194,23 @@ before insert or update on sys.tables
 for each row
 execute procedure sys.update_sys_tables();
 
+create or replace function sys.check_sys_tables()
+returns trigger as $$
+begin
+  -- TO DO: Limit select to tables and views owned by application
+  if (select count(*)=1 from information_schema.tables where table_schema = new.schema_name and table_name = new.table_name) then
+    return new;
+  else
+    raise exception 'Table or view %.% does not exist in the database.', new.schema_name, new.table_name;
+  end if;
+end;
+$$ language plpgsql;
+
+create constraint trigger trigger_check_sys_tables
+after insert or update on sys.tables
+for each row
+execute procedure sys.check_sys_tables();
+
 
 -- :name create-table-sys-fields
 -- :command :execute
@@ -395,6 +412,29 @@ before insert or update on sys.fields
 for each row
 execute procedure sys.update_sys_fields();
 
+
+create or replace function sys.check_sys_fields()
+returns trigger as $$
+begin
+  -- TO DO: Limit select to columns owned by application
+  -- TO DO: Actually need to check that function exists in the database
+  if new.is_function then
+    return new;
+  elsif (select count(*)=1 from information_schema.columns where table_schema = new.schema_name and table_name = new.table_name and column_name = new.field_name) then
+    return new;
+  else
+    raise exception 'Field %.%.% does not exist in the database.', new.schema_name, new.table_name, new.field_name;
+  end if;
+end;
+$$ language plpgsql;
+
+create constraint trigger trigger_check_sys_fields
+after insert or update on sys.fields
+for each row
+execute procedure sys.check_sys_fields();
+
+
+
 create unique index fields_id_index on sys.fields (fields_id);
 
 -- ensures that there is at most one id field per schema.table
@@ -410,17 +450,17 @@ create index sys_fields_schema_name_table_name on sys.fields (schema_name, table
 create table sys.field_sets (
   field_sets_id text unique not null, -- populated by a before trigger as schema_name.table_name.field_name
 
-  tables_id text references sys.tables (tables_id), -- populated by a before trigger as schema_name.table_name
+  tables_id text references sys.tables (tables_id) not null, -- populated by a before trigger as schema_name.table_name
 
-  views_id text, -- references sys.tables (views_id),
-  result_views_id text, -- references sys.tables (result_views_id),
-  option_tables_id text, -- references sys.tables (option_tables_id),
+  -- views_id text, -- references sys.tables (views_id),
+  -- result_views_id text, -- references sys.tables (result_views_id),
+  -- option_tables_id text, -- references sys.tables (option_tables_id),
 
   schema_name text not null, -- part of pk
   table_name text not null, -- part of pk
   field_name text not null, -- part of pk
 
-  sys_fields_id text references sys.fields (fields_id),
+  sys_fields_id text references sys.fields (fields_id) not null,
 
   label text not null,
   location int8 constraint valid_sys_fields_location check (location is not null and location >= 0),
@@ -441,9 +481,9 @@ begin
   new.field_sets_id = new.schema_name || '.' || new.table_name || '.' || new.field_name;
   new.tables_id = new.schema_name || '.' || new.table_name;
 
-  new.views_id = null;
-  new.result_views_id = null;
-  new.option_tables_id = null;
+  -- new.views_id = null;
+  -- new.result_views_id = null;
+  -- new.option_tables_id = null;
 
   -- if new.table_type = 'view' then
   --    new.views_id = new.tables_id;
@@ -461,6 +501,23 @@ create trigger trigger_sys_update_sys_field_sets
 before insert or update on sys.field_sets
 for each row
 execute procedure sys.update_sys_field_sets();
+
+create or replace function sys.check_sys_field_sets()
+returns trigger as $$
+begin
+  -- TO DO: Limit select to tables owned by application
+  if (select count(*)=1 from information_schema.columns where table_schema = new.schema_name and table_name = new.table_name and column_name = new.schema_name || '.' || new.table_name || '.' || new.field_name) then
+    return new;
+  else
+    raise exception 'Field %.%.% does not exist in the database.', new.schema_name, new.table_name, new.field_name;
+  end if;
+end;
+$$ language plpgsql;
+
+create constraint trigger trigger_check_sys_field_sets
+after insert or update on sys.field_sets
+for each row
+execute procedure sys.check_sys_field_sets();
 
 create unique index field_sets_id_index on sys.field_sets (field_sets_id);
 

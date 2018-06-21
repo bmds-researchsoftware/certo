@@ -32,13 +32,14 @@
      (list
       [:table {:style "width: 50%"}
        [:tr [:th {:style "text-align:center" :colspan "7"} (str/capitalize schema)]]
-       [:tr [:th {:style "text-align:left"} "Table"]
-        [:th {:style "text-align:center"} "Table?"]
-        [:th {:style "text-align:center"} "View?"]
-        [:th {:style "text-align:center"} "Result View?"]
-        [:th {:style "text-align:center"} "Option Table?"]
-        [:th {:style "text-align:center"} "New"]
-        [:th {:style "text-align:center"} "Count"]]
+       [:tr
+        [:th {:style "width: 40%; text-align:left"} "Table"]
+        [:th {:style "width: 8%; text-align:center"} "Table?"]
+        [:th {:style "width: 8%; text-align:center"} "View?"]
+        [:th {:style "width: 8%; text-align:center"} "Result View?"]
+        [:th {:style "width: 8%; text-align:center"} "Option Table?"]
+        [:th {:style "width: 10%; text-align:center"} "New"]
+        [:th {:style "width: 18%; text-align:center"} "Count"]]
        (for [{:keys [table is_table is_view is_result_view is_option_table count]} tables]
          [:tr
           [:td {:style "width: 40%; text-align:left"} (common/format-title table)]

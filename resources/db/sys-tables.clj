@@ -14,6 +14,8 @@
 
 {:schema_name "sys" :table_name "fields" :table_type "table" :created_by "root" :updated_by "root"}
 
+{:schema_name "sys" :table_name "field_sets" :table_type "table" :created_by "root" :updated_by "root"}
+
 {:schema_name "sys" :table_name "event_classes" :table_type "table" :created_by "root" :updated_by "root"}
 
 {:schema_name "sys" :table_name "event_class_fields" :table_type "table" :created_by "root" :updated_by "root"}
