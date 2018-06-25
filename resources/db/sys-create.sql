@@ -1,19 +1,3 @@
--- :name create-extensions
--- :command :execute
--- :result :raw
--- :doc Create extensions
-create extension if not exists "uuid-ossp";
-create extension if not exists btree_gist;
-
-
--- :name create-schema-sys
--- :command :execute
--- :result :raw
--- :doc Create schema sys
-drop schema if exists sys cascade;
-create schema sys;
-
-
 -- :name create-trigger-sys-set-updated-at
 -- :command :execute
 -- :result :raw
@@ -541,6 +525,24 @@ create table sys.event_classes (
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp);
 select sys.create_trigger_set_updated_at('sys.event_classes');
+
+
+-- :name create-table-sys-event-class-precedence
+-- :command :execute
+-- :result :raw
+-- :doc Create table sys.event_class_precedence
+create table sys.event_class_precedence (
+  event_class_precedence_id serial8 primary key,
+  event_classes_id text references sys.event_classes (event_classes_id) not null,
+  term int8, -- not null, TO DO: Must be not null
+  preceding_event_classes_id text references sys.event_classes (event_classes_id) not null,
+  is_positive boolean, -- not null, TO DO: Must be not null
+  lag int8, -- not null, TO DO: Must be not null
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp);
+select sys.create_trigger_set_updated_at('sys.event_class_precedence');
 
 
 -- :name create-table-sys-event-classes_fields
