@@ -519,7 +519,7 @@ create table sys.event_classes (
   function_name text references sys.ot_function_names (value) not null,
   argument_name_id text references sys.fields (fields_id),
   precedence_expression text,
-  precedence_events text,
+  -- precedence_events text,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
@@ -533,9 +533,11 @@ select sys.create_trigger_set_updated_at('sys.event_classes');
 -- :doc Create table sys.event_class_precedence
 create table sys.event_class_precedence (
   event_class_precedence_id serial8 primary key,
-  event_classes_id text references sys.event_classes (event_classes_id) not null,
+  -- event_classes_id text references sys.event_classes (event_classes_id) not null,
+  event_classes_id text,
   term int8, -- not null, TO DO: Must be not null
-  preceding_event_classes_id text references sys.event_classes (event_classes_id) not null,
+  -- preceding_event_classes_id text references sys.event_classes (event_classes_id) not null,
+  preceding_event_classes_id text,
   is_positive boolean, -- not null, TO DO: Must be not null
   lag int8, -- not null, TO DO: Must be not null
   created_by text references sys.users (username) not null,

@@ -141,9 +141,9 @@ values
 -- :result :raw
 -- :doc Insert into sys.event_classes
 insert into sys.event_classes
-  (event_classes_id, function_name, argument_name_id, precedence_expression, precedence_events, created_by, updated_by)
+  (event_classes_id, function_name, argument_name_id, created_by, updated_by)
 values
-  (:event_classes_id, :function_name, :argument_name_id, :precedence_expression, :precedence_events, :created_by, :updated_by);
+  (:event_classes_id, :function_name, :argument_name_id, :created_by, :updated_by);
 
 
 -- :name insert-sys-event-class-precedence
