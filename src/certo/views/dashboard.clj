@@ -53,8 +53,8 @@
         [:th {:style "width: 42%; text-align:left"} "Table"]
         [:th {:style "width: 8%; text-align:center"} "Table?"]
         [:th {:style "width: 8%; text-align:center"} "View?"]
-        [:th {:style "width: 8%; text-align:center"} "Result View?"]
         [:th {:style "width: 8%; text-align:center"} "Option Table?"]
+        [:th {:style "width: 8%; text-align:center"} "Result View?"]
         [:th {:style "width: 10%; text-align:center"} "New"]
         [:th {:style "width: 16%; text-align:center"} "Count"]]
        (for [{:keys [table is_table is_view is_result_view is_option_table count]} tables]
@@ -62,8 +62,8 @@
           [:td {:style "width: 42%; text-align:left"} (common/format-title table)]
           [:td {:style "width: 8%; text-align:center"} (if is_table "&#10004;" "")]
           [:td {:style "width: 8%; text-align:center"} (if is_view "&#10004;" "")]
-          [:td {:style "width: 8%; text-align:center"} (if is_result_view "&#10004;" "")]
           [:td {:style "width: 8%; text-align:center"} (if is_option_table "&#10004;" "")]
+          [:td {:style "width: 8%; text-align:center"} (if is_result_view "&#10004;" "")]
           [:td {:style "width: 10%; text-align:center"}
            (if (not (or is_view is_result_view))
              [:a {:href (str "/" schema "/" table "/new")} "New"]

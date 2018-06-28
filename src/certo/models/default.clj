@@ -521,7 +521,7 @@
         [schema
          (jdbc/query
           db
-          ["select * from sys.tables where schema_name = ?" schema]
+          ["select * from sys.tables where schema_name = ? order by table_type='table' desc, table_type='view' desc, table_type='option-table' desc, table_type='result-view' desc, table_name"  schema]
           {:row-fn #(assoc % :table (:table_name %) :count (select-count-star db (st schema (:table_name %))))})])
       schemas)}))
 
