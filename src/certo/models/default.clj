@@ -512,9 +512,7 @@
     {:event-queue
      (jdbc/query
       db
-      ;; TO DO: This uses app.event_catalog, but not use the app schema
-      ;; ["select ec.event_classes_id, ec.argument_name_id, description from sys.event_classes ec inner join app.event_catalog aec on ec.event_classes_id=aec.event_catalog_id inner join sys.event_class_precedence ecp on ec.event_classes_id=ecp.event_classes_id where ecp.preceding_event_classes_id is null"]
-      ["select sec.event_classes_id, sec.argument_name_id, description from sys.event_classes sec inner join app.event_catalog aec on sec.event_classes_id=aec.event_catalog_id inner join sys.event_class_precedence ecp on sec.event_classes_id=ecp.event_classes_id where aec.protocol_name='Recruitment'"])
+      ["select ec.event_classes_id, ec.argument_name_id from sys.event_classes ec inner join sys.event_class_precedence ecp on ec.event_classes_id=ecp.event_classes_id where ecp.preceding_event_classes_id is null"])
      :sts
      (map
       (fn [schema]

@@ -30,8 +30,14 @@
 (defn default-handler [db md]
   (compojure/routes
 
+   ;; display system dashboard if there is no app dashboard
    (compojure/GET
     "/"
+    {username :basic-authentication}
+    (view/dashboard (:system-name md) (model/user db username) (model/dashboard db)))
+
+   (compojure/GET
+    "/dashboard"
     {username :basic-authentication}
     (view/dashboard (:system-name md) (model/user db username) (model/dashboard db)))
 

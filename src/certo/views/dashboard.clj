@@ -35,13 +35,11 @@
     [:tr [:th {:style "text-align:center" :colspan "3"} "Event Queue"]]
     [:tr
      [:th {:style "width: 50%; text-align:left"} "Event"]
-     [:th {:style "width: 50%; text-align:left"} "Description"]
      [:th {:style "width: 50%; text-align:center"} "Argument Name ID"]]
-    (for [{:keys [event_classes_id description argument_name_id]} event-queue]
+    (for [{:keys [event_classes_id argument_name_id]} event-queue]
       [:tr
        [:td {:style "width: 35%; text-align:left"}
         [:a {:href (str "/events/" event_classes_id)} (str/replace event_classes_id #"[.]" " ")]]
-       [:td {:style "width: 20%; text-align:left"} description]
        [:td {:style "width: 20%; text-align:left"} argument_name_id]])]
 
    [:br]
