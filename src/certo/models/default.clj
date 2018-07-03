@@ -5,6 +5,7 @@
    [clojure.edn :as edn]
    [clojure.java.jdbc :as jdbc]
    [clojure.pprint :as pprint]
+   [certo.sql]
    [certo.utilities :as cu])
   (:import [java.util.UUID]))
 
@@ -134,6 +135,14 @@
     :result-set-fn (fn [rs] (into {} rs))}))
 
 
+(defn event-classes [db]
+  (jdbc/query
+   db
+   ["select * from sys.event_classes"]
+   {:row-fn (fn [row] (vector (:event_classes_id row) row))
+    :result-set-fn (fn [rs] (into {} rs))}))
+
+
 (defn select-options [db row]
   (assoc
    row
@@ -254,6 +263,10 @@
         :updated_by
         :updated_at
         :vf_sys_fields_id) nr
+
+     ;; TO DO: change vf to sfs
+     ;; TO DO: change vf_view_fields_id to sfs_field_sets_id
+
        (set/rename-keys
         nr
         {:vf_view_fields_id :fields_id
@@ -282,37 +295,60 @@
        ;; select-result will be displayed (primarily during
        ;; development) in a table view of the underlying view
        (if in-select-result
+
+         ;; TO DO: change vf to sfs
+         ;; TO DO: change vf_view_fields_id to sfs_field_sets_id
+
          (assoc nr :in_table_view true)
          nr)
-       (dissoc nr :view_fields_id :fields_id :is_id)
-       (assoc nr :fields_id (:view_fields_id r))
+       (dissoc nr :vf_view_fields_id :fields_id :is_id)
+
+       ;; TO DO: change vf to sfs
+       ;; TO DO: change vf_view_fields_id to sfs_field_sets_id
+
+       (assoc nr :fields_id (:vf_view_fields_id r))
+
        (prepare-control db nr))))
 
 
 (defn fields [db schema table]
-  (let [{:keys [:is_table :is_option_table :is_view :is_result_view]}
+  (let [{is_table :is_table
+         is_option_table :is_option_table
+         is_view :is_view
+         is_result_view :is_result_view
+         :or {is_table false is_option_table false is_view false is_result_view false}}
         (jdbc/query
          db
          ["select * from sys.tables where schema_name = ? and table_name = ?" schema table]
-         {:result-set-fn first})]
-
-    ;; TO DO: Maybe define these selects as Postgresql views or a HugSQL functions
+         {:result-set-fn first})
+        is_event (= schema "event")]
 
     (merge
 
-     (if (or is_table is_option_table)
+     (if (or is_table is_option_table is_event)
        (common-fields db schema table)
        {})
 
-     (if (or is_view is_result_view)
-
-       (jdbc/query
+     (cond
+       (or is_view is_result_view)
+       ;; get all controls in the view schema.table
+       (certo.sql/select-sys-fields-sets-by-schema-table
         db
-        ;; get all controls in the view schema.table
-        ["select sf.*, svf.field_sets_id \"vf_view_fields_id\", svf.tables_id \"vf_tables_id\", svf.schema_name \"vf_schema_name\", svf.table_name \"vf_table_name\", svf.field_name \"vf_field_name\", svf.sys_fields_id \"vf_sys_fields_id\", svf.label \"vf_label\", svf.location \"vf_location\", svf.created_by \"vf_created_by\", svf.created_at \"vf_created_at\", svf.updated_by \"vf_updated_by\", svf.updated_at \"vf_updated_at\" from sys.field_sets as svf inner join sys.fields as sf on svf.sys_fields_id=sf.fields_id where svf.schema_name=? and svf.table_name=?" schema table]
+        {:schema schema :table table}
+        {}
         {:row-fn #(merge-sf-and-svf db % is_result_view)
          :result-set-fn (fn [rs] (into {} rs))})
 
+       is_event
+       ;; get all controls in the event class with event-class-id table
+       (certo.sql/select-sys-event-class-fields-by-event-classes-id
+        db
+        {:event_classes_id table}
+        {}
+        {:row-fn #(merge-sf-and-svf db % is_result_view)
+         :result-set-fn (fn [rs] (into {} rs))})
+
+       :else
        (jdbc/query
         db
         ;; get all controls in the table schema.table
@@ -320,13 +356,24 @@
         {:row-fn (fn [row] (vector (:fields_id row) (prepare-control db row)))
          :result-set-fn (fn [rs] (into {} rs))}))
 
-     (jdbc/query
-      db
-      ;; get all controls that are in a select-result control
-      ["select sfv.*, svf.field_sets_id \"vf_view_fields_id\", svf.tables_id \"vf_tables_id\", svf.schema_name \"vf_schema_name\", svf.table_name \"vf_table_name\", svf.field_name \"vf_field_name\", svf.sys_fields_id \"vf_sys_fields_id\", svf.label \"vf_label\", svf.location \"vf_location\", svf.created_by \"vf_created_by\", svf.created_at \"vf_created_at\", svf.updated_by \"vf_updated_by\", svf.updated_at \"vf_updated_at\" from sys.fields as sf inner join sys.field_sets as svf on sf.select_result_view=svf.tables_id inner join sys.fields as sfv on svf.sys_fields_id=sfv.fields_id where sf.control='select-result' and sf.schema_name=? and sf.table_name=?" schema table]
-      {:row-fn
-       #(merge-sf-and-svf db % is_result_view)
-       :result-set-fn (fn [rs] (into {} rs))}))))
+     ;; get all controls that are in a select-result control
+     (if is_event
+
+       (certo.sql/select-sys-fields-sets-in-select-control-by-event-classes-id
+        db
+        {:event_classes_id table}
+        {}
+        {:row-fn
+         #(merge-sf-and-svf db % is_result_view)
+         :result-set-fn (fn [rs] (into {} rs))})
+
+       (certo.sql/select-sys-fields-sets-in-select-control-by-schema-table
+        db
+        {:schema schema :table table}
+        {}
+        {:row-fn
+         #(merge-sf-and-svf db % is_result_view)
+         :result-set-fn (fn [rs] (into {} rs))})))))
 
 
 (defn fields-by-schema-table [fields schema table]

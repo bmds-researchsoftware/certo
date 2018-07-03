@@ -161,9 +161,9 @@ values
 -- :result :raw
 -- :doc Insert into sys.event_class_fields
 insert into sys.event_class_fields 
-  (event_classes_id, fields_id, location, disabled, readonly, required, created_by, updated_by)
+  (event_classes_id, field_name, sys_fields_id, label, location, created_by, updated_by)
 values 
-  (:event_classes_id, :fields_id, :location, :disabled, :readonly, :required, :created_by, :updated_by);
+  (:event_classes_id, :field_name, :sys_fields_id, :label, :location, :created_by, :updated_by);
 
 
 -- :name select-sys-event-classes-all
@@ -174,4 +174,94 @@ select event_classes_id as value, function_name
 from sys.event_classes 
 order by event_classes_id, function_name
 
+
+-- :name select-sys-fields-sets-by-schema-table
+-- :command :query
+-- :result many
+-- :doc Select all fields in sys.field_sets for a given schema and table, and join with sys.fields.
+select sf.*,
+  sfs.field_sets_id "vf_view_fields_id",
+  sfs.tables_id "vf_tables_id",
+  sfs.schema_name "vf_schema_name",
+  sfs.table_name "vf_table_name",
+  sfs.field_name "vf_field_name",
+  sfs.sys_fields_id "vf_sys_fields_id",
+  sfs.label "vf_label",
+  sfs.location "vf_location",
+  sfs.created_by "vf_created_by",
+  sfs.created_at "vf_created_at",
+  sfs.updated_by "vf_updated_by",
+  sfs.updated_at "vf_updated_at"
+from sys.field_sets as sfs
+inner join sys.fields as sf on sfs.sys_fields_id=sf.fields_id
+where sfs.schema_name = :schema and sfs.table_name = :table
+
+
+-- :name select-sys-event-class-fields-by-event-classes-id
+-- :command :query
+-- :result many
+-- :doc Select all fields in sys.event_class_fields for a given event-classes-id, and join with sys.fields.
+select sf.*,
+  ecf.event_class_fields_id "vf_view_fields_id",
+  ecf.event_classes_id "vf_tables_id",
+  'event' "vf_schema_name",
+  ecf.event_classes_id "vf_table_name",
+  ecf.field_name "vf_field_name",
+  ecf.sys_fields_id "vf_sys_fields_id",
+  ecf.label "vf_label",
+  ecf.location "vf_location",
+  ecf.created_by "vf_created_by",
+  ecf.created_at "vf_created_at",
+  ecf.updated_by "vf_updated_by",
+  ecf.updated_at "vf_updated_at" 
+from sys.event_class_fields as ecf 
+inner join sys.fields as sf on ecf.sys_fields_id=sf.fields_id
+where ecf.event_classes_id = :event_classes_id
+
+
+-- :name select-sys-fields-sets-in-select-control-by-schema-table
+-- :command :query
+-- :result many
+-- :doc Select all fields in sys.field_sets that are in a select-result control for a given schema and table, and join with sys.fields.
+select srsf.*, -- srsf = select result sys fields
+  sfs.field_sets_id "vf_view_fields_id",
+  sfs.tables_id "vf_tables_id",
+  sfs.schema_name "vf_schema_name",
+  sfs.table_name "vf_table_name",
+  sfs.field_name "vf_field_name",
+  sfs.sys_fields_id "vf_sys_fields_id",
+  sfs.label "vf_label",
+  sfs.location "vf_location",
+  sfs.created_by "vf_created_by",
+  sfs.created_at "vf_created_at",
+  sfs.updated_by "vf_updated_by",
+  sfs.updated_at "vf_updated_at"
+from sys.fields as sf
+inner join sys.field_sets as sfs on sf.select_result_view=sfs.tables_id
+inner join sys.fields as srsf on sfs.sys_fields_id=srsf.fields_id
+where sf.control='select-result' and sf.schema_name = :schema and sf.table_name = :table
+
+
+-- :name select-sys-fields-sets-in-select-control-by-event-classes-id
+-- :command :query
+-- :result many
+-- :doc Select all fields in sys.field_sets that are in a select-result control for a given event-classes-id, and join with sys.fields.
+select srsf.*, -- srsf = select result sys fields
+  sfs.field_sets_id "vf_view_fields_id",
+  sfs.tables_id "vf_tables_id",
+  sfs.schema_name "vf_schema_name",
+  sfs.table_name "vf_table_name",
+  sfs.field_name "vf_field_name",
+  sfs.sys_fields_id "vf_sys_fields_id",
+  sfs.label "vf_label",
+  sfs.location "vf_location",
+  sfs.created_by "vf_created_by",
+  sfs.created_at "vf_created_at",
+  sfs.updated_by "vf_updated_by",
+  sfs.updated_at "vf_updated_at"
+from sys.fields as sf
+inner join sys.event_class_fields as ecf on sf.fields_id=ecf.sys_fields_id
+inner join sys.field_sets as sfs on sf.select_result_view=sfs.tables_id
+inner join sys.fields as srsf on sfs.sys_fields_id=srsf.fields_id
+where sf.control='select-result' and ecf.event_classes_id=:event_classes_id;
 

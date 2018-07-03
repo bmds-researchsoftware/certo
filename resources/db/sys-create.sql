@@ -158,16 +158,18 @@ begin
   new.is_option_table = false;
   new.option_tables_id = null;
   if new.table_type = 'table' then
-     new.is_table = true;
+    new.is_table = true;
   elsif new.table_type = 'view' then
-     new.is_view = true;
-     new.views_id = new.tables_id;
+    new.is_view = true;
+    new.views_id = new.tables_id;
   elsif new.table_type = 'result-view' then
-     new.is_result_view = true;
-     new.result_views_id = new.tables_id;
+    new.is_result_view = true;
+    new.result_views_id = new.tables_id;
   elsif new.table_type = 'option-table' then
-     new.is_option_table = true;
-     new.option_tables_id = new.tables_id;
+    new.is_option_table = true;
+    new.option_tables_id = new.tables_id;
+  else
+    raise exception 'Invalid table_type for table or view %.%.', new.schema_name, new.table_name;
   end if;
   return new;
 end;
@@ -268,7 +270,6 @@ create table sys.fields (
 
   foreign key (schema_name, table_name) references sys.tables (schema_name, table_name),
   primary key (schema_name, table_name, field_name),
-  unique (schema_name, table_name, field_name, location),
 
   -- is_settable='false' => disabled='true' and readonly='true' and required='false'
   constraint valid_settable
@@ -417,8 +418,6 @@ after insert or update on sys.fields
 for each row
 execute procedure sys.check_sys_fields();
 
-
-
 create unique index fields_id_index on sys.fields (fields_id);
 
 -- ensures that there is at most one id field per schema.table
@@ -433,30 +432,19 @@ create index sys_fields_schema_name_table_name on sys.fields (schema_name, table
 -- :doc Create table sys.field_sets
 create table sys.field_sets (
   field_sets_id text unique not null, -- populated by a before trigger as schema_name.table_name.field_name
-
   tables_id text references sys.tables (tables_id) not null, -- populated by a before trigger as schema_name.table_name
-
-  -- views_id text, -- references sys.tables (views_id),
-  -- result_views_id text, -- references sys.tables (result_views_id),
-  -- option_tables_id text, -- references sys.tables (option_tables_id),
-
   schema_name text not null, -- part of pk
   table_name text not null, -- part of pk
   field_name text not null, -- part of pk
-
   sys_fields_id text references sys.fields (fields_id) not null,
-
   label text not null,
   location int8 constraint valid_sys_fields_location check (location is not null and location >= 0),
-
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp,
-
   foreign key (schema_name, table_name) references sys.tables (schema_name, table_name),
-  primary key (schema_name, table_name, field_name),
-  unique (schema_name, table_name, field_name, location));
+  primary key (schema_name, table_name, field_name));
 select sys.create_trigger_set_updated_at('sys.field_sets');
 
 create or replace function sys.update_sys_field_sets()
@@ -464,19 +452,6 @@ returns trigger as $$
 begin
   new.field_sets_id = new.schema_name || '.' || new.table_name || '.' || new.field_name;
   new.tables_id = new.schema_name || '.' || new.table_name;
-
-  -- new.views_id = null;
-  -- new.result_views_id = null;
-  -- new.option_tables_id = null;
-
-  -- if new.table_type = 'view' then
-  --    new.views_id = new.tables_id;
-  -- elsif new.table_type = 'result-view' then
-  --    new.result_views_id = new.tables_id;
-  -- elsif new.table_type = 'option-table' then
-  --    new.option_tables_id = new.tables_id;
-  -- end if;
-
   return new;
 end;
 $$ language plpgsql;
@@ -547,25 +522,36 @@ create table sys.event_class_precedence (
 select sys.create_trigger_set_updated_at('sys.event_class_precedence');
 
 
--- :name create-table-sys-event-classes_fields
+-- :name create-table-sys-event-class-fields
 -- :command :execute
 -- :result :raw
 -- :doc Create table sys.event_class_fields
 create table sys.event_class_fields (
-  event_class_fields_id serial8 primary key,
-  event_classes_id text references sys.event_classes (event_classes_id) not null,
-  fields_id text references sys.fields (fields_id) not null, -- TO DO: Rename to sys_fields_id
-  location int8 constraint valid_sys_event_class_fields_location check (location is not null and location >= 0),
-  disabled boolean not null,
-  readonly boolean not null,
-  required boolean not null,
+  event_class_fields_id text unique not null, -- populated by a before trigger as schema_name.table_name.field_name
+  event_classes_id text references sys.event_classes (event_classes_id) not null, -- part of pk
+  field_name text not null, -- part of pk
+  sys_fields_id text references sys.fields (fields_id) not null,
+  label text not null,
+  location int8 constraint valid_sys_fields_location check (location is not null and location >= 0),
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp);
-create index on sys.event_class_fields (event_classes_id);
-create index on sys.event_class_fields (fields_id);
+  updated_at timestamptz default current_timestamp,
+  primary key (event_classes_id, field_name));
 select sys.create_trigger_set_updated_at('sys.event_class_fields');
+
+create or replace function sys.update_sys_event_class_fields()
+returns trigger as $$
+begin
+  new.event_class_fields_id = 'event' || '.' || replace(lower(new.event_classes_id), '.', '_') || '.' || new.field_name;
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger trigger_sys_update_sys_event_class_fields
+before insert or update on sys.event_class_fields
+for each row
+execute procedure sys.update_sys_event_class_fields();
 
 
 -- :name create-table-sys-event-queue

@@ -192,7 +192,10 @@
      title
      
      [:br]
-     [:div {:class "ct"} (str (str/capitalize action) " " title)]
+     [:div {:class "ct"}
+      (if (= schema "event")
+        title
+        (str (str/capitalize action) " " title))]
 
      (f/form-to
       {:id (str action "-form")}
@@ -283,7 +286,6 @@
                    false
                    :else [k v]))
            fields)))
-
         fields
         ;; set disabled to true for fields that are in data (query-params)
         (into {} (map (fn [[k v]] [k (if (get data k) (assoc v :readonly true) v)]) fields))

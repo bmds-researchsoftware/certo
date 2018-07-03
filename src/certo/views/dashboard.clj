@@ -15,6 +15,10 @@
    [certo.views.common :as common]))
 
 
+(defn event-new-link [event_classes_id]
+  [:a {:href (str "/event/" event_classes_id "/new")} (str/join " " (drop 1 (str/split event_classes_id #"[_]")))])
+
+
 (defn dashboard [title user {:keys [:event-queue :sts]}]
   (common/page
    title
@@ -39,7 +43,7 @@
     (for [{:keys [event_classes_id argument_name_id]} event-queue]
       [:tr
        [:td {:style "width: 35%; text-align:left"}
-        [:a {:href (str "/events/" event_classes_id)} (str/replace event_classes_id #"[.]" " ")]]
+        (event-new-link event_classes_id)]
        [:td {:style "width: 20%; text-align:left"} argument_name_id]])]
 
    [:br]

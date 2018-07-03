@@ -6,12 +6,14 @@
    [certo.models.default :as cmd]))
 
 
-;; Returns something like "study/subjects|sys/fields|vals/controls|vals/types"
-(defn routes-regex [tables]
-  (str/join
-   "|"
-   (into #{} (map (fn [[k v]] (str (:schema_name v) "/" (:table_name v))) tables))))
+;; Returns something like "study/subjects|sys/fields|app/ot_states"
+(defn- schema-tables [sts]
+  (map (fn [[k v]] (str (:schema_name v) "/" (:table_name v))) sts))
 
+
+;; "Returns something like event/completed_event_a|event/completed_event_b|event/completed_event_c"
+(defn- event-classes [ecs]
+  (map (fn [[k v]] (str "event/" (:event_classes_id v))) ecs))
 
 (defrecord Metadata []
   component/Lifecycle
@@ -23,10 +25,18 @@
       component
       (assoc component
              :routes-regex
-             (-> component
-                 (get-in [:database :db-spec])
-                 (cmd/tables)
-                 (routes-regex)))))
+             (str/join
+              "|"
+              (concat
+               (-> component
+                   (get-in [:database :db-spec])
+                   (cmd/tables)
+                   (schema-tables))
+
+               (-> component
+                   (get-in [:database :db-spec])
+                   (cmd/event-classes)
+                   (event-classes)))))))
 
   (stop [component]
     ;; if using connection or a connection-pool close it here and

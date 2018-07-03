@@ -41,6 +41,10 @@
     {username :basic-authentication}
     (view/dashboard (:system-name md) (model/user db username) (model/dashboard db)))
 
+   ;; TO DO: NEED TO ADD events to uuid-or-integer etc.
+
+   ;; TO DO: SHOULD YOU DO A NEW compojure/context
+
    (compojure/GET
     "/sys/events/:id{[0-9]+}/new"
     [id]

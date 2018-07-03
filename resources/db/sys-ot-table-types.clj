@@ -6,3 +6,5 @@
 
 {:value "option-table" :label "Option Table" :location 4 :created_by "root" :updated_by "root"}
 
+{:value "event-view" :label "Event View" :location 5 :created_by "root" :updated_by "root"}
+
