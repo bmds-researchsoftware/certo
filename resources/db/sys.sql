@@ -260,8 +260,8 @@ select srsf.*, -- srsf = select result sys fields
   sfs.updated_by "vf_updated_by",
   sfs.updated_at "vf_updated_at"
 from sys.fields as sf
-inner join sys.event_class_fields as ecf on sf.fields_id=ecf.sys_fields_id
 inner join sys.field_sets as sfs on sf.select_result_view=sfs.tables_id
 inner join sys.fields as srsf on sfs.sys_fields_id=srsf.fields_id
+inner join sys.event_class_fields as ecf on sf.fields_id=ecf.sys_fields_id
 where sf.control='select-result' and ecf.event_classes_id=:event_classes_id;
 
