@@ -180,7 +180,7 @@ order by event_classes_id, function_name
 -- :result many
 -- :doc Select all fields in sys.field_sets for a given schema and table, and join with sys.fields.
 select sf.*,
-  sfs.field_sets_id "vf_view_fields_id",
+  sfs.field_sets_id "vf_fields_id",
   sfs.tables_id "vf_tables_id",
   sfs.schema_name "vf_schema_name",
   sfs.table_name "vf_table_name",
@@ -202,7 +202,7 @@ where sfs.schema_name = :schema and sfs.table_name = :table
 -- :result many
 -- :doc Select all fields in sys.event_class_fields for a given event-classes-id, and join with sys.fields.
 select sf.*,
-  ecf.event_class_fields_id "vf_view_fields_id",
+  ecf.event_class_fields_id "vf_fields_id",
   ecf.event_classes_id "vf_tables_id",
   'event' "vf_schema_name",
   ecf.event_classes_id "vf_table_name",
@@ -224,7 +224,7 @@ where ecf.event_classes_id = :event_classes_id
 -- :result many
 -- :doc Select all fields in sys.field_sets that are in a select-result control for a given schema and table, and join with sys.fields.
 select srsf.*, -- srsf = select result sys fields
-  sfs.field_sets_id "vf_view_fields_id",
+  sfs.field_sets_id "vf_fields_id",
   sfs.tables_id "vf_tables_id",
   sfs.schema_name "vf_schema_name",
   sfs.table_name "vf_table_name",
@@ -247,7 +247,7 @@ where sf.control='select-result' and sf.schema_name = :schema and sf.table_name 
 -- :result many
 -- :doc Select all fields in sys.field_sets that are in a select-result control for a given event-classes-id, and join with sys.fields.
 select srsf.*, -- srsf = select result sys fields
-  sfs.field_sets_id "vf_view_fields_id",
+  sfs.field_sets_id "vf_fields_id",
   sfs.tables_id "vf_tables_id",
   sfs.schema_name "vf_schema_name",
   sfs.table_name "vf_table_name",

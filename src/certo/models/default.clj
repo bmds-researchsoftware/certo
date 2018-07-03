@@ -236,7 +236,7 @@
    fields))
 
 
-(defn prepare-control [db row]
+(defn prepare-control [row db]
   (cond
     (= (:control row) "select-option")
     (select-options db row)
@@ -245,70 +245,42 @@
     :else row))
 
 
-(defn merge-sf-and-svf [db r in-select-result]
+(defn merge-sf-and-svf [db row in-select-result]
   (vector
-   (:vf_view_fields_id r)
-   (as->
-       (dissoc
-        r
-        :fields_id
-        :tables_id
-        :schema_name
-        :table_name
-        :field_name
-        :label
-        :location
-        :created_by
-        :created_at
-        :updated_by
-        :updated_at
-        :vf_sys_fields_id) nr
 
-     ;; TO DO: change vf to sfs
-     ;; TO DO: change vf_view_fields_id to sfs_field_sets_id
+   (:vf_fields_id row)
 
-       (set/rename-keys
-        nr
-        {:vf_view_fields_id :fields_id
-         :vf_tables_id :tables_id
-         :vf_schema_name :schema_name
-         :vf_table_name :table_name
-         :vf_field_name :field_name
-         :vf_label :label
-         :vf_location :location
-         :vf_created_by :created_by
-         :vf_created_at :created_at
-         :vf_updated_by :updated_by
-         :vf_updated_at :updated_at})
-       ;; if :is_id is true in the table field, then in the view
-       ;; field, set :is_uk to true and :search_fields_id, to be
-       ;; the value :fields_id from the table field
-       (if (:is_id r)
-         (assoc nr :is_uk true :search_fields_id (:fields_id r))
-         nr)
-       ;; make is_settable=true so that fields which have
-       ;; is_settable=false in sys.fields, will be displayed in new
-       ;; forms as a select-result control, e.g. when the field is a
-       ;; foreign key in the new table.
-       (assoc nr :is_settable true)
-       ;; make in_table_view=true so that fields which are in a
-       ;; select-result will be displayed (primarily during
-       ;; development) in a table view of the underlying view
-       (if in-select-result
+   (cond->
+       (reduce
+        (fn [row k]
+          (-> row
+              (assoc (keyword k) (get row (keyword (str "vf_" k))))
+              (dissoc (keyword (str "vf_" k)))))
+        row
+        ["fields_id" "tables_id" "schema_name" "table_name" "field_name"
+         "label" "location"
+         "created_by" "created_at" "updated_by" "updated_at"])
 
-         ;; TO DO: change vf to sfs
-         ;; TO DO: change vf_view_fields_id to sfs_field_sets_id
+     ;; make :in_table_view=true so that fields which are in a
+     ;; select-result will be displayed (primarily during
+     ;; development) in a table view of the underlying view.
+     in-select-result (assoc :in_table_view true)
 
-         (assoc nr :in_table_view true)
-         nr)
-       (dissoc nr :vf_view_fields_id :fields_id :is_id)
+     ;; if :is_id is true in sys.fields, then in the view, set :is_id
+     ;; to false, :is_uk to true and, :search_fields_id to be the
+     ;; value :fields_id from the sys.fields.
+     (:is_id row) (assoc :is_id false :is_uk true :search_fields_id (:fields_id row))
 
-       ;; TO DO: change vf to sfs
-       ;; TO DO: change vf_view_fields_id to sfs_field_sets_id
+     ;; make :is_settable=true so that fields which have
+     ;; :is_settable=false in sys.fields, will be displayed in new
+     ;; forms as a select-result control, e.g. when the field is a
+     ;; foreign key in the new table.
+     :always (assoc :is_settable true)
 
-       (assoc nr :fields_id (:vf_view_fields_id r))
+     ;; dissoc since sys_field_id is not a field in sys.fields
+     :always (dissoc :vf_sys_fields_id)
 
-       (prepare-control db nr))))
+     :always (prepare-control db))))
 
 
 (defn fields [db schema table]
@@ -353,7 +325,7 @@
         db
         ;; get all controls in the table schema.table
         ["select * from sys.fields  where schema_name=? and table_name=?" schema table]
-        {:row-fn (fn [row] (vector (:fields_id row) (prepare-control db row)))
+        {:row-fn (fn [row] (vector (:fields_id row) (prepare-control row db)))
          :result-set-fn (fn [rs] (into {} rs))}))
 
      ;; get all controls that are in a select-result control
