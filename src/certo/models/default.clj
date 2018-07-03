@@ -245,7 +245,9 @@
     :else row))
 
 
-(defn merge-sf-and-svf [db row in-select-result]
+(defn merge-into-sys-fields [db row in-select-result]
+  "Make a new sys-fields row by merging values in a sys.field_sets or
+  sys.event_class_fields row into the corresponding sys.fields row."
   (vector
 
    (:vf_fields_id row)
@@ -264,23 +266,23 @@
      ;; make :in_table_view=true so that fields which are in a
      ;; select-result will be displayed (primarily during
      ;; development) in a table view of the underlying view.
-     in-select-result (assoc :in_table_view true)
+       in-select-result (assoc :in_table_view true)
 
-     ;; if :is_id is true in sys.fields, then in the view, set :is_id
-     ;; to false, :is_uk to true and, :search_fields_id to be the
-     ;; value :fields_id from the sys.fields.
-     (:is_id row) (assoc :is_id false :is_uk true :search_fields_id (:fields_id row))
+       ;; if :is_id is true in sys.fields, then in the view, set :is_id
+       ;; to false, :is_uk to true and, :search_fields_id to be the
+       ;; value :fields_id from the sys.fields.
+       (:is_id row) (assoc :is_id false :is_uk true :search_fields_id (:fields_id row))
 
-     ;; make :is_settable=true so that fields which have
-     ;; :is_settable=false in sys.fields, will be displayed in new
-     ;; forms as a select-result control, e.g. when the field is a
-     ;; foreign key in the new table.
-     :always (assoc :is_settable true)
+       ;; make :is_settable=true so that fields which have
+       ;; :is_settable=false in sys.fields, will be displayed in new
+       ;; forms as a select-result control, e.g. when the field is a
+       ;; foreign key in the new table.
+       :always (assoc :is_settable true)
 
-     ;; dissoc since sys_field_id is not a field in sys.fields
-     :always (dissoc :vf_sys_fields_id)
+       ;; dissoc since sys_field_id is not a field in sys.fields
+       :always (dissoc :vf_sys_fields_id)
 
-     :always (prepare-control db))))
+       :always (prepare-control db))))
 
 
 (defn fields [db schema table]
@@ -308,7 +310,7 @@
         db
         {:schema schema :table table}
         {}
-        {:row-fn #(merge-sf-and-svf db % is_result_view)
+        {:row-fn #(merge-into-sys-fields db % is_result_view)
          :result-set-fn (fn [rs] (into {} rs))})
 
        is_event
@@ -317,7 +319,7 @@
         db
         {:event_classes_id table}
         {}
-        {:row-fn #(merge-sf-and-svf db % is_result_view)
+        {:row-fn #(merge-into-sys-fields db % is_result_view)
          :result-set-fn (fn [rs] (into {} rs))})
 
        :else
@@ -336,7 +338,7 @@
         {:event_classes_id table}
         {}
         {:row-fn
-         #(merge-sf-and-svf db % is_result_view)
+         #(merge-into-sys-fields db % is_result_view)
          :result-set-fn (fn [rs] (into {} rs))})
 
        (certo.sql/select-sys-fields-sets-in-select-control-by-schema-table
@@ -344,7 +346,7 @@
         {:schema schema :table table}
         {}
         {:row-fn
-         #(merge-sf-and-svf db % is_result_view)
+         #(merge-into-sys-fields db % is_result_view)
          :result-set-fn (fn [rs] (into {} rs))})))))
 
 
