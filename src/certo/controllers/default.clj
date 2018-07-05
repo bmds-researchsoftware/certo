@@ -41,17 +41,7 @@
     {username :basic-authentication}
     (view/dashboard (:system-name md) (model/user db username) (model/dashboard db)))
 
-   ;; TO DO: NEED TO ADD events to uuid-or-integer etc.
-
-   ;; TO DO: SHOULD YOU DO A NEW compojure/context
-
-   (compojure/GET
-    "/sys/events/:id{[0-9]+}/new"
-    [id]
-    ;; (view/new (:fields md) "sys" "events" id)
-    {:body (format "New Event: %d %s" (Long/parseLong id) (me/event-classes-fields db))
-     :status 200
-     :headers {"Content-Type" "text/plain"}})
+   ;; TO DO: SHOULD YOU DO A NEW compojure/context?
    
    ;; Match all routes of the form "/:schema/:table"
    ;; For example: http://example.com/sys/fields
@@ -75,7 +65,7 @@
 
        (compojure/GET
         "/"
-        {query-params :query-params}
+        {query-params :query-params {referer "referer"} :headers}
         (let [op (get query-params "op")]
           (when (and (not (nil? op)) (not= op "edit") (not= op "show"))
             (throw (Exception. (format "Illegal op: %s" op))))
@@ -87,24 +77,25 @@
             (cond
               (= cnt 0) (throw (Exception. "None found"))
               (and (= cnt 1) (= op "edit"))
-              (view/edit fields schema table (first rs))
+              (view/edit fields schema table referer (first rs))
               (and (= cnt 1) (= op "show"))
-              (view/show fields schema table (first rs))
+              (view/show fields schema table referer (first rs))
               :else (view/table tables fields schema table rs (dissoc query-params "op"))))))
        
        (compojure/GET
         "/new"
-        {query-params :query-params}
-        (view/new fields schema table query-params))
+        {query-params :query-params {referer "referer"} :headers}
+        (view/new fields schema table referer query-params))
        
        (compojure/POST
         "/"
         {params :params username :basic-authentication}
         (model/insert! db fields schema table
                        (assoc params
-                              (model/stf schema  table "created_by") username
+                              (model/stf schema table "created_by") username
                               (model/stf schema table "updated_by") username))
-        (redirect-to-schema-table-root schema table))
+        ;; (redirect-to-schema-table-root schema table)
+        (redirect (:redirect-to params) :see-other))
        
        (compojure/GET
         uuid-or-integer-or-text-id
@@ -115,8 +106,8 @@
        
        (compojure/GET
         (str uuid-or-integer-or-text-id "/edit")
-        [id]
-        (view/edit fields schema table (model/select-by-id db fields schema table id)))
+        {{id :id} :params {referer "referer"} :headers}
+        (view/edit fields schema table referer (model/select-by-id db fields schema table id)))
        
        (compojure/PUT
         uuid-or-integer-or-text-id
@@ -132,7 +123,8 @@
                            (dissoc :id)
                            (assoc (model/stf schema table "updated_by") username))
                        id)
-        (redirect-to-schema-table-root schema table))
+        ;; (redirect-to-schema-table-root schema table)
+        (redirect (:redirect-to params) :see-other))
        
        (compojure/DELETE
         uuid-or-integer-or-text-id

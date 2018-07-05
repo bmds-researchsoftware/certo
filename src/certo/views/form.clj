@@ -178,7 +178,7 @@
     (f/label name (:label field))))
 
 
-(defn form [all-fields schema table action data]
+(defn form [all-fields schema table action redirect-to data]
   ;; exclude fields that are the columns in a select-result so they
   ;; aren't displayed at the top level of the form
   (let [fields (models/fields-by-schema-table all-fields schema table)
@@ -202,6 +202,7 @@
       (if (= action "edit")
         [:put (str "/" schema "/" table "/" (id_kw data))]
         [:post (str "/" schema "/" table)])
+      (f/hidden-field :redirect-to redirect-to)
       (af/anti-forgery-field)
       [:table {:class "form"}
        [:tr
@@ -270,7 +271,7 @@
      [:br])))
 
 
-(defn new [fields schema table data]
+(defn new [fields schema table redirect-to data]
   (let [fields
         (into
          {}
@@ -296,15 +297,14 @@
          (map
           (fn [[k v]] [(keyword k) (models/ui-to-db-one fields k v)])
           data))]
-    
-    (form fields schema table "new" data)))
+    (form fields schema table "new" redirect-to data)))
 
 
-(defn edit [fields schema table data]
-  (form fields schema table "edit" data))
+(defn edit [fields schema table redirect-to data]
+  (form fields schema table "edit" redirect-to data))
 
 
-(defn show [fields schema table data]
+(defn show [fields schema table redirect-to data]
   (let [fields (into {} (map (fn [[k v]] [k (assoc v :readonly true)]) fields))]
-    (form fields schema table "show" data)))
+    (form fields schema table "show" redirect-to data)))
 
