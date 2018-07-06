@@ -153,3 +153,7 @@
          ret# ~expr]
      (/ (double (- (. System (nanoTime)) start#)) 1000000.0)))
 
+
+(defn str-to-key-map [m]
+  (into {} (map (fn [[k v]] (vector (keyword k) v)) m)))
+

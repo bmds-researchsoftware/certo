@@ -90,7 +90,7 @@
        (compojure/POST
         "/"
         {params :params username :basic-authentication}
-        (model/insert! db fields schema table
+        (model/insert! db md fields schema table
                        (assoc params
                               (model/stf schema table "created_by") username
                               (model/stf schema table "updated_by") username))

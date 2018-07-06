@@ -1,5 +1,6 @@
 (ns certo.models.default
   (:require
+   [cheshire.core :as json]
    [clojure.string :as str]
    [clojure.set :as set]
    [clojure.edn :as edn]
@@ -143,6 +144,24 @@
     :result-set-fn (fn [rs] (into {} rs))}))
 
 
+(defn functions [db]
+  (jdbc/query
+   db
+   ["select event_classes_id, function_name from sys.event_classes"]
+   {:row-fn
+    (fn [row]
+      (vector
+       (:event_classes_id row)
+       (let [function_name (:function_name row)]
+         (try
+           (eval (read-string function_name))
+           (catch clojure.lang.Compiler$CompilerException e
+             (throw (Exception. (format "Function: %s does not defined" function_name))))
+           (catch Exception e
+             (throw e))))))
+    :result-set-fn (fn [rs] (into {} rs))}))
+
+
 (defn select-options [db row]
   (assoc
    row
@@ -166,7 +185,8 @@
 
 (defn common-fields [db schema table]
   {(str schema "." table ".created_by")
-   {:schema_name schema
+   {:fields_id (stf schema table "created_by")
+    :schema_name schema
     :table_name table
     :field_name "created_by"
     :type "text"
@@ -181,7 +201,8 @@
     :required false}
 
    (str schema "." table ".created_at")
-   {:schema_name schema
+   {:fields_id (stf schema table "created_at")
+    :schema_name schema
     :table_name table
     :field_name "created_at"
     :type "timestamptz"
@@ -196,7 +217,8 @@
     :required false}
 
    (str schema "." table ".updated_by")
-   {:schema_name schema
+   {:fields_id (stf schema table "updated_by")
+    :schema_name schema
     :table_name table
     :field_name "updated_by"
     :type "text"
@@ -211,7 +233,8 @@
     :required false}
 
    (str schema "." table ".updated_at")
-   {:schema_name schema
+   {:fields_id (stf schema table "updated_at")
+    :schema_name schema
     :table_name table
     :field_name "updated_at"
     :type "timestamptz"
@@ -224,6 +247,58 @@
     :disabled true
     :readonly true
     :required false}})
+
+
+(defn common-event-fields [db schema table]
+  {(str schema "." table ".event_by")
+   {:fields_id (stf schema table "event_by")
+    :schema_name schema
+    :table_name table
+    :field_name "event_by"
+    :type "text"
+    :label "Event By"
+    :control "text"
+    :location Long/MIN_VALUE
+    :in_table_view false
+    :size "22"
+    :is_settable true
+    :disabled false
+    :readonly false
+    :required true}
+
+   (str schema "." table ".event_at")
+   {:fields_id (stf schema table "event_at")
+    :schema_name schema
+    :table_name table
+    :field_name "event_at"
+    :type "date"
+    :label "Event At"
+    :control "date"
+    :location (+ Long/MIN_VALUE 1)
+    :in_table_view false
+    :size "22"
+    :is_settable true
+    :disabled false
+    :readonly false
+    :required true}
+
+   (str schema "." table ".event_notes")
+   {:fields_id (stf schema table "event_notes")
+    :schema_name schema
+    :table_name table
+    :field_name "event_notes"
+    :type "text"
+    :label "Event Notes"
+    :control "textarea"
+    :location Long/MAX_VALUE
+    :in_table_view false
+    :is_settable true
+    :disabled false
+    :readonly false
+    :required false
+    :textarea_cols 80
+    :textarea_rows 10 
+    :size "22"}})
 
 
 (defn sort-by-location [fields]
@@ -301,6 +376,10 @@
 
      (if (or is_table is_option_table is_event)
        (common-fields db schema table)
+       {})
+
+     (if is_event
+       (common-event-fields db schema table)
        {})
 
      (cond
@@ -479,16 +558,22 @@
       rs)))
 
 
-(defn insert! [db fields schema table params]
-  (let [rs
-        (jdbc/insert!
-         db
-         (st schema table)
-         (ui-to-db fields params))]
-    (case (count (take 2 rs))
-      0 (throw (Exception. "Error: Not inserted."))
-      1 true
-      (throw (Exception. "Warning: Unexpected result on insert.")))))
+(defn insert! [db md fields schema table params]
+  (if (= schema "event")
+    ((get (:functions md) table) ;; table = event_classes_id
+     db
+     (assoc (cu/str-to-key-map (ui-to-db fields params))
+            :event_classes_id table
+            :event_data (json/generate-string (ui-to-db fields params) {:date-format "yyyy-MM-dd"})))
+    (let [rs
+          (jdbc/insert!
+           db
+           (st schema table)
+           (ui-to-db fields params))]
+      (case (count (take 2 rs))
+        0 (throw (Exception. "Error: Not inserted."))
+        1 true
+        (throw (Exception. "Warning: Unexpected result on insert."))))))
 
 
 (defn update! [db fields schema table params id]

@@ -101,21 +101,6 @@ create table sys.ot_controls (
 select sys.create_trigger_set_updated_at('sys.ot_controls');
 
 
--- :name create-table-sys-ot-function-names
--- :command :execute
--- :result :raw
--- :doc Create table sys.ot_function_names
-create table sys.ot_function_names (
-  value text primary key,
-  label text not null,
-  location int8 constraint valid_sys_ot_function_names_location check (location is null or location >= 0),
-  created_by text references sys.users (username) not null,
-  created_at timestamptz default current_timestamp,
-  updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp);
-select sys.create_trigger_set_updated_at('sys.ot_function_names');
-
-
 -- :name create-table-sys-tables
 -- :command :execute
 -- :result :raw
@@ -491,7 +476,7 @@ create table sys.event_classes (
   -- sys.fields contains the row (id = 54, schema_name=study, table_name=people, field_name=participant_id),
   -- then study.participant_id = 2345 is passed into the
   -- function whose name is 'screen-participant'.
-  function_name text references sys.ot_function_names (value) not null,
+  function_name text not null,
   argument_name_id text references sys.fields (fields_id),
   precedence_expression text,
   -- precedence_events text,
@@ -616,4 +601,12 @@ select tables_id as value, tables_id as "sys.rv_views.tables_id", schema_name as
 
 create view sys.rv_tables as
 select tables_id as value, tables_id as "sys.rv_tables.tables_id", schema_name as "sys.rv_tables.schema_name", table_name as "sys.rv_tables.table_name" from sys.tables where table_type='table';
+
+
+create view sys.rv_function_names as
+select function_name as value, function_name as "sys.rv_function_names.function_name" from sys.event_classes;
+
+
+create view sys.rv_users as
+select username as value, username as "sys.rv_users.username" from sys.users;
 

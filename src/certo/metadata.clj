@@ -15,6 +15,7 @@
 (defn- event-classes [ecs]
   (map (fn [[k v]] (str "event/" (:event_classes_id v))) ecs))
 
+
 (defrecord Metadata []
   component/Lifecycle
 
@@ -36,7 +37,8 @@
                (-> component
                    (get-in [:database :db-spec])
                    (cmd/event-classes)
-                   (event-classes)))))))
+                   (event-classes))))
+             :functions (cmd/functions (get-in component [:database :db-spec])))))
 
   (stop [component]
     ;; if using connection or a connection-pool close it here and
