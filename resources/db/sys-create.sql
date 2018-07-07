@@ -610,6 +610,6 @@ select function_name as value, function_name as "sys.rv_function_names.function_
 -- create view sys.rv_users as
 -- select username as value, username as "sys.users.username", display_name as "sys.users.display_name", full_name as "sys.users.full_name" from sys.users;
 create view sys.rv_users as
-select username as value, full_name as "sys.users.full_name" from sys.users;
+select username as value, username as "sys.rv_users.username", full_name as "sys.rv_users.full_name", display_name as "sys.rv_users.display_name" from sys.users;
 
 

@@ -430,7 +430,7 @@
         (jdbc/query
          db
          ["select * from sys.fields  where schema_name='sys' and table_name='users'"]
-         {:row-fn (fn [row] (vector (:fields_id row) (prepare-control row db)))
+         {:row-fn (fn [row] (vector  (stf "sys" "rv_users" (:field_name row)) (prepare-control row db)))
           :result-set-fn (fn [rs] (into {} rs))}))
 
        (certo.sql/select-sys-fields-sets-in-select-result-control-by-schema-table
