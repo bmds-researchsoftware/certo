@@ -251,20 +251,25 @@
 
 (defn common-event-fields [db schema table]
   {(str schema "." table ".event_by")
-   {:fields_id (stf schema table "event_by")
-    :schema_name schema
-    :table_name table
-    :field_name "event_by"
-    :type "text"
-    :label "Event By"
-    :control "text"
-    :location Long/MIN_VALUE
-    :in_table_view false
-    :size "22"
-    :is_settable true
-    :disabled false
-    :readonly false
-    :required true}
+   (select-results
+    db
+    {:fields_id (stf schema table "event_by")
+     :schema_name schema
+     :table_name table
+     :field_name "event_by"
+     :type "text"
+     :label "Event By"
+     :control "select-result"
+     :location Long/MIN_VALUE
+     :in_table_view false
+     :size "22"
+     :is_settable true
+     :disabled false
+     :readonly false
+     :required true
+     :select_multiple false
+     :select_size 5
+     :select_result_view "sys.rv_users"})
 
    (str schema "." table ".event_at")
    {:fields_id (stf schema table "event_at")
@@ -412,15 +417,23 @@
      ;; get all controls that are in a select-result control
      (if is_event
 
-       (certo.sql/select-sys-fields-sets-in-select-control-by-event-classes-id
-        db
-        {:event_classes_id table}
-        {}
-        {:row-fn
-         #(merge-into-sys-fields db % is_result_view)
-         :result-set-fn (fn [rs] (into {} rs))})
+       (merge
+        (certo.sql/select-sys-fields-sets-in-select-result-control-by-event-classes-id
+         db
+         {:event_classes_id table}
+         {}
+         {:row-fn
+          #(merge-into-sys-fields db % is_result_view)
+          :result-set-fn (fn [rs] (into {} rs))})
 
-       (certo.sql/select-sys-fields-sets-in-select-control-by-schema-table
+        ;; get all controls in sys.users
+        (jdbc/query
+         db
+         ["select * from sys.fields  where schema_name='sys' and table_name='users'"]
+         {:row-fn (fn [row] (vector (:fields_id row) (prepare-control row db)))
+          :result-set-fn (fn [rs] (into {} rs))}))
+
+       (certo.sql/select-sys-fields-sets-in-select-result-control-by-schema-table
         db
         {:schema schema :table table}
         {}

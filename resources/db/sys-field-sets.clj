@@ -23,5 +23,3 @@
 
 {:schema_name "sys" :table_name "rv_function_names" :field_name "function_name" :sys_fields_id "sys.event_classes.function_name" :label "Function Name" :location 0 :created_by "root" :updated_by "root"}
 
-{:schema_name "sys" :table_name "rv_users" :field_name "username" :sys_fields_id "sys.users.username" :label "Username" :location 0 :created_by "root" :updated_by "root"}
-

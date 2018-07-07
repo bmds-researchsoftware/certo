@@ -219,7 +219,7 @@ inner join sys.fields as sf on ecf.sys_fields_id=sf.fields_id
 where ecf.event_classes_id = :event_classes_id
 
 
--- :name select-sys-fields-sets-in-select-control-by-schema-table
+-- :name select-sys-fields-sets-in-select-result-control-by-schema-table
 -- :command :query
 -- :result many
 -- :doc Select all fields in sys.field_sets that are in a select-result control for a given schema and table, and join with sys.fields.
@@ -242,7 +242,7 @@ inner join sys.fields as srsf on sfs.sys_fields_id=srsf.fields_id
 where sf.control='select-result' and sf.schema_name = :schema and sf.table_name = :table
 
 
--- :name select-sys-fields-sets-in-select-control-by-event-classes-id
+-- :name select-sys-fields-sets-in-select-result-control-by-event-classes-id
 -- :command :query
 -- :result many
 -- :doc Select all fields in sys.field_sets that are in a select-result control for a given event-classes-id, and join with sys.fields.

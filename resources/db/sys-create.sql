@@ -45,7 +45,7 @@ create table sys.users (
   username text primary key,
   password text not null,
   full_name text not null,
-  display_name text,
+  display_name text unique not null,
   email text not null,
   usergroup text references sys.ot_usergroups (value) not null,
   created_by text references sys.users (username),
@@ -607,6 +607,9 @@ create view sys.rv_function_names as
 select function_name as value, function_name as "sys.rv_function_names.function_name" from sys.event_classes;
 
 
+-- create view sys.rv_users as
+-- select username as value, username as "sys.users.username", display_name as "sys.users.display_name", full_name as "sys.users.full_name" from sys.users;
 create view sys.rv_users as
-select username as value, username as "sys.rv_users.username" from sys.users;
+select username as value, full_name as "sys.users.full_name" from sys.users;
+
 
