@@ -141,7 +141,7 @@
                  ;;   (throw (Exception. (format "form-field:: size for %s not found" (clojure.core/name k)))))
                  (u/pads
                   (str (cf/db-to-label v))
-                  (or (get-in fields [(clojure.core/name k) :size]) 25)
+                  (or (get-in fields [(clojure.core/name k) :size]) 60)
                   ;; (get-in fields [(clojure.core/name k) :size])
                   "&nbsp;" true))
                (dissoc all :value))

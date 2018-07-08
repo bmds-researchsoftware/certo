@@ -6,11 +6,13 @@
 
 {:value "int8" :label "Integer" :location 4 :created_by "root" :updated_by "root"}
 
-{:value "serial8" :label "Serial" :location 5 :created_by "root" :updated_by "root"}
+{:value "jsonb" :label "JSONB" :location 5 :created_by "root" :updated_by "root"}
 
-{:value "text" :label "Text" :location 6 :created_by "root" :updated_by "root"}
+{:value "serial8" :label "Serial" :location 6 :created_by "root" :updated_by "root"}
 
-{:value "timestamptz" :label "Timestamp" :location 7 :created_by "root" :updated_by "root"}
+{:value "text" :label "Text" :location 7 :created_by "root" :updated_by "root"}
 
-{:value "uuid" :label "UUID" :location 8 :created_by "root" :updated_by "root"}
+{:value "timestamptz" :label "Timestamp" :location 8 :created_by "root" :updated_by "root"}
+
+{:value "uuid" :label "UUID" :location 9 :created_by "root" :updated_by "root"}
 

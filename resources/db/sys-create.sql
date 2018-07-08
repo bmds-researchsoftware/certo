@@ -293,6 +293,9 @@ create table sys.fields (
   constraint valid_int8_type_controls
   check ((type = 'int8' and (control='integer' or control='select-option' or control='select-result')) or (type != 'int8')),
 
+  constraint valid_jsonb_type_controls
+  check ((type = 'jsonb' and (control='text' or control='textarea')) or (type != 'jsonb')),
+
   constraint valid_serial8_type_controls
   check ((type = 'serial8' and control='integer') or (type != 'serial8')),
 
@@ -576,7 +579,7 @@ select sys.create_trigger_set_updated_at('sys.events');
 
 
 create view sys.rv_event_classes as
-select event_classes_id as value, event_classes_id as "sys.rv_event_classes.event_classes_id", function_name as "sys.rv_event_classes.function_name"
+select event_classes_id as value, event_classes_id as "sys.rv_event_classes.event_classes_id"
 from sys.event_classes
 order by event_classes_id, function_name;
 

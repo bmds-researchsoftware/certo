@@ -99,8 +99,8 @@
        
        (compojure/GET
         uuid-or-integer-or-text-id
-        [id]
-        (view/show fields schema table (model/select-by-id db fields schema table id)))
+        {{id :id} :params {referer "referer"} :headers}
+        (view/show fields schema table referer (model/select-by-id db fields schema table id)))
 
        ;; TO DO: postgresql function should take one parameter, i.e. the parent id
        

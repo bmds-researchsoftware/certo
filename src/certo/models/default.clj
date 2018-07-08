@@ -88,6 +88,17 @@
         "float8" (Double/parseDouble value)
         ;; "int8" (Long/parseLong value)
         "int8" (Long/parseLong (str/replace value #"[.][0]+$|[.]+$" ""))
+        "jsonb"
+        (doto (org.postgresql.util.PGobject.)
+          (.setType "json")
+          (.setValue
+           (try
+             ;; check if already valid json
+             (cheshire.core/parse-string value)
+             ;; if already valid json just return it
+             value
+             ;; if not already valid json try to generate valid json
+             (catch com.fasterxml.jackson.core.JsonParseException e (json/generate-string value)))))
         ;; "serial8" (Long/parseLong value)
         "serial8" (Long/parseLong (str/replace value #"[.][0]+$|[.]+$" ""))
         "text" value
@@ -577,7 +588,8 @@
      db
      (assoc (cu/str-to-key-map (ui-to-db fields params))
             :event_classes_id table
-            :event_data (json/generate-string (ui-to-db fields params) {:date-format "yyyy-MM-dd"})))
+            :event_data
+            (json/generate-string (ui-to-db fields params) {:date-format "yyyy-MM-dd"})))
     (let [rs
           (jdbc/insert!
            db

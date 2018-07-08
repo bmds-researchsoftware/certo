@@ -20,6 +20,8 @@
 
 {:schema_name "sys" :table_name "event_class_fields" :table_type "table" :created_by "root" :updated_by "root"}
 
+{:schema_name "sys" :table_name "events" :table_type "table" :created_by "root" :updated_by "root"}
+
 
 
 {:schema_name "sys" :table_name "rv_event_classes" :table_type "result-view" :created_by "root" :updated_by "root"}
