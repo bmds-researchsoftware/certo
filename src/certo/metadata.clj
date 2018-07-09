@@ -30,15 +30,15 @@
               "|"
               (concat
                (-> component
-                   (get-in [:database :db-spec])
+                   (get-in [:database :connection])
                    (cmd/tables)
                    (schema-tables))
 
                (-> component
-                   (get-in [:database :db-spec])
+                   (get-in [:database :connection])
                    (cmd/event-classes)
                    (event-classes))))
-             :functions (cmd/functions (get-in component [:database :db-spec])))))
+             :functions (cmd/functions (get-in component [:database :connection])))))
 
   (stop [component]
     ;; if using connection or a connection-pool close it here and

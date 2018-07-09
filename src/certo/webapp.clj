@@ -13,7 +13,7 @@
       (assoc component
              :http-server
              (jetty/run-jetty
-              ((:handler component) (get-in component [:database :db-spec]) (:metadata component))
+              ((:handler component) (get-in component [:database :connection]) (:metadata component))
               {:join? false :port port}))))
   
   (stop [component]

@@ -44,12 +44,19 @@
   (start [component]
     ;; if using connection or a connection-pool open it here and
     ;; assoc it to the component, otherwise just return component
-    component)
+    (if (:connection component)
+      component
+      ;; (assoc component :connection (make-datasource (:db-spec component)))
+      (assoc component :connection (:db-spec component))))
 
   (stop [component]
     ;; if using connection or a connection-pool close it here and
     ;; dissoc it with the component, otherwise just return component
-    component))
+    (if (:connection component)
+      (do
+        ;; (close-datasource (:connection component))
+        (dissoc component :connection))
+      component)))
 
 
 (defn new-database [config]
