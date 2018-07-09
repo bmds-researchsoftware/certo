@@ -141,7 +141,8 @@
                  ;;   (throw (Exception. (format "form-field:: size for %s not found" (clojure.core/name k)))))
                  (u/pads
                   (str (cf/db-to-label v))
-                  (or (get-in fields [(clojure.core/name k) :size]) 60)
+                  ;; TO DO: All fields must have a size - enforce it with a database constraint
+                  (or (get-in fields [(clojure.core/name k) :size]) (count (str (cf/db-to-label v))))
                   ;; (get-in fields [(clojure.core/name k) :size])
                   "&nbsp;" true))
                (dissoc all :value))
