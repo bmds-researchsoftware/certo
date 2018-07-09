@@ -352,8 +352,8 @@ create table sys.fields (
   check ((control='select-result' and select_result_view is not null) or (control != 'select-result')),
 
   constraint valid_control_size_attribute
-  check (((control = 'text' or control = 'integer' or control = 'float') and size is not null and size > 0) or
-  	((control = 'text' or control = 'integer' or control = 'float') and is_settable='false') or
+  check (((control = 'text' or control = 'integer' or control = 'float' or control = 'date') and size is not null and size > 0) or
+  	((control = 'text' or control = 'integer' or control = 'float' or control = 'date') and is_settable='false') or
   	(control != 'text' and size is null)),
 
   constraint valid_control_max_length_attributes
