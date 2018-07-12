@@ -136,14 +136,16 @@ values
   (:schema_name, :table_name, :field_name, :sys_fields_id, :label, :location, :created_by, :updated_by);
   
 
--- :name insert-sys-event-classes
+-- :name upsert-sys-event-classes
 -- :command :execute
 -- :result :raw
 -- :doc Insert into sys.event_classes
 insert into sys.event_classes
   (event_classes_id, function_name, argument_name_id, created_by, updated_by)
 values
-  (:event_classes_id, :function_name, :argument_name_id, :created_by, :updated_by);
+  (:event_classes_id, :function_name, :argument_name_id, :created_by, :updated_by)
+on conflict (event_classes_id) do update set
+  (function_name, argument_name_id, created_by, updated_by) = (:function_name, :argument_name_id, :created_by, :updated_by);
 
 
 -- :name insert-sys-event-class-precedence
@@ -264,4 +266,5 @@ inner join sys.field_sets as sfs on sf.select_result_view=sfs.tables_id
 inner join sys.fields as srsf on sfs.sys_fields_id=srsf.fields_id
 inner join sys.event_class_fields as ecf on sf.fields_id=ecf.sys_fields_id
 where sf.control='select-result' and ecf.event_classes_id=:event_classes_id;
+
 

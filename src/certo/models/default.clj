@@ -150,27 +150,34 @@
 (defn event-classes [db]
   (jdbc/query
    db
-   ["select * from sys.event_classes"]
+   ;; TO DO: Need to use the following, i.e. return all event-classes
+   ;; ["select * from sys.event_classes"]
+   ["select * from sys.event_classes where function_name != 'event_function_not_implemented'"]
    {:row-fn (fn [row] (vector (:event_classes_id row) row))
     :result-set-fn (fn [rs] (into {} rs))}))
 
 
 (defn functions [db]
-  (jdbc/query
-   db
-   ["select event_classes_id, function_name from sys.event_classes"]
-   {:row-fn
-    (fn [row]
-      (vector
-       (:event_classes_id row)
-       (let [function_name (:function_name row)]
-         (try
-           (eval (read-string function_name))
-           (catch clojure.lang.Compiler$CompilerException e
-             (throw (Exception. (format "Function: %s does not defined" function_name))))
-           (catch Exception e
-             (throw e))))))
-    :result-set-fn (fn [rs] (into {} rs))}))
+  (let [event-function-not-implemented
+        (fn [db]
+          (throw (Exception. "Event function is not implemented")))]
+    (jdbc/query
+     db
+     ["select event_classes_id, function_name from sys.event_classes"]
+     {:row-fn
+      (fn [row]
+        (vector
+         (:event_classes_id row)
+         (let [function_name (:function_name row)]
+           (if (= function_name "event_function_not_implemented")
+             event-function-not-implemented
+             (try
+               (eval (read-string function_name))
+               (catch clojure.lang.Compiler$CompilerException e
+                 (throw (Exception. (format "Function: %s is not defined" function_name))))
+               (catch Exception e
+                 (throw e)))))))
+      :result-set-fn (fn [rs] (into {} rs))})))
 
 
 (defn select-options [db row]
