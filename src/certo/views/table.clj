@@ -109,9 +109,11 @@
 
 
 (defmethod db-to-table [:text :select-option] [field value]
-  (some
-   (fn [[lbl val]] (when (= val value) lbl))
-   (:options field)))
+  (search-link
+   field
+   (some
+    (fn [[lbl val]] (when (= val value) lbl))
+    (:options field))))
 
 
 (defmethod db-to-table [:text :select-result] [field value]
