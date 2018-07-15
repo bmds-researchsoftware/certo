@@ -116,6 +116,8 @@
      (let [fsrfn (format "return %s(event);" (filter-select-result-function-name name))]
        (f/text-field
         {:class "fld"
+         ;; set name attribute to nil so not included in form submission
+         :name nil
          :id (filter-select-result-search-field-name (:fields_id field))
          :placeholder "Enter search text" :oninput fsrfn}
         (filter-select-result-search-field-name (:fields_id field))))

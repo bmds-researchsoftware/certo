@@ -240,6 +240,7 @@ create table sys.fields (
   select_option_table text constraint valid_select_option_table references sys.tables (option_tables_id),
 
   select_result_view text constraint valid_select_result_view references sys.tables (result_views_id),
+  select_result_to_text boolean,
 
   text_max_length int8,
   -- text_pattern text, TO DO: Implement pattern regexp for text controls
@@ -349,7 +350,7 @@ create table sys.fields (
   check ((control='select-option' and select_option_table is not null) or (control != 'select-option')),
 
   constraint valid_select_result_static_control_attributes
-  check ((control='select-result' and select_result_view is not null) or (control != 'select-result')),
+  check ((control='select-result' and select_result_view is not null and select_result_to_text is not null) or (control != 'select-result')),
 
   constraint valid_control_size_attribute
   check (((control = 'text' or control = 'integer' or control = 'float' or control = 'date') and size is not null and size > 0) or

@@ -179,7 +179,7 @@
                       value (form/db-to-form field (models/ui-to-db-one fields stf (get data stf "")))
                       common-attrs {:class "fld" :disabled false :readonly false :required false}]]
             [:td {:class "sc" :style "vertical-align:top"}
-             (if (= (:control field) "select-result")
+             (if (and (= (:control field) "select-result") (:select-result-to-text field))
                ;; "convert" select-result control to a text control for search
                (->
                 (merge

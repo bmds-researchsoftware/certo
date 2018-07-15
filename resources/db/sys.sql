@@ -109,7 +109,7 @@ insert into sys.fields
   datetime_min, datetime_max,
   integer_step, integer_min, integer_max,
   float_step, float_min, float_max,
-  select_multiple, select_size, select_option_table, select_result_view,
+  select_multiple, select_size, select_option_table, select_result_view, select_result_to_text,
   text_max_length,
   textarea_cols, textarea_rows,
   created_by, updated_by)
@@ -120,7 +120,7 @@ values
   :datetime_min::timestamptz, :datetime_max::timestamptz,
   :integer_step, :integer_min, :integer_max,
   :float_step, :float_min, :float_max,
-  :select_multiple, :select_size, :select_option_table, :select_result_view,
+  :select_multiple, :select_size, :select_option_table, :select_result_view, :select_result_to_text,
   :text_max_length,
   :textarea_cols, :textarea_rows,
   :created_by, :updated_by);
