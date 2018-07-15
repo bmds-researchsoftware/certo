@@ -16,6 +16,7 @@
                  [ring/ring-devel "1.7.0-RC1"]
                  [ring/ring-defaults "0.3.1"]
                  [ring/ring-jetty-adapter "1.7.0-RC1"]
+                 [ring/ring-ssl "0.3.0"]
                  [org.clojure/java.jdbc "0.7.6"]
                  [org.postgresql/postgresql "42.2.2"]
                  [clojure.java-time "0.3.2"]]

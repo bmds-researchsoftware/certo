@@ -3,6 +3,7 @@
    [ring.middleware.basic-authentication :refer [wrap-basic-authentication]]
    [ring.middleware.defaults :refer [wrap-defaults site-defaults api-defaults]]
    [ring.middleware.stacktrace :refer [wrap-stacktrace wrap-stacktrace-log wrap-stacktrace-web]]
+   [ring.middleware.ssl]
    [certo.auth :as ca]
    [certo.views.core :as cvd]))
 
