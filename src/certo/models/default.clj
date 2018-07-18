@@ -650,7 +650,9 @@
     {:event-queue
      (jdbc/query
       db
-      ["select ec.event_classes_id, ec.argument_name_id from sys.event_classes ec inner join sys.event_class_precedence ecp on ec.event_classes_id=ecp.event_classes_id where ecp.preceding_event_classes_id is null"])
+      ;; TO DO: Use this after inactive is included in the sys.event_classes table
+      ;; ["select sec.event_classes_id, sec.argument_name_id from sys.event_classes sec left outer join sys.event_class_precedence ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null and sec.inactive='false'"]
+      ["select sec.event_classes_id, sec.argument_name_id from sys.event_classes sec left outer join sys.event_class_precedence ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null"])
      :sts
      (map
       (fn [schema]
