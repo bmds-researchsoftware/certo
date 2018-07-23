@@ -606,7 +606,7 @@ select tables_id as value, tables_id as "sys.rv_tables.tables_id", schema_name a
 
 
 create view sys.rv_function_names as
-select function_name as value, function_name as "sys.rv_function_names.function_name" from sys.event_classes;
+select distinct function_name as value, function_name as "sys.rv_function_names.function_name" from sys.event_classes;
 
 
 -- create view sys.rv_users as
