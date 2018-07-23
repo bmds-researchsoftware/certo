@@ -293,7 +293,6 @@
         fields
         ;; set disabled to true for fields that are in data (query-params)
         (into {} (map (fn [[k v]] [k (if (get data k) (assoc v :readonly true) v)]) fields))
-        
         data
         (into
          {}
