@@ -591,6 +591,7 @@
 
 (defn insert! [db md fields schema table params]
   (if (= schema "event")
+    ;; run the function for this event
     ((get (:functions md) table) ;; table = event_classes_id
      db
      (assoc (cu/str-to-key-map (ui-to-db fields params))
