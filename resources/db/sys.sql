@@ -128,6 +128,20 @@ values
   (:event_classes_id, :term, :preceding_event_classes_id, :is_positive, :lag, :created_by, :updated_by);
 
 
+-- :name insert-sys-event-class-dimensions
+-- :command :execute
+-- :result :raw
+-- :doc Insert into sys.event_class_dimensions
+insert into sys.event_class_dimensions
+  (event_class_dimensions_id, argument_name_id,
+   people_id, participants_id, samples_id, devices_id, manifests_id, contacts_id,
+   appointments_id, incentives_id, addresses_id, phones_id, emails_id, created_by, updated_by)
+values
+  (:event_class_dimensions_id, :argument_name_id,
+   :people_id, :participants_id, :samples_id, :devices_id, :manifests_id, :contacts_id,
+   :appointments_id, :incentives_id, :addresses_id, :phones_id, :emails_id, :created_by, :updated_by);
+
+
 -- :name insert-sys-event-class-fields
 -- :command :execute
 -- :result :raw

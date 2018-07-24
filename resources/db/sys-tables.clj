@@ -24,6 +24,8 @@
 
 {:schema_name "sys" :table_name "event_queue" :table_type "table" :created_by "root" :updated_by "root"}
 
+{:schema_name "sys" :table_name "event_class_dimensions" :table_type "table" :created_by "root" :updated_by "root"}
+
 {:schema_name "sys" :table_name "event_class_precedence" :table_type "table" :created_by "root" :updated_by "root"}
 
 

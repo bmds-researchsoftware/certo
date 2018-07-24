@@ -509,6 +509,36 @@ create table sys.event_class_precedence (
 select sys.create_trigger_set_updated_at('sys.event_class_precedence');
 
 
+-- :name create-table-sys-event-class-dimensions
+-- :command :execute
+-- :result :raw
+-- :doc Create table sys.event_class_dimensions
+create table sys.event_class_dimensions (
+  event_class_dimensions_id text not null,
+  -- TO DO: use the following line enable referential integrity
+  -- event_class_dimensions_id text primary key references sys.event_classes (event_classes_id) not null,
+  argument_name_id text not null,
+  -- TO DO: use the following line enable referential integrity
+  -- ALSO NOTICE THE NAME CHANGE
+  -- argument_fields_id text references sys.fields (fields_id) not null,
+  people_id boolean not null,
+  participants_id boolean not null,
+  samples_id boolean not null,
+  devices_id boolean not null,
+  manifests_id boolean not null,
+  contacts_id boolean not null,
+  appointments_id boolean not null,
+  incentives_id boolean not null,
+  addresses_id boolean not null,
+  phones_id boolean not null,
+  emails_id boolean not null,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp);
+select sys.create_trigger_set_updated_at('sys.event_class_dimensions');
+
+
 -- :name create-table-sys-event-class-fields
 -- :command :execute
 -- :result :raw
