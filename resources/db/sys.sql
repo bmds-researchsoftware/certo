@@ -58,36 +58,6 @@ values
   (:value, :label, :location, :created_by, :updated_by);
 
 
--- :name insert-val-controls
--- :command :execute
--- :result :raw
--- :doc Insert into val.controls
-insert into val.controls 
-  (control, created_by, updated_by)
-values 
-  (:control, :created_by, :updated_by);
-
-
--- :name insert-val-types
--- :command :execute
--- :result :raw
--- :doc Insert into val.types
-insert into val.types 
-  (type, created_by, updated_by)
-values
-  (:type, :created_by, :updated_by);
-
-
--- :name insert-val-usergroups
--- :command :execute
--- :result :raw
--- :doc Insert into val.usergroups
-insert into val.usergroups
-  (usergroup, created_by, updated_by)
-values
-  (:usergroup, :created_by, :updated_by);
-
-
 -- :name insert-sys-tables
 -- :command :execute
 -- :result :raw
