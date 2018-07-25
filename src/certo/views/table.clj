@@ -171,7 +171,8 @@
        ;; In models/default.clj need to update sql-identifier so that
        ;; it is called "everywhere" and so that it double quotes column
        ;; names for views.
-       (when (not (:is_view (get tables (models/st schema table))))
+       (when (not (or (:is_view (get tables (models/st schema table)))
+                      (:is_result_view (get tables (models/st schema table)))))
          [:tr
           {:class "sc"}
           (for [stf stfs
