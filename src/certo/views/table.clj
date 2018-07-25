@@ -197,7 +197,8 @@
                 (form/form-field stf common-attrs value fields))
                (form/form-field field stf common-attrs value fields))])])
 
-       (when (not (:is_view (get tables (models/st schema table))))
+       (when (not (or (:is_view (get tables (models/st schema table)))
+                      (:is_result_view (get tables (models/st schema table)))))
          [:tr
           {:class "sb"}
           [:td {:colspan (count stfs)}
