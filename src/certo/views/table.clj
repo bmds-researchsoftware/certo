@@ -133,7 +133,7 @@
 ;; ----- end: db-to-table -----
 
 
-(defn table [tables fields schema table rows data]
+(defn table [table-map fields schema table rows data]
   (let [fields (models/sort-by-location
                 (models/fields-by-schema-table-and-in-table-view fields schema table))
         stfs (map key fields)
@@ -156,8 +156,7 @@
         [:td
          {:class "lnk" :style "text-align:left;" } [:a {:href "/"} "Home"]]
         ;; Only provide a New link for tables, i.e. not for views or result_views.
-        (when (as-> (get tables (models/st schema table)) t
-                (not (or (:is_view t) (:is_result_view t))))
+        (when (not (or (:is_view table-map) (:is_result_view table-map)))
           [:td
            {:class "lnk"
             :style "text-align:right"
@@ -171,8 +170,7 @@
        ;; In models/default.clj need to update sql-identifier so that
        ;; it is called "everywhere" and so that it double quotes column
        ;; names for views.
-       (when (not (or (:is_view (get tables (models/st schema table)))
-                      (:is_result_view (get tables (models/st schema table)))))
+       (when (not (or (:is_view table-map) (:is_result_view table-map)))
          [:tr
           {:class "sc"}
           (for [stf stfs
@@ -197,8 +195,7 @@
                 (form/form-field stf common-attrs value fields))
                (form/form-field field stf common-attrs value fields))])])
 
-       (when (not (or (:is_view (get tables (models/st schema table)))
-                      (:is_result_view (get tables (models/st schema table)))))
+       (when (not (or (:is_view table-map) (:is_result_view table-map)))
          [:tr
           {:class "sb"}
           [:td {:colspan (count stfs)}

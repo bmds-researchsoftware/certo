@@ -52,14 +52,14 @@
     [schema-table]
 
     (let [[schema table] (str/split schema-table #"/")
-
           ;; TO DO: You can pass parameters into new, e.g. you could put a combo box, labeled "Add Event Class Field", that
           ;; contains a list of all schema.table on the event class form.  When you pick a schema.table, the insert Event
           ;; Class Fields form is opened, but the list of fields is only those for the schema.table.
-
-          tables (model/tables db schema table)
-
-          fields (model/fields db schema table)]
+          table-map
+          (if (= schema "event")
+            (model/event-classes db table)
+            (model/tables db schema table))
+          fields (model/fields db schema table table-map)]
 
       (compojure/routes
 
@@ -72,7 +72,7 @@
 
           ;; TO DO: Must change model/select so that it uses a reducible-query.
 
-          (let [rs (model/select db fields tables schema table (dissoc query-params "op"))
+          (let [rs (model/select db fields table-map schema table (dissoc query-params "op"))
                 cnt (count (take 2 rs))]
             (cond
               (= cnt 0) (throw (Exception. "None found"))
@@ -80,7 +80,7 @@
               (view/edit fields schema table referer (first rs))
               (and (= cnt 1) (= op "show"))
               (view/show fields schema table referer (first rs))
-              :else (view/table tables fields schema table rs (dissoc query-params "op"))))))
+              :else (view/table table-map fields schema table rs (dissoc query-params "op"))))))
        
        (compojure/GET
         "/new"

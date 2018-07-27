@@ -143,18 +143,30 @@
    (if (and schema table)
      ["select * from sys.tables where schema_name = ? and table_name = ?" schema table]
      ["select * from sys.tables"])
-   {:row-fn (fn [row] (vector (:tables_id row) row))
-    :result-set-fn (fn [rs] (into {} rs))}))
+   {:row-fn
+    (if (and schema table)
+      (fn [row] row)
+      (fn [row] (vector (:tables_id row) row)))
+    :result-set-fn
+    (if (and schema table) (fn [rs] (first rs)) (fn [rs] (into {} rs)))}))
 
 
-(defn event-classes [db]
+(defn event-classes [db & [event_classes_id]]
   (jdbc/query
    db
-   ;; TO DO: Need to use the following, i.e. return all event-classes
-   ;; ["select * from sys.event_classes"]
-   ["select * from sys.event_classes where function_name != 'event_function_not_implemented'"]
-   {:row-fn (fn [row] (vector (:event_classes_id row) row))
-    :result-set-fn (fn [rs] (into {} rs))}))
+   (if event_classes_id
+     ["select * from sys.event_classes where event_classes_id = ?" event_classes_id]
+     ;; TO DO: Need to use the following, i.e. return all event-classes
+     ;; ["select * from sys.event_classes"]
+     ["select * from sys.event_classes where function_name != 'event_function_not_implemented'"])
+   {:row-fn
+    (if event_classes_id
+      (fn [row] row)
+      (fn [row] (vector (:event_classes_id row) row)))
+    :result-set-fn
+    (if event_classes_id
+      (fn [rs] (first rs))
+      (fn [rs] (into {} rs)))}))
 
 
 (defn functions [db]
@@ -267,7 +279,7 @@
     :required false}})
 
 
-(defn common-event-fields [db schema table]
+(defn common-event-fields [db schema table require-time]
   {(str schema "." table ".event_by")
    (select-results
     db
@@ -289,21 +301,39 @@
      :select_size 5
      :select_result_view "sys.rv_users"})
 
-   (str schema "." table ".event_at")
-   {:fields_id (stf schema table "event_at")
-    :schema_name schema
-    :table_name table
-    :field_name "event_at"
-    :type "date"
-    :label "Event At"
-    :control "date"
-    :location (+ Long/MIN_VALUE 1)
-    :in_table_view false
-    :size "22"
-    :is_settable true
-    :disabled false
-    :readonly false
-    :required true}
+   (if (not require-time)
+     (str schema "." table ".event_date")
+     (str schema "." table ".event_datetime"))
+
+   (if (not require-time)
+     {:fields_id (stf schema table "event_date")
+      :schema_name schema
+      :table_name table
+      :field_name "event_date"
+      :type "date"
+      :label "Event Date"
+      :control "date"
+      :location (+ Long/MIN_VALUE 1)
+      :in_table_view false
+      :size "22"
+      :is_settable true
+      :disabled false
+      :readonly false
+      :required true}
+     {:fields_id (stf schema table "event_datetime")
+      :schema_name schema
+      :table_name table
+      :field_name "event_datetime"
+      :type "timestamptz"
+      :label "Event Datetime"
+      :control "datetime"
+      :location (+ Long/MIN_VALUE 1)
+      :in_table_view false
+      :size "22"
+      :is_settable true
+      :disabled false
+      :readonly false
+      :required true})
 
    (str schema "." table ".event_notes")
    {:fields_id (stf schema table "event_notes")
@@ -383,16 +413,14 @@
        :always (prepare-control db))))
 
 
-(defn fields [db schema table]
+(defn fields [db schema table table-map]
   (let [{is_table :is_table
          is_option_table :is_option_table
          is_view :is_view
          is_result_view :is_result_view
-         :or {is_table false is_option_table false is_view false is_result_view false}}
-        (jdbc/query
-         db
-         ["select * from sys.tables where schema_name = ? and table_name = ?" schema table]
-         {:result-set-fn first})
+         require_time :require_time
+         :or {is_table false is_option_table false is_view false is_result_view false require_time false}}
+        table-map
         is_event (= schema "event")]
 
     (merge
@@ -402,7 +430,7 @@
        {})
 
      (if is_event
-       (common-event-fields db schema table)
+       (common-event-fields db schema table require_time)
        {})
 
      (cond
@@ -541,7 +569,7 @@
 ;; TO DO: Store a default order by clause for each table in sys.tables.
 
 
-(defn select [db fields tables schema table params]
+(defn select [db fields table-map schema table params]
   (let [[where-string & where-parameters] (where-clause fields params true)
         rs
         (jdbc/query
@@ -549,9 +577,8 @@
          (into
           (vector
            (str
-            (if (or (get-in tables [(st schema table) :is_view])
-                    (get-in tables [(st schema table) :is_result_view]))
-              (str "select * from " (get-in tables [(st schema table) :tables_id]))
+            (if (or (:is_view table-map) (:is_result_view table-map))
+              (str "select * from " (:tables_id table-map))
               (columns-clause fields schema table))
             " "
             where-string))
@@ -587,6 +614,18 @@
     (if (empty? rs)
       (throw (Exception. "None found"))
       rs)))
+
+
+(defn event! []
+  )
+
+
+(defn tracking-event! []
+  )
+
+
+(defn single-table-event! []
+  )
 
 
 (defn insert! [db md fields schema table params]
@@ -652,8 +691,8 @@
      (jdbc/query
       db
       ;; TO DO: Use this after inactive is included in the sys.event_classes table
-      ;; ["select sec.event_classes_id, sec.argument_name_id from sys.event_classes sec left outer join sys.event_class_precedence ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null and sec.inactive='false'"]
-      ["select sec.event_classes_id, sec.argument_name_id from sys.event_classes sec left outer join sys.event_class_precedence ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null"])
+      ;; ["select sec.event_classes_id, sec.argument_fields_id from sys.event_classes sec left outer join sys.event_class_precedence ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null and sec.inactive='false'"]
+      ["select sec.event_classes_id, sec.argument_fields_id from sys.event_classes sec left outer join sys.event_class_precedence ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null"])
      :sts
      (map
       (fn [schema]

@@ -40,11 +40,11 @@
     [:tr
      [:th {:style "width: 50%; text-align:left"} "Event"]
      [:th {:style "width: 50%; text-align:center"} "Argument Name ID"]]
-    (for [{:keys [event_classes_id argument_name_id]} event-queue]
+    (for [{:keys [event_classes_id argument_fields_id]} event-queue]
       [:tr
        [:td {:style "width: 35%; text-align:left"}
         (event-new-link event_classes_id)]
-       [:td {:style "width: 20%; text-align:left"} argument_name_id]])]
+       [:td {:style "width: 20%; text-align:left"} argument_fields_id]])]
 
    [:br]
    (for [[schema tables] sts]

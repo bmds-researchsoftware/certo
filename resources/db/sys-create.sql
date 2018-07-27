@@ -304,7 +304,7 @@ create table sys.fields (
   check ((type = 'text' and (control='select-result' or control='text' or control='textarea' or control='select-option')) or (type != 'text')),
 
   constraint valid_timestamptz_type_controls
-  check ((type = 'timestamptz' and (control='timestamp' or control='datetime')) or (type != 'timestamptz')),
+  check ((type = 'timestamptz' and control='datetime') or (type != 'timestamptz')),
 
   constraint valid_uuid_type_controls
   check ((type = 'uuid' and control='text') or (type != 'uuid')),
@@ -353,8 +353,8 @@ create table sys.fields (
   check ((control='select-result' and select_result_view is not null and select_result_to_text is not null) or (control != 'select-result')),
 
   constraint valid_control_size_attribute
-  check (((control = 'text' or control = 'integer' or control = 'float' or control = 'date') and size is not null and size > 0) or
-  	((control = 'text' or control = 'integer' or control = 'float' or control = 'date') and is_settable='false') or
+  check (((control = 'text' or control = 'integer' or control = 'float' or control = 'date' or control = 'datetime') and size is not null and size > 0) or
+  	((control = 'text' or control = 'integer' or control = 'float' or control = 'date' or control = 'datetime') and is_settable='false') or
   	(control != 'text' and size is null)),
 
   constraint valid_control_max_length_attributes
@@ -480,15 +480,39 @@ create table sys.event_classes (
   -- sys.fields contains the row (id = 54, schema_name=study, table_name=people, field_name=participant_id),
   -- then study.participant_id = 2345 is passed into the
   -- function whose name is 'screen-participant'.
-  function_name text not null,
-  argument_name_id text references sys.fields (fields_id),
+  tables_id text references sys.tables (tables_id), -- populated by a before trigger as schema_name.table_name
+  schema_name text,
+  table_name text,
+  function_name text,
+  argument_fields_id text references sys.fields (fields_id),
   precedence_expression text,
-  -- precedence_events text,
+  require_time boolean not null,
+  foreign key (schema_name, table_name) references sys.tables (schema_name, table_name),
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp);
+  updated_at timestamptz default current_timestamp,
+  constraint valid_event_classes
+  check ((tables_id is not null and schema_name is not null and table_name is not null and function_name is null) or
+       	 (tables_id is null and schema_name is null and table_name is null and function_name is not null) or
+       	 (tables_id is null and schema_name is null and table_name is null and function_name is null)));
 select sys.create_trigger_set_updated_at('sys.event_classes');
+
+
+
+create or replace function sys.update_sys_event_classes()
+returns trigger as $$
+begin
+  -- note: new.tables_id is null when new.schema_name or new.table_name is null
+  new.tables_id = new.schema_name || '.' || new.table_name;
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger trigger_sys_update_sys_event_classes
+before insert or update on sys.event_classes
+for each row
+execute procedure sys.update_sys_event_classes();
 
 
 -- :name create-table-sys-event-class-precedence
@@ -514,13 +538,8 @@ select sys.create_trigger_set_updated_at('sys.event_class_precedence');
 -- :result :raw
 -- :doc Create table sys.event_class_dimensions
 create table sys.event_class_dimensions (
-  event_class_dimensions_id text not null,
-  -- TO DO: use the following line enable referential integrity
-  -- event_class_dimensions_id text primary key references sys.event_classes (event_classes_id) not null,
-  argument_name_id text not null,
-  -- TO DO: use the following line enable referential integrity
-  -- ALSO NOTICE THE NAME CHANGE
-  -- argument_fields_id text references sys.fields (fields_id) not null,
+  event_class_dimensions_id text primary key references sys.event_classes (event_classes_id) not null,
+  argument_fields_id text references sys.fields (fields_id) not null,
   people_id boolean not null,
   participants_id boolean not null,
   samples_id boolean not null,
@@ -596,13 +615,15 @@ create table sys.events (
   events_id serial8 primary key,
   event_classes_id text references sys.event_classes (event_classes_id),
   event_by text references sys.users (username) not null,
-  event_at date not null,
+  event_date date,
+  event_datetime timestamptz,
   event_data jsonb,
   event_notes text,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp);
+  updated_at timestamptz default current_timestamp,
+  check ((event_date is not null)::integer + (event_datetime is not null)::integer = 1));
 create index on sys.events (event_classes_id);
 select sys.create_trigger_set_updated_at('sys.events');
 
