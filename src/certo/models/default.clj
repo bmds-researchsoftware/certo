@@ -1,11 +1,12 @@
 (ns certo.models.default
   (:require
-   [cheshire.core :as json]
+   [jsonista.core :as json]
    [clojure.string :as str]
    [clojure.set :as set]
    [clojure.edn :as edn]
    [clojure.java.jdbc :as jdbc]
    [clojure.pprint :as pprint]
+   [java-time :as jt]
    [certo.sql]
    [certo.utilities :as cu])
   (:import [java.util.UUID]))
@@ -84,7 +85,7 @@
                     (= value "false") false
                     :else
                     (throw (Exception. (format "Invalid boolean value %s for field %s" value field))))
-        "date" (java.sql.Date/valueOf value)
+        "date" (jt/local-date "yyyy-MM-dd" value)
         "float8" (Double/parseDouble value)
         ;; "int8" (Long/parseLong value)
         "int8" (Long/parseLong (str/replace value #"[.][0]+$|[.]+$" ""))
@@ -94,24 +95,33 @@
           (.setValue
            (try
              ;; check if already valid json
-             (cheshire.core/parse-string value)
+             (json/read-value value)
              ;; if already valid json just return it
              value
              ;; if not already valid json try to generate valid json
-             (catch com.fasterxml.jackson.core.JsonParseException e (json/generate-string value)))))
+             (catch com.fasterxml.jackson.core.JsonProcessingException e
+               (json/write-value-as-string value (json/object-mapper {:date-format "yyyy-MM-dd"}))))))
         ;; "serial8" (Long/parseLong value)
         "serial8" (Long/parseLong (str/replace value #"[.][0]+$|[.]+$" ""))
         "text" value
-        "timestamptz"
-        (let [value (str/replace value #"T" " ")]
-          (try
-            (java.sql.Timestamp/valueOf value)
-            ;; java.lang.IllegalArgumentException: Timestamp format must be yyyy-mm-dd hh:mm:ss[.fffffffff]
-            (catch java.lang.IllegalArgumentException e1
-              (try
-                (java.sql.Timestamp/valueOf (str value ":00"))
-                (catch java.lang.IllegalArgumentException e2
-                  (throw e1))))))
+        "time" (jt/local-time value)
+
+        "timestamptz" (jt/local-date-time value)
+
+        ;; TO DO: Can you change this to use?
+        ;; (jt/local-date-time "yyyy-MM-dd HH:mm:ss" "1963-12-30 01:02:03")?
+        ;; If do this, confirm time zone is stored the same way it is now?
+
+        ;; (let [value (str/replace value #"T" " ")]
+        ;;   (try
+        ;;     (java.sql.Timestamp/valueOf value)
+        ;;     ;; java.lang.IllegalArgumentException: Timestamp format must be yyyy-mm-dd hh:mm:ss[.fffffffff]
+        ;;     (catch java.lang.IllegalArgumentException e1
+        ;;       (try
+        ;;         (java.sql.Timestamp/valueOf (str value ":00"))
+        ;;         (catch java.lang.IllegalArgumentException e2
+        ;;           (throw e1))))))
+
         "uuid" (java.util.UUID/fromString value)
         (throw (Exception. (format "Unknown type %s for field %s with value %s" type field value)))))
     nil))
@@ -301,32 +311,32 @@
      :select_size 5
      :select_result_view "sys.rv_users"})
 
-   (if (not require-time)
-     (str schema "." table ".event_date")
-     (str schema "." table ".event_datetime"))
+   (str schema "." table ".event_date")
+   {:fields_id (stf schema table "event_date")
+    :schema_name schema
+    :table_name table
+    :field_name "event_date"
+    :type "date"
+    :label "Event Date"
+    :control "date"
+    :location (+ Long/MIN_VALUE 1)
+    :in_table_view false
+    :size "22"
+    :is_settable true
+    :disabled false
+    :readonly false
+    :required true}
 
-   (if (not require-time)
-     {:fields_id (stf schema table "event_date")
+   (when require-time
+     (str schema "." table ".event_time"))
+   (when require-time
+     {:fields_id (stf schema table "event_time")
       :schema_name schema
       :table_name table
-      :field_name "event_date"
-      :type "date"
-      :label "Event Date"
-      :control "date"
-      :location (+ Long/MIN_VALUE 1)
-      :in_table_view false
-      :size "22"
-      :is_settable true
-      :disabled false
-      :readonly false
-      :required true}
-     {:fields_id (stf schema table "event_datetime")
-      :schema_name schema
-      :table_name table
-      :field_name "event_datetime"
-      :type "timestamptz"
-      :label "Event Datetime"
-      :control "datetime"
+      :field_name "event_time"
+      :type "time"
+      :label "Event Time"
+      :control "time"
       :location (+ Long/MIN_VALUE 1)
       :in_table_view false
       :size "22"
@@ -418,8 +428,8 @@
          is_option_table :is_option_table
          is_view :is_view
          is_result_view :is_result_view
-         require_time :require_time
-         :or {is_table false is_option_table false is_view false is_result_view false require_time false}}
+         is_time_required :is_time_required
+         :or {is_table false is_option_table false is_view false is_result_view false is_time_required false}}
         table-map
         is_event (= schema "event")]
 
@@ -430,7 +440,7 @@
        {})
 
      (if is_event
-       (common-event-fields db schema table require_time)
+       (common-event-fields db schema table is_time_required)
        {})
 
      (cond
@@ -475,7 +485,7 @@
         ;; get all controls in sys.users
         (jdbc/query
          db
-         ["select * from sys.fields  where schema_name='sys' and table_name='users'"]
+         ["select * from sys.fields where schema_name='sys' and table_name='users'"]
          {:row-fn (fn [row] (vector  (stf "sys" "rv_users" (:field_name row)) (prepare-control row db)))
           :result-set-fn (fn [rs] (into {} rs))}))
 
@@ -628,24 +638,68 @@
   )
 
 
-(defn insert! [db md fields schema table params]
-  (if (= schema "event")
-    ;; run the function for this event
-    ((get (:functions md) table) ;; table = event_classes_id
-     db
-     (assoc (cu/str-to-key-map (ui-to-db fields params))
-            :event_classes_id table
-            :event_data
-            (json/generate-string (ui-to-db fields params) {:date-format "yyyy-MM-dd"})))
-    (let [rs
+(defmulti insert! (fn [db md fields schema table params] schema))
+
+
+(defmethod insert! "event" [db md fields schema table params]
+  (jdbc/with-db-transaction [tx db]
+    (let [params (cu/str-to-key-map (ui-to-db fields params))
+          ;; The last statement of every event function is
+          ;; insert into app.event_dimensions (...) values (...) returning *;
+          ;; and is stored in ed.
+          ed
+          ;; Run the function for this event
+          ((get (:functions md) table) ;; table = event_classes_id
+           tx
+           (assoc params
+                  :event_classes_id table
+                  :event_data
+                  (json/write-value-as-string params)))
+          ed (dissoc ed :no_parent :created_by :created_at :updated_at :updated_by)]
+      ;; ! TO DO: Need to remove event from queue after it has been completed.  Don't delete the event with no parent.
+      (doseq [ecid
+              (jdbc/query
+               tx
+               ;; This is the set of events that we need to check if they should be added.  It is all events that are dependent on the event that is being completed.
+               ["select event_classes_id from sys.event_class_dependencies where depends_on_event_classes_id = ?" table]
+               {:row-fn :event_classes_id})]
+        ;; ! TO DO: Use etf (i.e. event-true-false) to use DNF to check if actually need to add the event with event_classes_id = ecid, and if so run the following two inserts
+        ;; ! TO DO: Remember users should only be shown events that are on the queue whose start date has passed
+        (let [eq
+              (first
+               (jdbc/insert!
+                tx
+                "sys.event_queue"
+                {:event_classes_id ecid :start_date (certo.utilities/date-now) :created_by (:created_by params) :updated_by (:updated_by params)}
+                {:return-keys true}))
+              edk (vec (keys (dissoc ed :events_id)))]
           (jdbc/insert!
-           db
-           (st schema table)
-           (ui-to-db fields params))]
-      (case (count (take 2 rs))
-        0 (throw (Exception. "Error: Not inserted."))
-        1 true
-        (throw (Exception. "Warning: Unexpected result on insert."))))))
+           tx
+           "app.event_queue_dimensions"
+           ;; columns
+           (vec
+            (concat
+             [:event_queue_id :no_parent]
+             edk
+             [:created_by :updated_by]))
+           ;; values
+           (vec
+            (concat
+             [(:event_queue_id eq) false]
+             (mapv (fn [key] (key ed)) edk)
+             [(:created_by params) (:updated_by params)]))))))))
+
+
+(defmethod insert! :default [db md fields schema table params]
+  (let [rs
+        (jdbc/insert!
+         db
+         (st schema table)
+         (ui-to-db fields params))]
+    (case (count (take 2 rs))
+      0 (throw (Exception. "Error: Not inserted."))
+      1 true
+      (throw (Exception. "Warning: Unexpected result on insert.")))))
 
 
 (defn update! [db fields schema table params id]
@@ -691,8 +745,8 @@
      (jdbc/query
       db
       ;; TO DO: Use this after inactive is included in the sys.event_classes table
-      ;; ["select sec.event_classes_id, sec.argument_fields_id from sys.event_classes sec left outer join sys.event_class_precedence ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null and sec.inactive='false'"]
-      ["select sec.event_classes_id, sec.argument_fields_id from sys.event_classes sec left outer join sys.event_class_precedence ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null"])
+      ;; ["select sec.event_classes_id, sec.argument_fields_id from sys.event_classes sec left outer join sys.event_class_dependencies ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null and sec.inactive='false'"]
+      ["select sec.event_classes_id, sec.argument_fields_id from sys.event_classes sec left outer join sys.event_class_dependencies ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null"])
      :sts
      (map
       (fn [schema]

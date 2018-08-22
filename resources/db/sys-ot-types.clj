@@ -12,7 +12,9 @@
 
 {:value "text" :label "Text" :location 7 :created_by "root" :updated_by "root"}
 
-{:value "timestamptz" :label "Timestamp" :location 8 :created_by "root" :updated_by "root"}
+{:value "time" :label "Time" :location 8 :created_by "root" :updated_by "root"}
 
-{:value "uuid" :label "UUID" :location 9 :created_by "root" :updated_by "root"}
+{:value "timestamptz" :label "Timestamp" :location 9 :created_by "root" :updated_by "root"}
+
+{:value "uuid" :label "UUID" :location 10 :created_by "root" :updated_by "root"}
 

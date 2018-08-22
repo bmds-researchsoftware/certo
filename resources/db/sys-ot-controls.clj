@@ -18,3 +18,5 @@
 
 {:value "textarea" :label "Textarea" :location 10 :created_by "root" :updated_by "root"}
 
+{:value "time" :label "Time" :location 11 :created_by "root" :updated_by "root"}
+

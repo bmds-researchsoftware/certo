@@ -22,6 +22,57 @@ end;
 $$ language plpgsql;
 
 
+-- :name create-trigger-sys-set-daterange
+-- :command :execute
+-- :result :raw
+-- :doc Create trigger sys.set_daterange
+create or replace function sys.set_daterange()
+returns trigger as $$
+begin
+  if new.start_date is not null then
+     new.dates = daterange(new.start_date, new.end_date);
+     return new;
+  else
+      raise exception 'start_date cannot be not null';
+  end if;
+end;
+$$ language plpgsql;
+
+
+-- :name create-trigger-sys-set-tstzrange
+-- :command :execute
+-- :result :raw
+-- :doc Create trigger sys.set_tstzrange
+create or replace function sys.set_tstzrange()
+returns trigger as $$
+begin
+  if new.start_tstz is not null then
+     new.tstzs = tstzrange(new.start_tstz, new.end_tstz);
+     return new;
+  else
+      raise exception 'start_tstz cannot be not null';
+  end if;
+end;
+$$ language plpgsql;
+
+
+-- :name create-trigger-sys-set-tstzrange-from-dates-and-times
+-- :command :execute
+-- :result :raw
+-- :doc Create trigger sys.set_tstzrange
+create or replace function sys.set_tstzrange_from_dates_and_times()
+returns trigger as $$
+begin
+  if new.start_date is not null and new.start_time is not null then
+     new.tstzs = tstzrange((new.start_date || ' ' || new.start_time)::timestamptz, (new.end_date || ' ' || new.end_time)::timestamptz);
+     return new;
+  else
+      raise exception 'start_date and start_time must both be not null';
+  end if;
+end;
+$$ language plpgsql;
+
+
 -- :name create-table-sys-ot-usergroups
 -- :command :execute
 -- :result :raw
@@ -99,6 +150,36 @@ create table sys.ot_controls (
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp);
 select sys.create_trigger_set_updated_at('sys.ot_controls');
+
+
+-- :name create-table-sys-ot-calendar-colors
+-- :command :execute
+-- :result :raw
+-- :doc Create table sys.ot_calendar_colors
+create table sys.ot_calendar_colors (
+  value text primary key,
+  label text not null,
+  location int8 constraint valid_sys_ot_calendar_colors_location check (location is null or location >= 0),
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp);
+select sys.create_trigger_set_updated_at('sys.ot_calendar_colors');
+
+
+-- :name create-table-sys-ot-event-not-done-reasons
+-- :command :execute
+-- :result :raw
+-- :doc Create table sys.ot_event_not_done_reasons
+create table sys.ot_event_not_done_reasons (
+  value text primary key,
+  label text not null,
+  location int8 constraint valid_sys_ot_event_not_done_reasons_location check (location is null or location >= 0),
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp);
+select sys.create_trigger_set_updated_at('sys.ot_event_not_done_reasons');
 
 
 -- :name create-table-sys-tables
@@ -249,6 +330,9 @@ create table sys.fields (
   textarea_cols int8,
   textarea_rows int8,
 
+  time_min time,
+  time_max time,
+
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
@@ -303,6 +387,9 @@ create table sys.fields (
   constraint valid_text_type_controls
   check ((type = 'text' and (control='select-result' or control='text' or control='textarea' or control='select-option')) or (type != 'text')),
 
+  constraint valid_time_type_controls
+  check ((type = 'time' and control='time') or (type != 'time')),
+
   constraint valid_timestamptz_type_controls
   check ((type = 'timestamptz' and control='datetime') or (type != 'timestamptz')),
 
@@ -314,8 +401,6 @@ create table sys.fields (
   constraint valid_select_boolean_control_attributes
   check ((control='select-boolean' and boolean_true is not null and boolean_false is not null) or
   	(control != 'select-boolean' and boolean_true is null and boolean_false is null)),
-
-  -- TO DO: Add a time control and type
 
   constraint valid_date_control_attributes
   check ((control='date' and date_min is not null and date_max is not null and date_min <= date_max) or
@@ -353,8 +438,8 @@ create table sys.fields (
   check ((control='select-result' and select_result_view is not null and select_result_to_text is not null) or (control != 'select-result')),
 
   constraint valid_control_size_attribute
-  check (((control = 'text' or control = 'integer' or control = 'float' or control = 'date' or control = 'datetime') and size is not null and size > 0) or
-  	((control = 'text' or control = 'integer' or control = 'float' or control = 'date' or control = 'datetime') and is_settable='false') or
+  check (((control = 'text' or control = 'integer' or control = 'float' or control = 'date' or control = 'datetime' or control = 'time') and size is not null and size > 0) or
+  	((control = 'text' or control = 'integer' or control = 'float' or control = 'date' or control = 'datetime' or control = 'time') and is_settable='false') or
   	(control != 'text' and size is null)),
 
   constraint valid_control_max_length_attributes
@@ -367,7 +452,13 @@ create table sys.fields (
   constraint valid_textarea_control_attributes
   check ((control = 'textarea' and textarea_cols is not null and textarea_cols > 0 and textarea_rows is not null or textarea_rows > 0) or
   	(control = 'textarea' and is_settable='false') or
-  	(control != 'textarea'))
+  	(control != 'textarea')),
+
+  constraint valid_time_control_attributes
+  check ((control='time' and time_min is not null and time_max is not null and time_min <= time_max) or
+  	(control='time' and (time_min is null or time_max is null)) or
+	(control='time' and is_settable='false') or
+	(control != 'time' and time_min is null and time_max is null))
   -- end: constraints for controls --
 );
 select sys.create_trigger_set_updated_at('sys.fields');
@@ -391,7 +482,7 @@ create or replace function sys.check_sys_fields()
 returns trigger as $$
 begin
   -- TO DO: Limit select to columns owned by application
-  -- TO DO: Actually need to check that function exists in the database
+  -- TO DO: Need to check that function actually exists in the database
   if new.is_function then
     return new;
   elsif (select count(*)=1 from information_schema.columns where table_schema = new.schema_name and table_name = new.table_name and column_name = new.field_name) then
@@ -485,20 +576,18 @@ create table sys.event_classes (
   table_name text,
   function_name text,
   argument_fields_id text references sys.fields (fields_id),
-  precedence_expression text,
-  require_time boolean not null,
+  is_time_required boolean not null,
   foreign key (schema_name, table_name) references sys.tables (schema_name, table_name),
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp,
+  unique (is_time_required, event_classes_id),
   constraint valid_event_classes
   check ((tables_id is not null and schema_name is not null and table_name is not null and function_name is null) or
        	 (tables_id is null and schema_name is null and table_name is null and function_name is not null) or
        	 (tables_id is null and schema_name is null and table_name is null and function_name is null)));
 select sys.create_trigger_set_updated_at('sys.event_classes');
-
-
 
 create or replace function sys.update_sys_event_classes()
 returns trigger as $$
@@ -515,47 +604,32 @@ for each row
 execute procedure sys.update_sys_event_classes();
 
 
--- :name create-table-sys-event-class-precedence
+-- :name create-table-sys-event-class-dependencies
 -- :command :execute
 -- :result :raw
--- :doc Create table sys.event_class_precedence
-create table sys.event_class_precedence (
-  event_class_precedence_id serial8 primary key,
+-- :doc Create table sys.event_class_dependencies
+create table sys.event_class_dependencies (
+  event_class_dependencies_id serial8 primary key,
   event_classes_id text references sys.event_classes (event_classes_id) not null,
   term int8 not null,
-  preceding_event_classes_id text references sys.event_classes (event_classes_id) not null,
+  depends_on_event_classes_id text references sys.event_classes (event_classes_id) not null,
   is_positive boolean not null,
   lag int8,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp);
-select sys.create_trigger_set_updated_at('sys.event_class_precedence');
+select sys.create_trigger_set_updated_at('sys.event_class_dependencies');
 
+create or replace function depends_on(sys.event_classes)
+returns text as $$
+  select string_agg(trm, E'\n or\n') from (select string_agg(case when is_positive='false' then '~' else ' ' end || depends_on_event_classes_id  || '(' || lag || ')', E' and\n') as trm from sys.event_class_dependencies where event_classes_id = $1.event_classes_id group by term) as trms;
+$$ language sql stable;
 
--- :name create-table-sys-event-class-dimensions
--- :command :execute
--- :result :raw
--- :doc Create table sys.event_class_dimensions
-create table sys.event_class_dimensions (
-  event_class_dimensions_id text primary key references sys.event_classes (event_classes_id) not null,
-  argument_fields_id text references sys.fields (fields_id) not null,
-  people_id boolean not null,
-  participants_id boolean not null,
-  samples_id boolean not null,
-  devices_id boolean not null,
-  manifests_id boolean not null,
-  contacts_id boolean not null,
-  appointments_id boolean not null,
-  incentives_id boolean not null,
-  addresses_id boolean not null,
-  phones_id boolean not null,
-  emails_id boolean not null,
-  created_by text references sys.users (username) not null,
-  created_at timestamptz default current_timestamp,
-  updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp);
-select sys.create_trigger_set_updated_at('sys.event_class_dimensions');
+create or replace function dependency_of(sys.event_classes)
+returns text as $$
+  select string_agg(case when is_positive='false' then '~' else ' ' end || event_classes_id || '(' || lag || ')', E',\n') from sys.event_class_dependencies where depends_on_event_classes_id =  $1.event_classes_id;
+$$ language sql stable;
 
 
 -- :name create-table-sys-event-class-fields
@@ -597,7 +671,9 @@ execute procedure sys.update_sys_event_class_fields();
 create table sys.event_queue (
   event_queue_id serial8 primary key,
   event_classes_id text references sys.event_classes (event_classes_id),
-  dates daterange,
+  start_date date not null,
+  end_date date,
+  dates daterange not null,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
@@ -605,6 +681,11 @@ create table sys.event_queue (
 create index sys_event_queue_dates_index on sys.event_queue using gist (dates);
 create index on sys.event_queue (event_classes_id);
 select sys.create_trigger_set_updated_at('sys.event_queue');
+
+create trigger trigger_set_sys_event_queue_dates
+before insert or update on sys.event_queue
+for each row
+execute procedure sys.set_daterange();
 
 
 -- :name create-table-sys-events
@@ -615,17 +696,73 @@ create table sys.events (
   events_id serial8 primary key,
   event_classes_id text references sys.event_classes (event_classes_id),
   event_by text references sys.users (username) not null,
-  event_date date,
-  event_datetime timestamptz,
+  event_date date not null,
+  event_time time,
+  is_time_required boolean not null default false,
+  is_event_done boolean not null,
+  event_not_done_reason text references sys.ot_event_not_done_reasons,
   event_data jsonb,
   event_notes text,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp,
-  check ((event_date is not null)::integer + (event_datetime is not null)::integer = 1));
+  foreign key (event_classes_id, is_time_required) references sys.event_classes (event_classes_id, is_time_required),
+  constraint valid_sys_events_is_time_required check ((is_time_required = 'true' and event_time is not null) or (is_time_required = 'false' and event_time is null)));
 create index on sys.events (event_classes_id);
 select sys.create_trigger_set_updated_at('sys.events');
+
+
+-- :name create-table-sys-calendars
+-- :command :execute
+-- :result :raw
+-- :doc Create table sys.calendars
+create table sys.calendars (
+  calendars_id text primary key,
+  name text unique not null,
+  color text references sys.ot_calendar_colors (value) not null,
+  is_settable boolean not null,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp);
+select sys.create_trigger_set_updated_at('sys.calendars');
+
+
+-- :name create-table-sys-calendar-entries
+-- :command :execute
+-- :result :raw
+-- :doc Create table sys.calendar_entries
+create table sys.calendar_entries (
+  calendar_entries_id uuid primary key default gen_random_uuid(),
+  calendars_id text references sys.calendars (calendars_id) not null,
+  description text not null,
+  start_date date not null,
+  start_time time not null,
+  end_date date,
+  end_time time,
+  tstzs tstzrange not null,
+  created_by text references sys.users (username) not null,
+  created_at timestamptz default current_timestamp,
+  updated_by text references sys.users (username) not null,
+  updated_at timestamptz default current_timestamp);
+select sys.create_trigger_set_updated_at('sys.calendar_entries');
+
+-- only permit one calendar entry for a calendar in a tztzrange
+-- alter table sys.calendar_entries
+--   add constraint calendar_entries_tstzs
+--     exclude using gist (calendars_id with =, tstzs with &&);
+
+create trigger trigger_set_sys_calendar_entries_tstzrange
+before insert or update on sys.calendar_entries
+for each row
+execute procedure sys.set_tstzrange_from_dates_and_times();
+
+
+create view sys.rv_calendars as
+select calendars_id as value, calendars_id as "sys.rv_calendars.calendars_id", name as "sys.rv_calendars.name"
+from sys.calendars
+order by name;
 
 
 create view sys.rv_event_classes as
@@ -660,8 +797,10 @@ create view sys.rv_function_names as
 select distinct function_name as value, function_name as "sys.rv_function_names.function_name" from sys.event_classes;
 
 
--- create view sys.rv_users as
--- select username as value, username as "sys.rv_users.username", full_name as "sys.rv_users.full_name", display_name as "sys.rv_users.display_name" from sys.users;
 create view sys.rv_users as
 select username as value, full_name as "sys.rv_users.full_name" from sys.users;
+
+
+create view sys.event_dependencies as
+select event_classes_id "sys.event_dependencies.event_classes_id", sys.event_classes.depends_on "sys.event_dependencies.depends_on", sys.event_classes.dependency_of "sys.event_dependencies.dependency_of" from sys.event_classes;
 

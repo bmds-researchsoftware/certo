@@ -81,11 +81,27 @@
               (and (= cnt 1) (= op "show"))
               (view/show fields schema table referer (first rs))
               :else (view/table table-map fields schema table rs (dissoc query-params "op"))))))
-       
+
+
        (compojure/GET
         "/new"
-        {query-params :query-params {referer "referer"} :headers}
-        (view/new fields schema table referer query-params))
+        {query-params :query-params username :basic-authentication {referer "referer"} :headers}
+        (view/new fields schema table referer
+
+                  ;; TO DO: Change so only update username and event_date and event_time only if they don't already appear in query-string
+
+                  ;; TO DO: Update form view select-result so that you even if you pass in the username, date, and time, that you get a
+                  ;; username select-option, date control, time control so you can change the values.
+
+                  (if (= schema "event")
+                    (assoc
+                     query-params
+                     (str schema "." table ".event_by") username
+                     (str schema "." table ".event_date") (str (certo.utilities/date-now))
+                     ;; TO DO: If is_time_required then add it 
+                     )
+                    query-params)))
+
        
        (compojure/POST
         "/"
@@ -94,7 +110,6 @@
                        (assoc params
                               (model/stf schema table "created_by") username
                               (model/stf schema table "updated_by") username))
-        ;; (redirect-to-schema-table-root schema table)
         (redirect (:redirect-to params) :see-other))
        
        (compojure/GET
@@ -111,7 +126,7 @@
        
        (compojure/PUT
         uuid-or-integer-or-text-id
-        {{id :id} :params  params :params username :basic-authentication}
+        {{id :id} :params params :params username :basic-authentication}
         ;; Note: discard :id from params passes it in as an argument,
         ;; its value is the current value of the primary key, and is
         ;; used in the update statement's where clause.  A potentially
@@ -123,14 +138,13 @@
                            (dissoc :id)
                            (assoc (model/stf schema table "updated_by") username))
                        id)
-        ;; (redirect-to-schema-table-root schema table)
         (redirect (:redirect-to params) :see-other))
        
        (compojure/DELETE
         uuid-or-integer-or-text-id
-        [id]
+        {{id :id} :params params :params}
         (model/delete! db fields schema table id)
-        (redirect-to-schema-table-root schema table)))))
+        (redirect (:redirect-to params) :see-other)))))
 
    ;; Use these for debugging
    ;; (compojure/POST "/" req (show-request schema table req))

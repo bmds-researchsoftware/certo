@@ -166,6 +166,10 @@
   (f/text-area (update-attrs attrs field {:text_max_length :maxlength :textarea_cols :cols :textarea_rows :rows}) name value))
 
 
+(defmethod form-field [:time] [field name attrs value _]
+  (cf/time-field (update-attrs (assoc attrs :style (format "width: %dem;" (count "00:00 AM"))) field {:time_min :min :time_max :max}) name value))
+
+
 (defmethod form-field [:timestamp] [field name attrs value _]
   (cf/timestamp-field (update-attrs attrs field {:size :size}) name value))
 
@@ -186,6 +190,12 @@
   ;; aren't displayed at the top level of the form
   (let [fields (models/fields-by-schema-table all-fields schema table)
         fields (models/sort-by-location fields)
+        fields (if (and (= schema "sys") (= table "events") (false? (:sys.events.is_time_required data)))
+                 (dissoc fields "sys.events.event_time")
+                 fields)
+        data (if (and (= schema "sys") (= table "events") (false? (:sys.events.is_time_required data)))
+                 (dissoc data :sys.events.event_time)
+                 data)
         stfs (map key fields)
         ;; there should be exactly one id field
         id (first (filter #(:is_id (get fields %)) stfs))
@@ -243,11 +253,13 @@
          (f/form-to
           {:id "delete-form" :style "display: inline-block;"}
           [:delete (str "/" schema "/" table "/" (id_kw data))]
+          (f/hidden-field :redirect-to redirect-to)
           (af/anti-forgery-field)
           (f/submit-button
            {:onclick "return confirm('Delete this record?');return false;"}
            "Delete"))
          "&nbsp;" "&nbsp;")
+
         (= action "new")
         (list
          (f/submit-button {:form (str action "-form")} "Insert")

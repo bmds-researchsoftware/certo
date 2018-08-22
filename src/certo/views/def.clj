@@ -45,6 +45,12 @@
   ([name value] (f/text-field name value)))
 
 
+(defelem time-field
+  "Creates a new time input field. This control expects the following format hh:mm using a 24-hour clock."
+  ([name] (time-field name nil))
+  ([name value] (#'f/input-field "time" name value)))
+
+
 (defelem select-boolean-field
   "Creates a new select-boolean input field."
   ([name options] (select-boolean-field name options nil))

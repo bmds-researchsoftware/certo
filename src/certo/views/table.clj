@@ -16,6 +16,9 @@
    [certo.views.common :as common]))
 
 
+(defn db-to-table-time [value]
+ (jt/format "hh:mm a" (jt/local-time value)))
+
 (defn search-link
   ([field value] (search-link field value value))
   ([field value label]
@@ -40,8 +43,7 @@
                              (models/stf schema_name table_name field_name) "=" value "&operator=and&comparator=exact")}
               label])
            :else
-           value))))
-
+           label))))
 
 ;; ----- start: db-to-table -----
 ;;   type   |    control     
@@ -78,12 +80,7 @@
 
 (defmethod db-to-table [:timestamptz :datetime] [field value]
   (when value
-    (jt/format "MM/dd/yyyy, HH:mm:ss" (jt/local-date-time value))))
-
-
-;; (defmethod db-to-table [:time :date] [field value]
-;;   (when value
-;;     (jt/format "MM/dd/yyyy" (jt/local-date-time value))))
+    (jt/format "MM/dd/yyyy, hh:mm a" (jt/local-date-time value))))
 
 
 (defmethod db-to-table [:float8 :float] [field value]
@@ -124,12 +121,21 @@
   (search-link field value))
 
 
+(defmethod db-to-table [:uuid :text] [field value]
+  (search-link field value))
+
+
 (defmethod db-to-table [:text :textarea] [field value]
   value)
 
 
+(defmethod db-to-table [:time :time] [field value]
+  (when value
+    (search-link field value (jt/format "hh:mm a" (jt/local-time value)))))
+
+
 (defmethod db-to-table :default [field value]
-  (throw (Exception. (format "db-to-table::invalid type: %s and control: %s for %s" (:type field) (:control field) (:field_id field)))))
+  (throw (Exception. (format "db-to-table::invalid type: %s and control: %s for %s" (:type field) (:control field) value))))
 ;; ----- end: db-to-table -----
 
 
@@ -218,7 +224,7 @@
        (for [row rows]
          [:tr
           (for [stf stfs]
-            [:td
+            [:td {:style "white-space: pre; vertical-align:top;"}
              (db-to-table
               (get fields stf)
               (get row (keyword stf)))])])])

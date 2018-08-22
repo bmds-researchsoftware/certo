@@ -48,6 +48,26 @@ values
   (:value, :label, :location, :created_by, :updated_by);
 
 
+-- :name insert-sys-ot-calendar-colors
+-- :command :execute
+-- :result :raw
+-- :doc Insert into sys.ot_calendar_colors
+insert into sys.ot_calendar_colors
+  (value, label, location, created_by, updated_by)
+values
+  (:value, :label, :location, :created_by, :updated_by);
+
+
+-- :name insert-sys-ot-event-not-done-reasons
+-- :command :execute
+-- :result :raw
+-- :doc Insert into sys.ot_event_not_done_reasons
+insert into sys.ot_event_not_done_reasons
+  (value, label, location, created_by, updated_by)
+values
+  (:value, :label, :location, :created_by, :updated_by);
+
+
 -- :name insert-sys-ot-function-names
 -- :command :execute
 -- :result :raw
@@ -111,35 +131,21 @@ values
 -- :result :raw
 -- :doc Insert into sys.event_classes
 insert into sys.event_classes
-  (event_classes_id, schema_name, table_name, function_name, argument_fields_id, require_time, created_by, updated_by)
+  (event_classes_id, schema_name, table_name, function_name, argument_fields_id, is_time_required, created_by, updated_by)
 values
-  (:event_classes_id, :schema_name, :table_name, :function_name, :argument_fields_id, :require_time, :created_by, :updated_by)
+  (:event_classes_id, :schema_name, :table_name, :function_name, :argument_fields_id, :is_time_required, :created_by, :updated_by)
 on conflict (event_classes_id) do update set
-  (schema_name, table_name, function_name, argument_fields_id, require_time, created_by, updated_by) = (:schema_name, :table_name, :function_name, :argument_fields_id, :require_time, :created_by, :updated_by);
+  (schema_name, table_name, function_name, argument_fields_id, is_time_required, created_by, updated_by) = (:schema_name, :table_name, :function_name, :argument_fields_id, :is_time_required, :created_by, :updated_by);
 
 
--- :name insert-sys-event-class-precedence
+-- :name insert-sys-event-class-dependencies
 -- :command :execute
 -- :result :raw
--- :doc Insert into sys.event_class_precedence
-insert into sys.event_class_precedence
-  (event_classes_id, term, preceding_event_classes_id, is_positive, lag, created_by, updated_by)
+-- :doc Insert into sys.event_class_dependencies
+insert into sys.event_class_dependencies
+  (event_classes_id, term, depends_on_event_classes_id, is_positive, lag, created_by, updated_by)
 values
-  (:event_classes_id, :term, :preceding_event_classes_id, :is_positive, :lag, :created_by, :updated_by);
-
-
--- :name insert-sys-event-class-dimensions
--- :command :execute
--- :result :raw
--- :doc Insert into sys.event_class_dimensions
-insert into sys.event_class_dimensions
-  (event_class_dimensions_id, argument_fields_id,
-   people_id, participants_id, samples_id, devices_id, manifests_id, contacts_id,
-   appointments_id, incentives_id, addresses_id, phones_id, emails_id, created_by, updated_by)
-values
-  (:event_class_dimensions_id, :argument_fields_id,
-   :people_id, :participants_id, :samples_id, :devices_id, :manifests_id, :contacts_id,
-   :appointments_id, :incentives_id, :addresses_id, :phones_id, :emails_id, :created_by, :updated_by);
+  (:event_classes_id, :term, :depends_on_event_classes_id, :is_positive, :lag, :created_by, :updated_by);
 
 
 -- :name insert-sys-event-class-fields
