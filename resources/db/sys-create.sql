@@ -175,6 +175,7 @@ create table sys.ot_event_not_done_reasons (
   value text primary key,
   label text not null,
   location int8 constraint valid_sys_ot_event_not_done_reasons_location check (location is null or location >= 0),
+  -- is_group_label boolean not null,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
@@ -429,13 +430,15 @@ create table sys.fields (
 
   constraint valid_select_control_attributes
   check (((control='select-option' or control='select-result') and select_multiple is not null and select_size is not null and select_size >= 0) or
-  	(control != 'select-option' and control != 'select-result')),
+  	(control != 'select-option' and control != 'select-result' and select_multiple is null and select_size is null)),
 
   constraint valid_select_option_control_attributes
-  check ((control='select-option' and select_option_table is not null) or (control != 'select-option')),
+  check ((control='select-option' and select_option_table is not null) or 
+  	(control != 'select-option' and select_option_table is null)),
 
   constraint valid_select_result_static_control_attributes
-  check ((control='select-result' and select_result_view is not null and select_result_to_text is not null) or (control != 'select-result')),
+  check ((control='select-result' and select_result_view is not null and select_result_to_text is not null) or 
+  	(control != 'select-result' and select_result_view is null and select_result_to_text is null)),
 
   constraint valid_control_size_attribute
   check (((control = 'text' or control = 'integer' or control = 'float' or control = 'date' or control = 'datetime' or control = 'time') and size is not null and size > 0) or
@@ -450,7 +453,7 @@ create table sys.fields (
   -- if textarea_cols is not null and textarea_cols > 0 and textarea_rows is not null and textarea_rows > 0
   -- then control = 'textarea'
   constraint valid_textarea_control_attributes
-  check ((control = 'textarea' and textarea_cols is not null and textarea_cols > 0 and textarea_rows is not null or textarea_rows > 0) or
+  check ((control = 'textarea' and textarea_cols is not null and textarea_cols > 0 and textarea_rows is not null and textarea_rows > 0) or
   	(control = 'textarea' and is_settable='false') or
   	(control != 'textarea')),
 

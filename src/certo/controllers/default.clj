@@ -82,7 +82,6 @@
               (view/show fields schema table referer (first rs))
               :else (view/table table-map fields schema table rs (dissoc query-params "op"))))))
 
-
        (compojure/GET
         "/new"
         {query-params :query-params username :basic-authentication {referer "referer"} :headers}
@@ -101,7 +100,6 @@
                      ;; TO DO: If is_time_required then add it 
                      )
                     query-params)))
-
        
        (compojure/POST
         "/"
