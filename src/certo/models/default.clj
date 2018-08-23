@@ -301,7 +301,6 @@
      :label "Event By"
      :control "select-result"
      :location Long/MIN_VALUE
-     :in_table_view false
      :size "22"
      :is_settable true
      :disabled false
@@ -320,7 +319,6 @@
     :label "Event Date"
     :control "date"
     :location (+ Long/MIN_VALUE 1)
-    :in_table_view false
     :size "22"
     :is_settable true
     :disabled false
@@ -337,13 +335,49 @@
       :type "time"
       :label "Event Time"
       :control "time"
-      :location (+ Long/MIN_VALUE 1)
-      :in_table_view false
+      :location (+ Long/MIN_VALUE 2)
       :size "22"
       :is_settable true
       :disabled false
       :readonly false
       :required true})
+
+   (str schema "." table ".is_event_done")
+   {:fields_id (stf schema table "is_event_done")
+    :schema_name schema
+    :table_name table
+    :field_name "is_event_done"
+    :type "boolean"
+    :label "Is Event Done?"
+    :control "select-boolean"
+    :boolean_true "Yes"
+    :boolean_false "No"
+    :location (+ Long/MIN_VALUE 3)
+    :size "22"
+    :is_settable true
+    :disabled false
+    :readonly false
+    :required true}
+
+   (str schema "." table ".event_not_done_reason")
+   (select-options
+    db
+    {:fields_id (stf schema table "event_not_done_reason")
+     :schema_name schema
+     :table_name table
+     :field_name "event_not_done_reason"
+     :type "text"
+     :label "Event Not Done Reason"
+     :control "select-option"
+     :select_option_table "sys.ot_event_not_done_reasons"
+     :select_multiple false
+     :select_size 1
+     :location (+ Long/MIN_VALUE 4)
+     :size "22"
+     :is_settable true
+     :disabled false
+     :readonly false
+     :required false})
 
    (str schema "." table ".event_notes")
    {:fields_id (stf schema table "event_notes")
@@ -354,7 +388,6 @@
     :label "Event Notes"
     :control "textarea"
     :location Long/MAX_VALUE
-    :in_table_view false
     :is_settable true
     :disabled false
     :readonly false

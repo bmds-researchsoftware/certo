@@ -708,7 +708,8 @@ create table sys.events (
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp,
   foreign key (event_classes_id, is_time_required) references sys.event_classes (event_classes_id, is_time_required),
-  constraint valid_sys_events_is_time_required check ((is_time_required = 'true' and event_time is not null) or (is_time_required = 'false' and event_time is null)));
+  constraint valid_sys_events_is_time_required check ((is_time_required = 'true' and event_time is not null) or (is_time_required = 'false' and event_time is null)),
+  constraint valid_sys_events_is_event_done check ((is_event_done = 'true' and event_not_done_reason is null) or (is_event_done = 'false' and event_not_done_reason is not null)));
 create index on sys.events (event_classes_id);
 select sys.create_trigger_set_updated_at('sys.events');
 
