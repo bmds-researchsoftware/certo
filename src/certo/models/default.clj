@@ -698,6 +698,7 @@
                {:row-fn :event_classes_id})]
         ;; ! TO DO: Use etf (i.e. event-true-false) to use DNF to check if actually need to add the event with event_classes_id = ecid, and if so run the following two inserts
         ;; ! TO DO: Remember users should only be shown events that are on the queue whose start date has passed
+        ;; ! TO DO: Also need to handle event end date
         (let [eq
               (first
                (jdbc/insert!
