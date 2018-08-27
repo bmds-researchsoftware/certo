@@ -1,7 +1,8 @@
 (ns certo.middleware
   (:require
+   [clojure.pprint :as pprint]
    [ring.middleware.basic-authentication :refer [wrap-basic-authentication]]
-   [ring.middleware.defaults :refer [wrap-defaults site-defaults api-defaults]]
+   [ring.middleware.defaults :refer [wrap-defaults site-defaults api-defaults secure-api-defaults secure-site-defaults]]
    [ring.middleware.stacktrace :refer [wrap-stacktrace wrap-stacktrace-log wrap-stacktrace-web]]
    [ring.middleware.ssl]
    [certo.auth :as ca]
@@ -83,14 +84,14 @@
 
 (defn wrapped-handler [handler db md]
   (-> (handler db md)
-      (wrap-defaults (customize-site-defaults site-defaults))
+      (wrap-defaults (customize-site-defaults secure-site-defaults))
       (wrap-basic-authentication (partial ca/authenticated? db))
       ;; (wrap-content-type)
       ;; (wrap-not-modified)
       ;; (wrap-stacktrace)
-      wrap-stacktrace-log
-      ;; wrap-postgres-exception
-      wrap-postgres-exception-web
-      ;; wrap-exception
-      wrap-exception-web))
+      (wrap-stacktrace-log)
+      ;; (wrap-postgres-exception)
+      (wrap-postgres-exception-web)
+      ;; (wrap-exception)
+      (wrap-exception-web)))
 

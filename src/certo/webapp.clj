@@ -4,7 +4,7 @@
    [ring.adapter.jetty :as jetty]))
 
 
-(defrecord WebApp [owner port]
+(defrecord WebApp [owner]
   component/Lifecycle
 
   (start [component]
@@ -14,7 +14,7 @@
              :http-server
              (jetty/run-jetty
               ((:handler component) (get-in component [:database :connection]) (:metadata component))
-              {:join? false :port port}))))
+              {:join? false :ssl? (:ssl? component) :ssl-port (:ssl-port component) :keystore (:keystore component) :key-password (:key-password component)}))))
   
   (stop [component]
     (if-let [http-server (:http-server component)]
