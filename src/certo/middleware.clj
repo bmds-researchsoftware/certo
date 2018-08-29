@@ -73,13 +73,14 @@
 
 (defn customize-site-defaults
   [site-defaults]
-  (assoc-in
-   site-defaults
-   [:security :anti-forgery]
-   {:error-response
-    {:status 400
-     :headers {"Content-Type" "text/html"}
-     :body (cvd/message "Error" "Invalid Anti-Forgery Token")}}))
+  (-> site-defaults
+     (assoc :proxy true)
+      (assoc-in
+       [:security :anti-forgery]
+       {:error-response
+        {:status 400
+         :headers {"Content-Type" "text/html"}
+         :body (cvd/message "Error" "Invalid Anti-Forgery Token")}})))
 
 
 (defn wrapped-handler [handler db md]
