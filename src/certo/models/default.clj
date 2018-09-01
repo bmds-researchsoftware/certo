@@ -166,9 +166,7 @@
    db
    (if event_classes_id
      ["select * from sys.event_classes where event_classes_id = ?" event_classes_id]
-     ;; TO DO: Need to use the following, i.e. return all event-classes
-     ;; ["select * from sys.event_classes"]
-     ["select * from sys.event_classes where function_name != 'event_function_not_implemented'"])
+     ["select * from sys.event_classes"])
    {:row-fn
     (if event_classes_id
       (fn [row] row)

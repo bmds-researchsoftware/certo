@@ -12,7 +12,7 @@
     (component/system-map
      :database (db/new-database (:database config))
      :metadata (component/using
-                (metadata/new-metadata system-name)
+                (metadata/new-metadata (:metadata config) system-name)
                 [:database])
      :webapp (component/using
               (webapp/new-webapp (:webapp config) handler)

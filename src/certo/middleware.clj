@@ -1,12 +1,23 @@
 (ns certo.middleware
   (:require
-   [clojure.pprint :as pprint]
+   [clojure.string :as str]
    [ring.middleware.basic-authentication :refer [wrap-basic-authentication]]
    [ring.middleware.defaults :refer [wrap-defaults site-defaults api-defaults secure-api-defaults secure-site-defaults]]
    [ring.middleware.stacktrace :refer [wrap-stacktrace wrap-stacktrace-log wrap-stacktrace-web]]
    [ring.middleware.ssl]
    [certo.auth :as ca]
    [certo.views.core :as cvd]))
+
+
+(defn wrap-whitelist
+  [handler md]
+  (fn [request]
+    (let [[schema table] (drop 1 (str/split (:uri request) #"/"))]
+      (if (and
+           (not (contains? (:whitelist md) (:uri request)))
+           (not (contains? (:whitelist md) (str schema "/" table))))
+        (cvd/not-found request)
+        (handler request)))))
 
 
 (defn wrap-exception
@@ -86,6 +97,7 @@
 (defn wrapped-handler [handler db md]
   (-> (handler db md)
       (wrap-defaults (customize-site-defaults secure-site-defaults))
+      (wrap-whitelist md)
       (wrap-basic-authentication (partial ca/authenticated? db))
       ;; (wrap-content-type)
       ;; (wrap-not-modified)

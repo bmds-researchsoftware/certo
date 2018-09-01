@@ -40,19 +40,16 @@
     "/dashboard"
     {username :basic-authentication}
     (view/dashboard (:system-name md) (model/user db username) (model/dashboard db)))
-
-   ;; TO DO: SHOULD YOU DO A NEW compojure/context?
    
    ;; Match all routes of the form "/:schema/:table"
    ;; For example: http://example.com/sys/fields
    (compojure/context
-    ;; routes-regex is a whitelist of schema/table pairs
-    (format "/:schema-table{%s}" (:routes-regex md))
 
-    [schema-table]
+    "/:schema/:table"
 
-    (let [[schema table] (str/split schema-table #"/")
-          ;; TO DO: You can pass parameters into new, e.g. you could put a combo box, labeled "Add Event Class Field", that
+    [schema table]
+
+    (let [;; TO DO: You can pass parameters into new, e.g. you could put a combo box, labeled "Add Event Class Field", that
           ;; contains a list of all schema.table on the event class form.  When you pick a schema.table, the insert Event
           ;; Class Fields form is opened, but the list of fields is only those for the schema.table.
           table-map

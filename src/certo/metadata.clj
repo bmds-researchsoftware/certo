@@ -22,30 +22,31 @@
   (start [component]
     ;; if using connection or a connection-pool open it here and
     ;; assoc it to the component
-    (if (:routes-regex component)
+    (if (and (:whitelist component) (:function component))
       component
-      (assoc component
-             :routes-regex
-             (str/join
-              "|"
-              (concat
-               (-> component
-                   (get-in [:database :connection])
-                   (cmd/tables)
-                   (schema-tables))
-
-               (-> component
-                   (get-in [:database :connection])
-                   (cmd/event-classes)
-                   (event-classes))))
-             :functions (cmd/functions (get-in component [:database :connection])))))
+      (as-> (update component :whitelist set) component
+        (update
+         component
+         :whitelist
+         into
+         (set
+          (into
+           (-> component
+               (get-in [:database :connection])
+               (cmd/tables)
+               (schema-tables))
+           (-> component
+               (get-in [:database :connection])
+               (cmd/event-classes)
+               (event-classes)))))
+        (assoc component :functions (cmd/functions (get-in component [:database :connection]))))))
 
   (stop [component]
     ;; if using connection or a connection-pool close it here and
     ;; dissoc it with the component
-    (dissoc component :routes-regex)))
+    (dissoc component :whitelist)))
 
 
-(defn new-metadata [system-name]
-  (map->Metadata {:system-name system-name}))
+(defn new-metadata [config system-name]
+  (map->Metadata (assoc config :system-name system-name)))
 
