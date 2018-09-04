@@ -1,6 +1,7 @@
 (ns certo.middleware
   (:require
    [clojure.string :as str]
+   [clj-stacktrace.repl]
    [ring.middleware.basic-authentication :refer [wrap-basic-authentication]]
    [ring.middleware.defaults :refer [wrap-defaults site-defaults api-defaults secure-api-defaults secure-site-defaults]]
    [ring.middleware.stacktrace :refer [wrap-stacktrace wrap-stacktrace-log wrap-stacktrace-web]]
@@ -9,8 +10,7 @@
    [certo.views.core :as cvd]))
 
 
-(defn wrap-whitelist
-  [handler md]
+(defn wrap-whitelist [handler md]
   (fn [request]
     (let [[schema table] (drop 1 (str/split (:uri request) #"/"))]
       (if (and
@@ -20,8 +20,17 @@
         (handler request)))))
 
 
-(defn wrap-exception
-  [handler]
+(defn wrap-stacktrace-log-certo [handler]
+  (fn [request]
+    (try
+      (handler request)
+      (catch Throwable e
+        (println)
+        (clj-stacktrace.repl/pst e)
+        (throw e)))))
+
+
+(defn wrap-exception [handler]
   (fn [request]
     (try
       (handler request)
@@ -31,8 +40,7 @@
          :body (format "Error: %s" (.getMessage e))}))))
 
 
-;; (defn wrap-exception-web
-;;   [handler]
+;; (defn wrap-exception-web [handler]
 ;;   (fn [request]
 ;;     (try
 ;;       (handler request)
@@ -40,8 +48,7 @@
 ;;         (cvd/message "Error" (.getMessage e))))))
 
 
-(defn wrap-exception-web
-  [handler]
+(defn wrap-exception-web [handler]
   (fn [request]
     (try
       (handler request)
@@ -51,8 +58,7 @@
          :body (cvd/message "Error" (.getMessage e))}))))
 
 
-(defn wrap-postgres-exception
-  [handler]
+(defn wrap-postgres-exception [handler]
   (fn [request]
     (try
       (handler request)
@@ -62,8 +68,7 @@
          :body (format "Database Error: %s" (.getMessage e))}))))
 
 
-;; (defn wrap-postgres-exception-web
-;;   [handler]
+;; (defn wrap-postgres-exception-web [handler]
 ;;   (fn [request]
 ;;     (try
 ;;       (handler request)
@@ -71,8 +76,7 @@
 ;;         (cvd/message "Database Error" (.getMessage e))))))
 
 
-(defn wrap-postgres-exception-web
-  [handler]
+(defn wrap-postgres-exception-web [handler]
   (fn [request]
     (try
       (handler request)
@@ -82,8 +86,7 @@
          :body (cvd/message "Database Error" (.getMessage e))}))))
 
 
-(defn customize-site-defaults
-  [site-defaults]
+(defn customize-site-defaults [site-defaults]
   (-> site-defaults
      (assoc :proxy true)
       (assoc-in
@@ -102,7 +105,8 @@
       ;; (wrap-content-type)
       ;; (wrap-not-modified)
       ;; (wrap-stacktrace)
-      (wrap-stacktrace-log)
+      ;; (wrap-stacktrace-log)
+      (wrap-stacktrace-log-certo)
       ;; (wrap-postgres-exception)
       (wrap-postgres-exception-web)
       ;; (wrap-exception)
