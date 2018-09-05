@@ -1,11 +1,12 @@
 (ns certo.middleware
   (:require
    [clojure.string :as str]
+   [clojure.pprint :as pprint]
    [clj-stacktrace.repl]
    [ring.middleware.basic-authentication :refer [wrap-basic-authentication]]
    [ring.middleware.defaults :refer [wrap-defaults site-defaults api-defaults secure-api-defaults secure-site-defaults]]
    [ring.middleware.stacktrace :refer [wrap-stacktrace wrap-stacktrace-log wrap-stacktrace-web]]
-   [ring.middleware.ssl]
+   [ring.middleware.ssl :refer [wrap-forwarded-scheme wrap-hsts wrap-ssl-redirect]]
    [certo.auth :as ca]
    [certo.views.core :as cvd]))
 
@@ -100,6 +101,7 @@
 (defn wrapped-handler [handler db md]
   (-> (handler db md)
       (wrap-defaults (customize-site-defaults secure-site-defaults))
+      ;; (wrap-forwarded-scheme)
       (wrap-whitelist md)
       (wrap-basic-authentication (partial ca/authenticated? db))
       ;; (wrap-content-type)
