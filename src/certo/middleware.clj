@@ -89,7 +89,7 @@
 
 (defn customize-site-defaults [site-defaults]
   (-> site-defaults
-     (assoc :proxy true)
+      (assoc :proxy true)
       (assoc-in
        [:security :anti-forgery]
        {:error-response
