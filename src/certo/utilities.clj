@@ -47,11 +47,15 @@
       records)))
 
 
-(defn hash-maps-to-db [db filename f]
-  (with-open [r (clojure.java.io/reader filename)]
-    (doseq [line (line-seq r)]
-      (when (not= line "")
-        (f db (clojure.edn/read-string line))))))
+(defn hash-maps-to-db
+  ([db filename f] (hash-maps-to-db db filename f nil))
+  ([db filename f schema-table]
+   (with-open [r (clojure.java.io/reader filename)]
+     (doseq [line (line-seq r)]
+       (when (not= line "")
+         (if (nil? schema-table)
+           (f db (clojure.edn/read-string line))
+           (f db (assoc (clojure.edn/read-string line) :schema-table schema-table))))))))
 
 
 ;; Used in one time use function db-to-hash-maps

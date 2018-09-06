@@ -1,8 +1,8 @@
--- :name insert-sys-ot-usergroups
+-- :name insert-options-table
 -- :command :execute
 -- :result :raw
--- :doc Insert into sys.ot_usergroups
-insert into sys.ot_usergroups
+-- :doc Insert into options table
+insert into :i:schema-table
   (value, label, location, created_by, updated_by)
 values
   (:value, :label, :location, :created_by, :updated_by);
@@ -16,66 +16,6 @@ insert into sys.users
   (username, password, full_name, display_name, email, usergroup, created_by, updated_by)
 values 
   (:username, :password, :full_name, :display_name, :email, :usergroup, :created_by, :updated_by);
-
-
--- :name insert-sys-ot-table-types
--- :command :execute
--- :result :raw
--- :doc Insert into sys.ot_table_types
-insert into sys.ot_table_types
-  (value, label, location, created_by, updated_by)
-values
-  (:value, :label, :location, :created_by, :updated_by);
-
-
--- :name insert-sys-ot-types
--- :command :execute
--- :result :raw
--- :doc Insert into sys.ot_types
-insert into sys.ot_types
-  (value, label, location, created_by, updated_by)
-values
-  (:value, :label, :location, :created_by, :updated_by);
-
-
--- :name insert-sys-ot-controls
--- :command :execute
--- :result :raw
--- :doc Insert into sys.ot_controls
-insert into sys.ot_controls
-  (value, label, location, created_by, updated_by)
-values
-  (:value, :label, :location, :created_by, :updated_by);
-
-
--- :name insert-sys-ot-calendar-colors
--- :command :execute
--- :result :raw
--- :doc Insert into sys.ot_calendar_colors
-insert into sys.ot_calendar_colors
-  (value, label, location, created_by, updated_by)
-values
-  (:value, :label, :location, :created_by, :updated_by);
-
-
--- :name insert-sys-ot-event-not-done-reasons
--- :command :execute
--- :result :raw
--- :doc Insert into sys.ot_event_not_done_reasons
-insert into sys.ot_event_not_done_reasons
-  (value, label, location, created_by, updated_by)
-values
-  (:value, :label, :location, :created_by, :updated_by);
-
-
--- :name insert-sys-ot-function-names
--- :command :execute
--- :result :raw
--- :doc Insert into sys.ot_function_names
-insert into sys.ot_function_names
-  (value, label, location, created_by, updated_by)
-values
-  (:value, :label, :location, :created_by, :updated_by);
 
 
 -- :name insert-sys-tables
