@@ -752,7 +752,28 @@
             (concat
              [(:event_queue_id eq) false]
              (mapv (fn [key] (key ed)) edk)
-             [(:created_by params) (:updated_by params)]))))))))
+             [(:created_by params) (:updated_by params)])))))
+      ;; return the event_class_result_dimensions so that they can be used by do-insert-event!
+      ed)))
+
+
+;; Use to programmatically insert events.  The params are of the form
+;; that comes from the ui, i.e. string keys and string values.
+;; Specifically, "" for nil, "true" for true, and "false" for false,
+;; and strings for doubles.
+(defn do-insert-event! [system event-classes-id params]
+  (let [db (get-in system [:database :db-spec])
+        md (:metadata system)
+        table-map (event-classes db event-classes-id)
+        fields (fields db "event" event-classes-id table-map)
+        params (into {} (map (fn [[k v]] (vector (str "event." event-classes-id "." (name k)) v)) params))]
+    (insert!
+     db
+     md
+     fields
+     "event"
+     event-classes-id
+     params)))
 
 
 (defmethod insert! :default [db md fields schema table params]
