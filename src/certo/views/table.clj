@@ -28,7 +28,16 @@
          sf (:search_fields_id field)
          ;; TO DO: op (max-privilege-write-op field)
          op "edit"]
-     (cond idf
+     (cond (= (:fields_id  field) "app.event_queue.event_queue_link")
+           (let [query-string
+                 (str/join
+                  "&"
+                  (map
+                   (fn [[k v]] (str "event." (:event-classes-id value) "." (name k) "=" v))
+                   (:event-class-argument-dimensions value)))]
+             [:a {:href (str "/event/" (:event-classes-id value) "/new" (if (not (str/blank? query-string)) (str "?" query-string) ""))}
+              (:event-queue-id value)])
+           idf
            (let [[schema_name table_name field_name] (str/split idf #"[.]")]
              [:a {:href (str "/" schema_name "/" table_name "/" value "/edit")}
               value])

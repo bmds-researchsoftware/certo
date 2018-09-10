@@ -611,7 +611,18 @@
 
 
 (defn select [db fields table-map schema table params]
-  (let [[where-string & where-parameters] (where-clause fields params true)
+  (let [event-class-argument-dimensions
+        (if (not (and (= schema "app") (= table "event_queue")))
+          nil
+          (jdbc/query
+           db
+           ["select * from app.event_class_argument_dimensions"]
+           {:row-fn
+            (fn [row]
+              (vector (:event_classes_id row)
+                      (mapv key (filter (fn [[k v]] v) (dissoc row :event_classes_id :created_by :created_at :updated_by :updated_at)))))
+            :result-set-fn (fn [rs] (into {} rs))}))
+        [where-string & where-parameters] (where-clause fields params true)
         rs
         (jdbc/query
          db
@@ -623,7 +634,29 @@
               (columns-clause fields schema table))
             " "
             where-string))
-          where-parameters))]
+          where-parameters)
+         {:row-fn
+          (if (not (and (= schema "app") (= table "event_queue")))
+            identity
+            (fn [row]
+              (assoc
+               row
+               :app.event_queue.event_queue_link
+               ;; For example
+               ;; {:event-queue-id 17
+               ;; :event-classes-id "an-event-classes-id"
+               ;; :event-class-argument-dimensions
+               ;; {:app.event_queue.dimension_one_id 123, :app.event_queue.dimension_two_id nil, :app.event_queue.dimension_three_id 456}}
+               {:event-queue-id (:app.event_queue.event_queue_id row)
+                :event-classes-id (:app.event_queue.event_classes_id row)
+                :event-class-argument-dimensions
+                (into
+                 {}
+                 (map
+                  (fn [k]
+                    (let [k k]
+                      (vector k (get row (keyword (str "app.event_queue." (name k)))))))
+                  (get event-class-argument-dimensions (:app.event_queue.event_classes_id row))))})))})]
     (if (empty? rs)
       (throw (Exception. "None found"))
       rs)))
