@@ -447,6 +447,7 @@
        ;; forms as a select-result control, e.g. when the field is a
        ;; foreign key in the new table.
        :always (assoc :is_settable true)
+       :always (assoc :disabled false)
 
        ;; dissoc since sys_field_id is not a field in sys.fields
        :always (dissoc :vf_sys_fields_id)
