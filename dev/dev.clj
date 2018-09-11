@@ -41,11 +41,14 @@
   (stop)
   ;; touch *.clj files so hugsql reloads them, and changes in the
   ;; *.sql files they use are realized
-  (u/touch ["checkouts/certo/src/certo/sql.clj"])
+  (u/touch ["checkouts/certo/src/certo/sql.clj"
+            "checkouts/certo/src/certo/sql_events.clj"])
   (let [app-home (.getCanonicalPath (clojure.java.io/file "."))
         app-name (last (str/split app-home  #"[/]"))
-        app-sql-file (str app-home "/src/" app-name "/sql.clj")]
-    (u/touch [app-sql-file]))
+        app-sql-file (str app-home "/src/" app-name "/sql.clj")
+        app-sql-events-file (str app-home "/src/" app-name "/sql_events.clj")]
+    (u/touch [app-sql-file
+              app-sql-events-file]))
   ;; (clojure.tools.namespace.repl/refresh-all :after 'user/go)
   (clojure.tools.namespace.repl/refresh :after 'dev/go))
 
