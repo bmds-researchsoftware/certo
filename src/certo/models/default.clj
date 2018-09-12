@@ -720,7 +720,7 @@
                   :event_classes_id table
                   :event_data
                   (json/write-value-as-string params)))
-          ed (dissoc ed :no_parent :created_by :created_at :updated_at :updated_by)]
+          ed (dissoc ed :created_by :created_at :updated_at :updated_by)]
       ;; ! TO DO: Need to remove event from queue after it has been completed.  Don't delete the event with no parent.
       (doseq [ecid
               (jdbc/query
@@ -745,13 +745,13 @@
            ;; columns
            (vec
             (concat
-             [:event_queue_id :no_parent]
+             [:event_queue_id]
              edk
              [:created_by :updated_by]))
            ;; values
            (vec
             (concat
-             [(:event_queue_id eq) false]
+             [(:event_queue_id eq)]
              (mapv (fn [key] (key ed)) edk)
              [(:created_by params) (:updated_by params)])))))
       ;; return the event_class_result_dimensions so that they can be used by do-insert-event!
@@ -832,8 +832,8 @@
      (jdbc/query
       db
       ;; TO DO: Use this after inactive is included in the sys.event_classes table
-      ;; ["select sec.event_classes_id, sec.argument_fields_id from sys.event_classes sec left outer join sys.event_class_dependencies ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null and sec.inactive='false'"]
-      ["select sec.event_classes_id, sec.argument_fields_id from sys.event_classes sec left outer join sys.event_class_dependencies ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null"])
+      ;; ["select sec.event_classes_id from sys.event_classes sec left outer join sys.event_class_dependencies ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null and sec.inactive='false'"]
+      ["select sec.event_classes_id from sys.event_classes sec left outer join sys.event_class_dependencies ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null"])
      :sts
      (map
       (fn [schema]

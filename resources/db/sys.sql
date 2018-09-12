@@ -71,11 +71,11 @@ values
 -- :result :raw
 -- :doc Insert into sys.event_classes
 insert into sys.event_classes
-  (event_classes_id, schema_name, table_name, function_name, argument_fields_id, is_time_required, created_by, updated_by)
+  (event_classes_id, schema_name, table_name, function_name, is_time_required, created_by, updated_by)
 values
-  (:event_classes_id, :schema_name, :table_name, :function_name, :argument_fields_id, :is_time_required, :created_by, :updated_by)
+  (:event_classes_id, :schema_name, :table_name, :function_name, :is_time_required, :created_by, :updated_by)
 on conflict (event_classes_id) do update set
-  (schema_name, table_name, function_name, argument_fields_id, is_time_required, created_by, updated_by) = (:schema_name, :table_name, :function_name, :argument_fields_id, :is_time_required, :created_by, :updated_by);
+  (schema_name, table_name, function_name, is_time_required, created_by, updated_by) = (:schema_name, :table_name, :function_name, :is_time_required, :created_by, :updated_by);
 
 
 -- :name insert-sys-event-class-dependencies

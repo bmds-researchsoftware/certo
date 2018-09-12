@@ -578,7 +578,6 @@ create table sys.event_classes (
   schema_name text,
   table_name text,
   function_name text,
-  argument_fields_id text references sys.fields (fields_id),
   is_time_required boolean not null,
   foreign key (schema_name, table_name) references sys.tables (schema_name, table_name),
   created_by text references sys.users (username) not null,
