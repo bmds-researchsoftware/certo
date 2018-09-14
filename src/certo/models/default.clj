@@ -214,11 +214,16 @@
   (assoc
    row
    :options
-   (jdbc/reducible-query
-    db
-    ;; TO DO: The Postgresql function should be passed the "parent_id"
-    ;; TO DO: select_result_vview is read from an html form so watch sql injection
-    [(format "select * from %s" (:select_result_view row))])))
+   (hash-map
+    :select-result-view ;; <------------------ TO DO: Reanme this to :fields-id
+    (:fields_id row)
+    :reducible-query
+    (jdbc/reducible-query
+     db
+     ;; TO DO: The Postgresql function should be passed the
+     ;; "parent_id" TO DO: select_result_view is read from an html
+     ;; form so watch sql injection
+     [(format "select * from %s" (:select_result_view row))]))))
 
 
 (defn common-fields [db schema table]
@@ -503,8 +508,7 @@
          :result-set-fn (fn [rs] (into {} rs))}))
 
      ;; get all controls that are in a select-result control
-     (if is_event
-
+     (cond is_event
        (merge
         (certo.sql/select-sys-fields-sets-in-select-result-control-by-event-classes-id
          db
@@ -521,6 +525,16 @@
          {:row-fn (fn [row] (vector  (stf "sys" "rv_users" (:field_name row)) (prepare-control row db)))
           :result-set-fn (fn [rs] (into {} rs))}))
 
+       ;; This case occurs when a select-result control appears in the search form at the top of a table view
+       ;; TO DO: Currently this will throw and exception when
+       ;; select_result_to_text is false.  Need to write code similar to
+       ;; certo.sql/select-sys-fields-sets-in-select-result-control-by-schema-table but joining to find the controls that are in select-result controls that are in views.
+       ;; The following provides a start:
+       ;; select sfs.schema_name, sfs.table_name, sfs.field_name, sf.fields_id, sf.select_result_to_text from sys.field_sets as sfs inner join sys.fields sf on sfs.sys_fields_id=sf.fields_id where sf.control='select-result';
+       is_view
+       {}
+
+       :else
        (certo.sql/select-sys-fields-sets-in-select-result-control-by-schema-table
         db
         {:schema schema :table table}
@@ -535,7 +549,7 @@
 
 
 (defn fields-by-schema-table-and-in-table-view [fields schema table]
-  (into {} (filter (fn [[k v]] (and (= (:schema_name v) schema) (= (:table_name v) table) (:in_table_view v))) fields)))
+   (into {} (filter (fn [[k v]] (and (= (:schema_name v) schema) (= (:table_name v) table) (:in_table_view v))) fields)))
 
 
 (defn fields-in-table-view [fields]
@@ -610,19 +624,19 @@
 
 ;; TO DO: Store a default order by clause for each table in sys.tables.
 
+(defmulti select (fn [db fields table-map schema table params] (st schema table)))
 
-(defn select [db fields table-map schema table params]
+
+(defmethod select "app.event_queue" [db fields table-map schema table params]
   (let [event-class-argument-dimensions
-        (if (not (and (= schema "app") (= table "event_queue")))
-          nil
-          (jdbc/query
-           db
-           ["select * from app.event_class_argument_dimensions"]
-           {:row-fn
-            (fn [row]
-              (vector (:event_classes_id row)
-                      (mapv key (filter (fn [[k v]] v) (dissoc row :event_classes_id :created_by :created_at :updated_by :updated_at)))))
-            :result-set-fn (fn [rs] (into {} rs))}))
+        (jdbc/query
+         db
+         ["select * from app.event_class_argument_dimensions"]
+         {:row-fn
+          (fn [row]
+            (vector (:event_classes_id row)
+                    (mapv key (filter (fn [[k v]] v) (dissoc row :event_classes_id :created_by :created_at :updated_by :updated_at)))))
+          :result-set-fn (fn [rs] (into {} rs))})
         [where-string & where-parameters] (where-clause fields params true)
         rs
         (jdbc/query
@@ -630,34 +644,49 @@
          (into
           (vector
            (str
-            (if (or (:is_view table-map) (:is_result_view table-map))
+            (if false
               (str "select * from " (:tables_id table-map))
               (columns-clause fields schema table))
             " "
             where-string))
           where-parameters)
          {:row-fn
-          (if (not (and (= schema "app") (= table "event_queue")))
-            identity
-            (fn [row]
-              (assoc
-               row
-               :app.event_queue.event_queue_link
-               ;; For example
-               ;; {:event-queue-id 17
-               ;; :event-classes-id "an-event-classes-id"
-               ;; :event-class-argument-dimensions
-               ;; {:app.event_queue.dimension_one_id 123, :app.event_queue.dimension_two_id nil, :app.event_queue.dimension_three_id 456}}
-               {:event-queue-id (:app.event_queue.event_queue_id row)
-                :event-classes-id (:app.event_queue.event_classes_id row)
-                :event-class-argument-dimensions
-                (into
-                 {}
-                 (map
-                  (fn [k]
-                    (let [k k]
-                      (vector k (get row (keyword (str "app.event_queue." (name k)))))))
-                  (get event-class-argument-dimensions (:app.event_queue.event_classes_id row))))})))})]
+          (fn [row]
+            (assoc
+             row
+             :app.event_queue.event_queue_link
+             ;; For example
+             ;; {:event-queue-id 17
+             ;; :event-classes-id "an-event-classes-id"
+             ;; :event-class-argument-dimensions
+             ;; {:app.event_queue.dimension_one_id 123, :app.event_queue.dimension_two_id nil, :app.event_queue.dimension_three_id 456}}
+             {:event-queue-id (:app.event_queue.event_queue_id row)
+              :event-classes-id (:app.event_queue.event_classes_id row)
+              :event-class-argument-dimensions
+              (into
+               {}
+               (map
+                (fn [k]
+                  (let [k k]
+                    (vector k (get row (keyword (str "app.event_queue." (name k)))))))
+                (get event-class-argument-dimensions (:app.event_queue.event_classes_id row))))}))})]
+    (if (empty? rs)
+      (throw (Exception. "None found"))
+      rs)))
+
+
+(defmethod select :default [db fields table-map schema table params]
+  (let [[where-string & where-parameters] (where-clause fields params true)
+        rs
+        (jdbc/query
+         db
+         (into
+          (vector
+           (str
+            (columns-clause fields schema table)
+            " "
+            where-string))
+          where-parameters))]
     (if (empty? rs)
       (throw (Exception. "None found"))
       rs)))

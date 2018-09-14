@@ -125,36 +125,40 @@
      (f/drop-down
       (assoc (update-attrs attrs field {:select_size :size}) :class "sr")
       name
-      (as-> (into [] (:options field)) options
-        (map
-         (fn [{value :value :as all}]
-           (vector
-            (if value
-              (map
-               ;; TO DO: Should not be calling db-to-label.  Should call
-               ;; db-to-table (since it depends on both type and control)
-               ;; with a new argument that indicates should not return a
-               ;; link, just a value.
-               (fn [[k v]]
-                 (when (nil? (get fields (clojure.core/name k)))
-                   (throw (Exception. (format "form-field:: %s not found in fields" (clojure.core/name k)))))
-                 ;; TO DO: All fields must have a size - enforce it with a database constraint
-                 ;; (when (nil? (get-in fields [(clojure.core/name k) :size]))
-                 ;;   (throw (Exception. (format "form-field:: size for %s not found" (clojure.core/name k)))))
-                 (u/pads
-                  (str (cf/db-to-label v))
-                  ;; TO DO: All fields must have a size - enforce it with a database constraint
-                  (or (get-in fields [(clojure.core/name k) :size]) (count (str (cf/db-to-label v))))
-                  ;; (get-in fields [(clojure.core/name k) :size])
-                  "&nbsp;" true))
-               (dissoc all :value))
-              "")
-            value))
-         options)
-        (conj
-         options
-         [""
-          nil]))
+      (let [select-result-view (:select-result-view (:options field))]
+        (as-> (into [] (:reducible-query (:options field))) options
+          (map
+           (fn [{value :value :as all}]
+             (vector
+              (if value
+                (map
+                 ;; TO DO: Should not be calling db-to-label.  Should call
+                 ;; db-to-table (since it depends on both type and control)
+                 ;; with a new argument that indicates should not return a
+                 ;; link, just a value.
+                 (fn [[k v]]
+                   (let [k select-result-view]
+                     (when (nil? (get fields k))
+                       (throw (Exception. (format "form-field:: %s not found in fields" k))))
+                     ;; TO DO: All fields must have a size - enforce it with a database constraint
+                     ;; (when (nil? (get-in fields [k :size]))
+                     ;;   (throw (Exception. (format "form-field:: size for %s not found" k))))
+                     (u/pads
+                      (str (cf/db-to-label v))
+                      ;; TO DO: All fields must have a size - enforce it with a database constraint
+                      (or 
+                       (get-in fields [k :size])
+                       (count (str (cf/db-to-label v))))
+                      ;; (get-in fields [k :size])
+                      "&nbsp;" true)))
+                 (dissoc all :value))
+                "")
+              value))
+           options)
+          (conj
+           options
+           [""
+            nil])))
       value)]))
 
 

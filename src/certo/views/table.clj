@@ -28,14 +28,14 @@
          sf (:search_fields_id field)
          ;; TO DO: op (max-privilege-write-op field)
          op "edit"]
-     (cond (= (:fields_id  field) "app.event_queue.event_queue_link")
+     (cond (= (:fields_id field) "app.event_queue.event_queue_link")
            (let [query-string
                  (str/join
                   "&"
                   (map
                    (fn [[k v]] (str "event." (:event-classes-id value) "." (name k) "=" v))
                    (:event-class-argument-dimensions value)))]
-             [:a {:href (str "/event/" (:event-classes-id value) "/new" (if (not (str/blank? query-string)) (str "?" query-string) ""))}
+             [:a {:style "font-weight: bold;" :href (str "/event/" (:event-classes-id value) "/new" (if (not (str/blank? query-string)) (str "?" query-string) ""))}
               (:event-queue-id value)])
            idf
            (let [[schema_name table_name field_name] (str/split idf #"[.]")]
@@ -87,7 +87,14 @@
     (search-link field value (jt/format "MM/dd/yyyy" (jt/local-date value)))))
 
 
+;; TO DO: Check if this is displaying UTC in the table view.
 (defmethod db-to-table [:timestamptz :datetime] [field value]
+  (when value
+    (jt/format "MM/dd/yyyy, hh:mm a" (jt/local-date-time value))))
+
+
+;; TO DO: This is displaying UTC in the table view - fix it.
+(defmethod db-to-table [:timestamptz :timestamp] [field value]
   (when value
     (jt/format "MM/dd/yyyy, hh:mm a" (jt/local-date-time value))))
 
@@ -169,7 +176,7 @@
 
        [:tr
         [:td
-         {:class "lnk" :style "text-align:left;" } [:a {:href "/"} "Home"]]
+         {:class "lnk" :style "text-align:left;"} [:a {:href "/"} "Home"]]
         ;; Only provide a New link for tables, i.e. not for views or result_views.
         (when (not (or (:is_view table-map) (:is_result_view table-map)))
           [:td
@@ -181,52 +188,46 @@
         (for [field (map #(get fields %) stfs)]
           [:th (:label field)])]
 
-       ;; TO DO: Search does not work on views, so exclude it for now.
-       ;; In models/default.clj need to update sql-identifier so that
-       ;; it is called "everywhere" and so that it double quotes column
-       ;; names for views.
-       (when (not (or (:is_view table-map) (:is_result_view table-map)))
-         [:tr
-          {:class "sc"}
-          (for [stf stfs
-                :let [field (get fields stf)
-                      value (form/db-to-form field (models/ui-to-db-one fields stf (get data stf "")))
-                      common-attrs {:class "fld" :disabled false :readonly false :required false}]]
-            [:td {:class "sc" :style "vertical-align:top"}
-             (if (and (= (:control field) "select-result") (:select_result_to_text field))
-               ;; "convert" select-result control to a text control for search
-               (->
-                (merge
-                 (select-keys
-                  field
-                  [:fields_id :schema_name :table_name :field_name :type :is_function
-                   :is_id :is_uk :is_fk :is_settable :label :location :in_table_view])
-                 (cond (= (:type field) "int8")
-                       {:control "integer"}
-                       (= (:type field) "text")
-                       ;; TO DO: Remove hard coded text_size and text_max_length
-                       {:control "text" :text_size 25 :text_max_length 40}
-                       :else (throw (Exception. (format "Invalid type: %s for control: select-result" (:type field))))))
-                (form/form-field stf common-attrs value fields))
-               (form/form-field field stf common-attrs value fields))])])
+       [:tr
+        {:class "sc"}
+        (for [stf stfs
+              :let [field (get fields stf)
+                    value (form/db-to-form field (models/ui-to-db-one fields stf (get data stf "")))
+                    common-attrs {:class "fld" :disabled false :readonly false :required false}]]
+          [:td {:class "sc" :style "vertical-align:top"}
+           (if (and (= (:control field) "select-result") (:select_result_to_text field))
+             ;; "convert" select-result control to a text control for search
+             (->
+              (merge
+               (select-keys
+                field
+                [:fields_id :schema_name :table_name :field_name :type :is_function
+                 :is_id :is_uk :is_fk :is_settable :label :location :in_table_view])
+               (cond (= (:type field) "int8")
+                     {:control "integer"}
+                     (= (:type field) "text")
+                     ;; TO DO: Remove hard coded text_size and text_max_length
+                     {:control "text" :text_size 25 :text_max_length 40}
+                     :else (throw (Exception. (format "Invalid type: %s for control: select-result" (:type field))))))
+              (form/form-field stf common-attrs value fields))
+             (form/form-field field stf common-attrs value fields))])]
 
-       (when (not (or (:is_view table-map) (:is_result_view table-map)))
-         [:tr
+       [:tr
+        {:class "sb"}
+        [:td {:colspan (count stfs)}
+         [:div
           {:class "sb"}
-          [:td {:colspan (count stfs)}
-           [:div
-            {:class "sb"}
-            (let [sep (str/join (repeat 4 " &nbsp; "))]
-              (list
-               ;; "Order By:"
-               ;; " &nbsp; "
-               ;; (f/drop-down "order-by" [["^ Protocol Name" "protocol_name"] ["v Protocol Name" "protocol_name"]])
-               ;; sep
-               (f/drop-down "operator" [["Or" "or"] ["And" "and"]] (get data "operator" "or"))
-               sep
-               (f/drop-down "comparator" [["Approximate" "approximate"] ["Exact" "exact"]] (get data "comparator" "approximate"))
-               sep
-               (f/submit-button {:form "search-form"} "Search")))]]])
+          (let [sep (str/join (repeat 4 " &nbsp; "))]
+            (list
+             ;; "Order By:"
+             ;; " &nbsp; "
+             ;; (f/drop-down "order-by" [["^ Protocol Name" "protocol_name"] ["v Protocol Name" "protocol_name"]])
+             ;; sep
+             (f/drop-down "operator" [["Or" "or"] ["And" "and"]] (get data "operator" "or"))
+             sep
+             (f/drop-down "comparator" [["Approximate" "approximate"] ["Exact" "exact"]] (get data "comparator" "approximate"))
+             sep
+             (f/submit-button {:form "search-form"} "Search")))]]]
 
        ;; TO DO: If rows is a reducible-query this will work well
            

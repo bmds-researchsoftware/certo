@@ -548,7 +548,7 @@ create or replace function sys.check_sys_field_sets()
 returns trigger as $$
 begin
   -- TO DO: Limit select to tables owned by application
-  if (select count(*)=1 from information_schema.columns where table_schema = new.schema_name and table_name = new.table_name and column_name = new.schema_name || '.' || new.table_name || '.' || new.field_name) then
+  if (select count(*)=1 from information_schema.columns where table_schema = new.schema_name and table_name = new.table_name and column_name = new.field_name) then
     return new;
   else
     raise exception 'Field %.%.% does not exist in the database.', new.schema_name, new.table_name, new.field_name;
@@ -763,47 +763,47 @@ execute procedure sys.set_tstzrange_from_dates_and_times();
 
 
 create view sys.rv_calendars as
-select calendars_id as value, calendars_id as "sys.rv_calendars.calendars_id", name as "sys.rv_calendars.name"
+select calendars_id as value, calendars_id, name
 from sys.calendars
 order by name;
 
 
 create view sys.rv_event_classes as
-select event_classes_id as value, event_classes_id as "sys.rv_event_classes.event_classes_id"
+select event_classes_id as value, event_classes_id
 from sys.event_classes
 order by event_classes_id, function_name;
 
 
 create view sys.rv_fields as
-select fields_id as value, schema_name as "sys.rv_fields.schema_name", table_name as "sys.rv_fields.table_name", field_name as "sys.rv_fields.field_name"
+select fields_id as value, schema_name, table_name, field_name
 from sys.fields
 order by fields_id;
 
 
 create view sys.rv_option_tables as
-select tables_id as value, tables_id as "sys.rv_option_tables.tables_id", schema_name as "sys.rv_option_tables.schema_name", table_name as "sys.rv_option_tables.table_name" from sys.tables where table_type='option-table';
+select tables_id as value, tables_id, schema_name, table_name from sys.tables where table_type='option-table';
 
 
 create view sys.rv_result_views as
-select tables_id as value, tables_id as "sys.rv_result_views.tables_id", schema_name as "sys.rv_result_views.schema_name", table_name as "sys.rv_result_views.table_name" from sys.tables where table_type='result-view';
+select tables_id as value, tables_id, schema_name, table_name from sys.tables where table_type='result-view';
 
 
 create view sys.rv_views as
-select tables_id as value, tables_id as "sys.rv_views.tables_id", schema_name as "sys.rv_views.schema_name", table_name as "sys.rv_views.table_name" from sys.tables where table_type='view';
+select tables_id as value, tables_id, schema_name, table_name from sys.tables where table_type='view';
 
 
 create view sys.rv_tables as
-select tables_id as value, tables_id as "sys.rv_tables.tables_id", schema_name as "sys.rv_tables.schema_name", table_name as "sys.rv_tables.table_name" from sys.tables where table_type='table';
+select tables_id as value, tables_id, schema_name, table_name from sys.tables where table_type='table';
 
 
 create view sys.rv_function_names as
-select distinct function_name as value, function_name as "sys.rv_function_names.function_name" from sys.event_classes;
+select distinct function_name as value, function_name from sys.event_classes;
 
 
 create view sys.rv_users as
-select username as value, full_name as "sys.rv_users.full_name" from sys.users;
+select username as value, full_name from sys.users;
 
 
 create view sys.event_dependencies as
-select event_classes_id "sys.event_dependencies.event_classes_id", sys.event_classes.depends_on "sys.event_dependencies.depends_on", sys.event_classes.dependency_of "sys.event_dependencies.dependency_of" from sys.event_classes;
+select event_classes_id, sys.event_classes.depends_on, sys.event_classes.dependency_of from sys.event_classes;
 
