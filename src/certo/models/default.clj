@@ -215,8 +215,18 @@
    row
    :options
    (hash-map
-    :select-result-view
-    (:select_result_view row)
+    :transducer
+    (fn [r]
+      (into
+       {}
+       (map
+        (fn [[k v]]
+          (vector
+           (if (= k :value)
+             k
+             (str (:select_result_view row) "." (clojure.core/name k)))
+           v))
+        r)))
     :reducible-query
     (jdbc/reducible-query
      db
