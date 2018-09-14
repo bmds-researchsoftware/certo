@@ -207,7 +207,7 @@
                      {:control "integer"}
                      (= (:type field) "text")
                      ;; TO DO: Remove hard coded text_size and text_max_length
-                     {:control "text" :text_size 25 :text_max_length 40}
+                     {:control "text" :size (or (:size field) 50) :text_max_length 1024}
                      :else (throw (Exception. (format "Invalid type: %s for control: select-result" (:type field))))))
               (form/form-field stf common-attrs value fields))
              (form/form-field field stf common-attrs value fields))])]
