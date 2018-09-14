@@ -137,7 +137,7 @@
                  ;; with a new argument that indicates should not return a
                  ;; link, just a value.
                  (fn [[k v]]
-                   (let [k select-result-view]
+                   (let [k (str select-result-view  "." (clojure.core/name k))]
                      (when (nil? (get fields k))
                        (throw (Exception. (format "form-field:: %s not found in fields" k))))
                      ;; TO DO: All fields must have a size - enforce it with a database constraint
@@ -145,7 +145,6 @@
                      ;;   (throw (Exception. (format "form-field:: size for %s not found" k))))
                      (u/pads
                       (str (cf/db-to-label v))
-                      ;; TO DO: All fields must have a size - enforce it with a database constraint
                       (or 
                        (get-in fields [k :size])
                        (count (str (cf/db-to-label v))))

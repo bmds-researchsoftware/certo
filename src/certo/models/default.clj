@@ -215,8 +215,8 @@
    row
    :options
    (hash-map
-    :select-result-view ;; <------------------ TO DO: Reanme this to :fields-id
-    (:fields_id row)
+    :select-result-view
+    (:select_result_view row)
     :reducible-query
     (jdbc/reducible-query
      db
