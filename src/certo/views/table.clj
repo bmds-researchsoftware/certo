@@ -28,7 +28,7 @@
          sf (:search_fields_id field)
          ;; TO DO: op (max-privilege-write-op field)
          op "edit"]
-     (cond (= (:fields_id field) "app.event_queue.event_queue_link")
+     (cond (= (:fields_id field) "app.event_queue.event_queue_id")
            (let [query-string
                  (str/join
                   "&"

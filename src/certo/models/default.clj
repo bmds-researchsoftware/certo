@@ -644,17 +644,15 @@
          (into
           (vector
            (str
-            (if false
-              (str "select * from " (:tables_id table-map))
-              (columns-clause fields schema table))
+            (columns-clause fields schema table)
             " "
             where-string))
           where-parameters)
          {:row-fn
           (fn [row]
             (assoc
-             row
-             :app.event_queue.event_queue_link
+             (dissoc row :app.event_queue.event_classes_id)
+             :app.event_queue.event_queue_id
              ;; For example
              ;; {:event-queue-id 17
              ;; :event-classes-id "an-event-classes-id"
