@@ -92,6 +92,7 @@
                   (if (= schema "event")
                     (assoc
                      query-params
+                     (str schema "." table ".event_classes_id") table
                      (str schema "." table ".event_by") username
                      (str schema "." table ".event_date") (str (certo.utilities/date-now))
                      ;; TO DO: If is_time_required then add it 
