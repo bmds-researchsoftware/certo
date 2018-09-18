@@ -6,7 +6,7 @@
    [compojure.core :refer [GET POST] :as compojure]
    [compojure.route :as route]
    [ring.util.response :refer [redirect]]
-   [certo.models.default :as model]
+   [certo.models.default :as model :refer [insert!]]
    [certo.views.core :as view]
    [certo.metadata :as metadata]
    [certo.models.events :as me]))
@@ -92,13 +92,13 @@
                   (if (= schema "event")
                     (assoc
                      query-params
-                     (str schema "." table ".event_classes_id") table
+                     ;; (str schema "." table ".event_classes_id") table
                      (str schema "." table ".event_by") username
                      (str schema "." table ".event_date") (str (certo.utilities/date-now))
                      ;; TO DO: If is_time_required then add it 
                      )
                     query-params)))
-       
+
        (compojure/POST
         "/"
         {params :params username :basic-authentication}

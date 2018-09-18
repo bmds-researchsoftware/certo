@@ -177,27 +177,36 @@
       (fn [rs] (into {} rs)))}))
 
 
+;; TO DO: Rename functions to event-functions.  Load event-function
+;; from namespaces specified in config.clj and use to handle :default
+;; case.
+
+
+;; (defn functions [db]
+;;   (let [event-function-not-implemented
+;;         (fn [db]
+;;           (throw (Exception. "Event function is not implemented")))]
+;;     (jdbc/query
+;;      db
+;;      ["select event_classes_id, function_name from sys.event_classes"]
+;;      {:row-fn
+;;       (fn [row]
+;;         (vector
+;;          (:event_classes_id row)
+;;          (let [function_name (:function_name row)]
+;;            (if (= function_name "event_function_not_implemented")
+;;              event-function-not-implemented
+;;              (try
+;;                (eval (read-string function_name))
+;;                (catch clojure.lang.Compiler$CompilerException e
+;;                  (throw (Exception. (format "Function: %s is not defined" function_name))))
+;;                (catch Exception e
+;;                  (throw e)))))))
+;;       :result-set-fn (fn [rs] (into {} rs))})))
+
+
 (defn functions [db]
-  (let [event-function-not-implemented
-        (fn [db]
-          (throw (Exception. "Event function is not implemented")))]
-    (jdbc/query
-     db
-     ["select event_classes_id, function_name from sys.event_classes"]
-     {:row-fn
-      (fn [row]
-        (vector
-         (:event_classes_id row)
-         (let [function_name (:function_name row)]
-           (if (= function_name "event_function_not_implemented")
-             event-function-not-implemented
-             (try
-               (eval (read-string function_name))
-               (catch clojure.lang.Compiler$CompilerException e
-                 (throw (Exception. (format "Function: %s is not defined" function_name))))
-               (catch Exception e
-                 (throw e)))))))
-      :result-set-fn (fn [rs] (into {} rs))})))
+  nil)
 
 
 (defn select-options [db row]
@@ -740,59 +749,90 @@
   )
 
 
-(defmulti insert! (fn [db md fields schema table params] schema))
+;; TO DO: Consider doing something like this
+;; (defn insert! ["event" "recruitment_coordinator_added_newmother"] [db md fields schema table params]
+;;   (with-event [db md fields schema table params]
+;;     (if (:is_event_done params)
+;;       (sql-events/recruitment-participant-consented-mainstudy db params)
+;;       (sql-events/recruitment-participant-did-not-consent-mainstudy db params))))
 
 
-(defmethod insert! "event" [db md fields schema table params]
-  (jdbc/with-db-transaction [tx db]
-    (let [params (cu/str-to-key-map (ui-to-db fields params))
-          ;; The last statement of every event function is
-          ;; insert into app.event_dimensions (...) values (...) returning *;
-          ;; and is stored in ed.
-          ed
-          ;; Run the function for this event
-          ((get (:functions md) table) ;; table = event_classes_id
-           tx
-           (assoc params
-                  :event_classes_id table
-                  :event_data
-                  (json/write-value-as-string params)))
-          ed (dissoc ed :created_by :created_at :updated_at :updated_by)]
-      ;; ! TO DO: Need to remove event from queue after it has been completed.  Don't delete the event with no parent.
-      (doseq [ecid
-              (jdbc/query
-               tx
-               ;; This is the set of events that we need to check if they should be added.  It is all events that are dependent on the event that is being completed.
-               ["select event_classes_id from sys.event_class_dependencies where depends_on_event_classes_id = ?" table]
-               {:row-fn :event_classes_id})]
-        ;; ! TO DO: Use etf (i.e. event-true-false) to use DNF to check if actually need to add the event with event_classes_id = ecid, and if so run the following two inserts
-        ;; ! TO DO: Remember users should only be shown events that are on the queue whose start date has passed
-        ;; ! TO DO: Also need to handle event end date
-        (let [eq
-              (first
-               (jdbc/insert!
+;; TO DO: schema is always "event" and table is event_classes_id, so
+;; remove the schema argument and rename the table argument to be
+;; event-classes-id
+(defn insert-event!
+  ([db md fields schema table params event-class-fn]
+   (jdbc/with-db-transaction [tx db]
+     (let [params (cu/str-to-key-map (ui-to-db fields params))
+           ;; The last statement of every event function is
+           ;; insert into app.event_dimensions (...) values (...) returning *;
+           ;; and is stored in ed.
+           ed
+           ;; Run the function for this event
+           (event-class-fn
+            tx
+            (assoc params
+                   :event_classes_id table
+                   :event_data
+                   (json/write-value-as-string params)))
+           ed (dissoc ed :created_by :created_at :updated_at :updated_by)]
+       (println "ed" ed)
+       ;; ! TO DO: Need to remove event from queue after it has been completed.  Don't delete the event with no parent.
+       (doseq [ecid
+               (jdbc/query
                 tx
-                "sys.event_queue"
-                {:event_classes_id ecid :start_date (certo.utilities/date-now) :created_by (:created_by params) :updated_by (:updated_by params)}
-                {:return-keys true}))
-              edk (vec (keys (dissoc ed :events_id)))]
-          (jdbc/insert!
-           tx
-           "app.event_queue_dimensions"
-           ;; columns
-           (vec
-            (concat
-             [:event_queue_id]
-             edk
-             [:created_by :updated_by]))
-           ;; values
-           (vec
-            (concat
-             [(:event_queue_id eq)]
-             (mapv (fn [key] (key ed)) edk)
-             [(:created_by params) (:updated_by params)])))))
-      ;; return the event_class_result_dimensions so that they can be used by do-insert-event!
-      ed)))
+                ;; This is the set of events that we need to check if they should be added.  It is all events that are dependent on the event that is being completed.
+                ["select event_classes_id from sys.event_class_dependencies where depends_on_event_classes_id = ?" table]
+                {:row-fn :event_classes_id})]
+         ;; ! TO DO: Use etf (i.e. event-true-false) to use DNF to check if actually need to add the event with event_classes_id = ecid, and if so run the following two inserts
+         ;; ! TO DO: Remember users should only be shown events that are on the queue whose start date has passed
+         ;; ! TO DO: Also need to handle event end date
+         (let [eq
+               (first
+                (jdbc/insert!
+                 tx
+                 "sys.event_queue"
+                 {:event_classes_id ecid :start_date (certo.utilities/date-now) :created_by (:created_by params) :updated_by (:updated_by params)}
+                 {:return-keys true}))
+               edk (vec (keys (dissoc ed :events_id)))]
+           (jdbc/insert!
+            tx
+            "app.event_queue_dimensions"
+            ;; columns
+            (vec
+             (concat
+              [:event_queue_id]
+              edk
+              [:created_by :updated_by]))
+            ;; values
+            (vec
+             (concat
+              [(:event_queue_id eq)]
+              (mapv (fn [key] (key ed)) edk)
+              [(:created_by params) (:updated_by params)])))))
+       ;; return the event_class_result_dimensions so that they can be used by do-insert-event!
+       ed))))
+
+
+(defn insert-schema-table! [db md fields schema table params]
+  (let [rs
+        (jdbc/insert!
+         db
+         (st schema table)
+         (ui-to-db fields params))]
+    (case (count (take 2 rs))
+      0 (throw (Exception. "Error: Not inserted."))
+      1 true
+      (throw (Exception. "Warning: Unexpected result on insert.")))))
+
+
+(defmulti insert! (fn [db md fields schema table params] [schema table]))
+
+
+(defmethod insert! :default [db md fields schema table params]
+  (if (= schema "event")
+    (insert-event! db md fields schema table params)
+    (insert-schema-table! db md fields schema table params)))
 
 
 ;; Use to programmatically insert events.  The params are of the form
@@ -812,18 +852,6 @@
      "event"
      event-classes-id
      params)))
-
-
-(defmethod insert! :default [db md fields schema table params]
-  (let [rs
-        (jdbc/insert!
-         db
-         (st schema table)
-         (ui-to-db fields params))]
-    (case (count (take 2 rs))
-      0 (throw (Exception. "Error: Not inserted."))
-      1 true
-      (throw (Exception. "Warning: Unexpected result on insert.")))))
 
 
 (defn update! [db fields schema table params id]

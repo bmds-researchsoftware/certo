@@ -1,7 +1,7 @@
--- :name event_record
+-- :name record-event
 -- :command :returning-execute
 -- :result :one
--- :doc Insert a record event
+-- :doc Record the event
 insert into sys.events
   (event_classes_id, event_by, event_date, is_event_done, event_not_done_reason, event_data, event_notes, created_by, updated_by)
 values
