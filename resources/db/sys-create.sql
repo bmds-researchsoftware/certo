@@ -616,7 +616,7 @@ create table sys.event_class_dependencies (
   term int8 not null,
   depends_on_event_classes_id text references sys.event_classes (event_classes_id) not null,
   is_positive boolean not null,
-  lag int8,
+  lag_days int8 default 0,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
@@ -625,12 +625,12 @@ select sys.create_trigger_set_updated_at('sys.event_class_dependencies');
 
 create or replace function depends_on(sys.event_classes)
 returns text as $$
-  select string_agg(trm, E'\n or\n') from (select string_agg(case when is_positive='false' then '~' else ' ' end || depends_on_event_classes_id  || '(' || lag || ')', E' and\n') as trm from sys.event_class_dependencies where event_classes_id = $1.event_classes_id group by term) as trms;
+  select string_agg(trm, E'\n or\n') from (select string_agg(case when is_positive='false' then '~' else ' ' end || depends_on_event_classes_id  || '(' || lag_days || ')', E' and\n') as trm from sys.event_class_dependencies where event_classes_id = $1.event_classes_id group by term) as trms;
 $$ language sql stable;
 
 create or replace function dependency_of(sys.event_classes)
 returns text as $$
-  select string_agg(case when is_positive='false' then '~' else ' ' end || event_classes_id || '(' || lag || ')', E',\n') from sys.event_class_dependencies where depends_on_event_classes_id =  $1.event_classes_id;
+  select string_agg(case when is_positive='false' then '~' else ' ' end || event_classes_id || '(' || lag_days || ')', E',\n') from sys.event_class_dependencies where depends_on_event_classes_id =  $1.event_classes_id;
 $$ language sql stable;
 
 
