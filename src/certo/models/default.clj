@@ -760,8 +760,7 @@
 ;; TO DO: schema is always "event" and table is event_classes_id, so
 ;; remove the schema argument and rename the table argument to be
 ;; event-classes-id
-(defn insert-event!
-  ([db md fields schema table params event-class-fn]
+(defn insert-event! [db md fields schema table params event-class-fn]
    (jdbc/with-db-transaction [tx db]
      (let [params (cu/str-to-key-map (ui-to-db fields params))
            ;; The last statement of every event function is
@@ -811,7 +810,7 @@
               (mapv (fn [key] (key ed)) edk)
               [(:created_by params) (:updated_by params)])))))
        ;; return the event_class_result_dimensions so that they can be used by do-insert-event!
-       ed))))
+       ed)))
 
 
 (defn insert-schema-table! [db md fields schema table params]
