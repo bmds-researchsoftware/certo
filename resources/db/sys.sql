@@ -83,9 +83,9 @@ on conflict (event_classes_id) do update set
 -- :result :raw
 -- :doc Insert into sys.event_class_dependencies
 insert into sys.event_class_dependencies
-  (event_classes_id, term, depends_on_event_classes_id, is_positive, lag_years, lag_months, lag_days, lag_minutes, lag_seconds, created_by, updated_by)
+  (event_classes_id, term, depends_on_event_classes_id, is_positive, lag_years, lag_months, lag_hours, lag_days, lag_minutes, lag_seconds, created_by, updated_by)
 values
-  (:event_classes_id, :term, :depends_on_event_classes_id, :is_positive, :lag_years, :lag_months, :lag_days, :lag_minutes, :lag_seconds, :created_by, :updated_by);
+  (:event_classes_id, :term, :depends_on_event_classes_id, :is_positive, :lag_years, :lag_months, :lag_hours, :lag_days, :lag_minutes, :lag_seconds, :created_by, :updated_by);
 
 
 -- :name insert-sys-event-class-fields

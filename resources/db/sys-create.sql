@@ -616,11 +616,14 @@ create table sys.event_class_dependencies (
   term int8 not null,
   depends_on_event_classes_id text references sys.event_classes (event_classes_id) not null,
   is_positive boolean not null,
-  lag_years int8 default 0,
-  lag_months int8 default 0,
-  lag_days int8 default 0,
-  lag_minutes int8 default 0,
-  lag_seconds int8 default 0,
+  lag_years int8 constraint valid_lag_years check (lag_years is not null and lag_years >= 0),
+  lag_months int8 constraint valid_lag_months check (lag_months is not null and lag_months >= 0),
+  -- lag_days int8 constraint valid_lag_days check (lag_days is not null and lag_days >= 0),
+  -- TO DO: Must use the following
+  lag_days int8 constraint valid_lag_days check (lag_days is not null),
+  lag_hours int8 constraint valid_lag_hours check (lag_hours is not null and lag_hours >= 0),
+  lag_minutes int8 constraint valid_lag_minutes check (lag_minutes is not null and lag_minutes >= 0),
+  lag_seconds int8 constraint valid_lag_seconds check (lag_seconds is not null and lag_seconds >= 0),
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
@@ -629,12 +632,12 @@ select sys.create_trigger_set_updated_at('sys.event_class_dependencies');
 
 create or replace function depends_on(sys.event_classes)
 returns text as $$
-  select string_agg(trm, E'\n or\n') from (select string_agg(case when is_positive='false' then '~' else ' ' end || depends_on_event_classes_id  || '(' || lag_years || ',' || lag_months || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E' and\n') as trm from sys.event_class_dependencies where event_classes_id = $1.event_classes_id group by term) as trms;
+  select string_agg(trm, E'\n or\n') from (select string_agg(case when is_positive='false' then '~' else ' ' end || depends_on_event_classes_id  || '(' || lag_years || ',' || lag_months || ',' || lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E' and\n') as trm from sys.event_class_dependencies where event_classes_id = $1.event_classes_id group by term) as trms;
 $$ language sql stable;
 
 create or replace function dependency_of(sys.event_classes)
 returns text as $$
-  select string_agg(case when is_positive='false' then '~' else ' ' end || event_classes_id ||  '(' || lag_years || ',' || lag_months || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E',\n') from sys.event_class_dependencies where depends_on_event_classes_id =  $1.event_classes_id;
+  select string_agg(case when is_positive='false' then '~' else ' ' end || event_classes_id ||  '(' || lag_years || ',' || lag_months || ',' || lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E',\n') from sys.event_class_dependencies where depends_on_event_classes_id =  $1.event_classes_id;
 $$ language sql stable;
 
 
@@ -677,21 +680,40 @@ execute procedure sys.update_sys_event_class_fields();
 create table sys.event_queue (
   event_queue_id serial8 primary key,
   event_classes_id text references sys.event_classes (event_classes_id),
-  start_date date not null,
-  end_date date,
-  dates daterange not null,
+  lag_years int8 constraint valid_lag_years check (lag_years is not null and lag_years >= 0),
+  lag_months int8 constraint valid_lag_months check (lag_months is not null and lag_months >= 0),
+  lag_days int8 constraint valid_lag_days check (lag_days is not null),
+  -- TO DO: Must use the following
+  -- lag_days int8 constraint valid_lag_days check (lag_days is not null and lag_days >= 0),
+  lag_hours int8 constraint valid_lag_hours check (lag_hours is not null and lag_hours >= 0),
+  lag_minutes int8 constraint valid_lag_minutes check (lag_minutes is not null and lag_minutes >= 0),
+  lag_seconds int8 constraint valid_lag_seconds check (lag_seconds is not null and lag_seconds >= 0),
+  start_tstz timestamptz not null,
+  -- end_tstz timestamptz,
+  tstzs tstzrange not null,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp);
-create index sys_event_queue_dates_index on sys.event_queue using gist (dates);
+create index sys_event_queue_tstzs_index on sys.event_queue using gist (tstzs);
 create index on sys.event_queue (event_classes_id);
 select sys.create_trigger_set_updated_at('sys.event_queue');
 
-create trigger trigger_set_sys_event_queue_dates
+create or replace function sys.update_sys_event_queue()
+returns trigger as $$
+begin
+  new.start_tstz = new.created_at + format('%s year %s month %s day %s hour %s second', new.lag_years, new.lag_months, new.lag_days, new.lag_hours, new.lag_minutes, new.lag_seconds)::interval;
+  -- new.end_tstz = null;
+  -- new.tstzs = tstzrange(new.start_tstz, new.end_tstz);
+  new.tstzs = tstzrange(new.start_tstz, null);
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger trigger_sys_update_sys_event_queue
 before insert or update on sys.event_queue
 for each row
-execute procedure sys.set_daterange();
+execute procedure sys.update_sys_event_queue();
 
 
 -- :name create-table-sys-events

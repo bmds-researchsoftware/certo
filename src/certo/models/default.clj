@@ -792,7 +792,7 @@
                 (jdbc/insert!
                  tx
                  "sys.event_queue"
-                 {:event_classes_id ecid :start_date (certo.utilities/date-now) :created_by (:created_by params) :updated_by (:updated_by params)}
+                 {:event_classes_id ecid :lag_years 0 :lag_months 0 :lag_days 0 :lag_hours 0 :lag_minutes 0 :lag_seconds 0 :created_by (:created_by params) :updated_by (:updated_by params)}
                  {:return-keys true}))
                edk (vec (keys (dissoc ed :events_id)))]
            (jdbc/insert!
