@@ -10,6 +10,8 @@
 
 {:schema_name "sys" :table_name "ot_event_not_done_reasons" :table_type "option-table" :created_by "root" :updated_by "root"}
 
+{:schema_name "sys" :table_name "ot_event_required_values" :table_type "option-table" :created_by "root" :updated_by "root"}
+
 {:schema_name "sys" :table_name "ot_types" :table_type "option-table" :created_by "root" :updated_by "root"}
 
 

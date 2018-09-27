@@ -8,6 +8,7 @@
    [clojure.pprint :as pprint]
    [java-time :as jt]
    [certo.sql]
+   [certo.sql-events]
    [certo.utilities :as cu])
   (:import [java.util.UUID]))
 
@@ -159,6 +160,31 @@
       (fn [row] (vector (:tables_id row) row)))
     :result-set-fn
     (if (and schema table) (fn [rs] (first rs)) (fn [rs] (into {} rs)))}))
+
+
+(defn event-class-dimensions [db dimensions-type & [event_classes_id]]
+  (assert (or (= dimensions-type :argument) (= dimensions-type :result)) "Event class dimensions type not :argument or :result")
+  (jdbc/query
+   db
+   (concat
+    [(str
+      (format "select * from app.event_class_%s_dimensions" (name dimensions-type))
+      (if event_classes_id
+        " where event_classes_id=?"
+        ""))]
+    (if event_classes_id
+      [event_classes_id]
+      []))
+   {:row-fn
+    (fn [row]
+      (vector
+       (:event_classes_id row)
+       (mapv key (filter (fn [[k v]] v) (dissoc row :event_classes_id :created_by :created_at :updated_by :updated_at)))))
+    :result-set-fn
+      (fn [rs]
+        (if event_classes_id
+          (second (first rs))
+          (into {} rs)))}))
 
 
 (defn event-classes [db & [event_classes_id]]
@@ -647,15 +673,7 @@
 
 
 (defmethod select "app.event_queue" [db fields table-map schema table params]
-  (let [event-class-argument-dimensions
-        (jdbc/query
-         db
-         ["select * from app.event_class_argument_dimensions"]
-         {:row-fn
-          (fn [row]
-            (vector (:event_classes_id row)
-                    (mapv key (filter (fn [[k v]] v) (dissoc row :event_classes_id :created_by :created_at :updated_by :updated_at)))))
-          :result-set-fn (fn [rs] (into {} rs))})
+  (let [event-class-argument-dimensions (event-class-dimensions db :argument)
         [where-string & where-parameters] (where-clause fields params true)
         rs
         (jdbc/query
@@ -684,8 +702,7 @@
                {}
                (map
                 (fn [k]
-                  (let [k k]
-                    (vector k (get row (keyword (str "app.event_queue." (name k)))))))
+                  (vector k (get row (keyword (str "app.event_queue." (name k))))))
                 (get event-class-argument-dimensions (:app.event_queue.event_classes_id row))))}))})]
     (if (empty? rs)
       (throw (Exception. "None found"))
@@ -760,57 +777,123 @@
 ;; TO DO: schema is always "event" and table is event_classes_id, so
 ;; remove the schema argument and rename the table argument to be
 ;; event-classes-id
-(defn insert-event! [db md fields schema table params event-class-fn]
-   (jdbc/with-db-transaction [tx db]
-     (let [params (cu/str-to-key-map (ui-to-db fields params))
-           ;; The last statement of every event function is
-           ;; insert into app.event_dimensions (...) values (...) returning *;
-           ;; and is stored in ed.
-           ed
-           ;; Run the function for this event
-           (event-class-fn
-            tx
-            (assoc params
-                   :event_classes_id table
-                   :event_data
-                   (json/write-value-as-string params)))
-           ed (dissoc ed :created_by :created_at :updated_at :updated_by)]
-       (println "ed" ed)
-       ;; ! TO DO: Need to remove event from queue after it has been completed.  Don't delete the event with no parent.
-       (doseq [ecid
+(defn insert-event! [db md fields table-map schema table params event-class-fn]
+  (jdbc/with-db-transaction [tx db]
+    (let [params (cu/str-to-key-map (ui-to-db fields params))
+          ;; The last statement of every event function is
+          ;; insert into app.event_dimensions (...) values (...) returning *;
+          ;; and is stored in ed.
+          ;; event-class-result-dimensions
+          ecrd
+          ;; Run the function for this event
+          (event-class-fn
+           tx
+           (assoc params
+                  :event_classes_id table
+                  :event_data
+                  (json/write-value-as-string params)))
+          event-class-argument-dimensions (event-class-dimensions db :argument)]
+      ;; (println "did:" table)
+      (jdbc/delete!
+       tx
+       "sys.event_queue"
+       ["event_classes_id = ?" table])
+      ;; (println "  dequeue:" table)
+      (doseq [[ecid is-true?]
+              (map
+               (fn [ecid-candidate]
+                 ((juxt :event_classes_id :is_true)
+                  (first
+                   ;; Check whether each candidate event should actually be added to or deleted from the queue.
+                   ;; When :is_true = true add it, and when :is_true = false delete it.
+                   (certo.sql/select-events-to-enqueue-or-dequeue
+                    tx
+                    {:ecid_candidate ecid-candidate}))))
                (jdbc/query
                 tx
-                ;; This is the set of events that we need to check if they should be added.  It is all events that are dependent on the event that is being completed.
+                ;; This is the set of candidate events that we need to check if they should be added to or deleted from
+                ;; the queue.  It is all events that are dependent on the event that is being completed.
                 ["select event_classes_id from sys.event_class_dependencies where depends_on_event_classes_id = ?" table]
-                {:row-fn :event_classes_id})]
-         ;; ! TO DO: Use etf (i.e. event-true-false) to use DNF to check if actually need to add the event with event_classes_id = ecid, and if so run the following two inserts
-         ;; ! TO DO: Remember users should only be shown events that are on the queue whose start date has passed
-         ;; ! TO DO: Also need to handle event end date
-         (let [eq
-               (first
-                (jdbc/insert!
-                 tx
-                 "sys.event_queue"
-                 {:event_classes_id ecid :lag_years 0 :lag_months 0 :lag_days 0 :lag_hours 0 :lag_minutes 0 :lag_seconds 0 :created_by (:created_by params) :updated_by (:updated_by params)}
-                 {:return-keys true}))
-               edk (vec (keys (dissoc ed :events_id)))]
-           (jdbc/insert!
-            tx
-            "app.event_queue_dimensions"
-            ;; columns
-            (vec
-             (concat
-              [:event_queue_id]
-              edk
-              [:created_by :updated_by]))
-            ;; values
-            (vec
-             (concat
-              [(:event_queue_id eq)]
-              (mapv (fn [key] (key ed)) edk)
-              [(:created_by params) (:updated_by params)])))))
-       ;; return the event_class_result_dimensions so that they can be used by do-insert-event!
-       ed)))
+                {:row-fn :event_classes_id}))]
+        (if is-true?
+          (do
+            (let [eq
+                  (first
+                   (jdbc/insert!
+                    tx
+                    "sys.event_queue"
+                    {:event_classes_id ecid
+                     :lag_years 0 :lag_months 0 :lag_days 0 :lag_hours 0 :lag_minutes 0 :lag_seconds 0
+                     :created_by (:created_by params) :updated_by (:updated_by params)}
+                    {:return-keys true}))]
+              (jdbc/insert!
+               tx
+               "app.event_queue_dimensions"
+               ;; columns
+               (vec
+                (concat
+                 [:event_queue_id]
+                 (get event-class-argument-dimensions ecid)
+                 [:created_by :updated_by]))
+               ;; values
+               (vec
+                (concat
+                 [(:event_queue_id eq)]
+                 (mapv (fn [k] (get ecrd k)) (get event-class-argument-dimensions ecid))
+                 [(:created_by params) (:updated_by params)]))))
+            ;; (println "  enqueue:" ecid)
+            )
+          (do
+            (jdbc/delete!
+             tx
+             "sys.event_queue"
+             ["event_classes_id = ?" ecid])
+            ;; (println "  dequeue:" ecid)
+            )))
+      ;; return the event_class_result_dimensions so that they can be used by do-insert-event!
+      ecrd)))
+
+
+;; Insert an event and event dimsensions using the event argument dimensions.
+(defn default-event-class-fn [event-class-argument-dimensions db params]
+  (let [event (certo.sql-events/insert-event db params)]
+    ;; Use app.event_class_result_dimensions to construct statement to
+    ;; insert into app.event_dimensions.  Note that the dimensions
+    ;; that are the argument dimensions, not the result dimensions,
+    ;; since that's all we have in this case.
+    (let [rs
+          (jdbc/insert!
+           db
+           "app.event_dimensions"
+           (assoc
+            (into
+             {}
+             (map
+              (fn [event-class-argument-dimension]
+                (vector
+                 event-class-argument-dimension
+                 (get params event-class-argument-dimension)))
+              (get event-class-argument-dimensions (:event_classes_id params))))
+            :events_id (:events_id event)
+            :created_by (:created_by params)
+            :updated_by (:updated_by params))
+           {:return-keys true})]
+      (case (count (take 2 rs))
+        0 (throw (Exception. "Error: Not inserted."))
+        1 (first rs)
+        (throw (Exception. "Warning: Unexpected result on insert."))))))
+
+
+(defn insert-schema-table! [db md fields table-map schema table params]
+  (let [rs
+        (jdbc/insert!
+         db
+         (st schema table)
+         (ui-to-db fields params))]
+    (case (count (take 2 rs))
+      0 (throw (Exception. "Error: Not inserted."))
+      1 true
+      (throw (Exception. "Warning: Unexpected result on insert.")))))
 
 
 (defn insert-schema-table! [db md fields schema table params]
@@ -825,13 +908,15 @@
       (throw (Exception. "Warning: Unexpected result on insert.")))))
 
 
-(defmulti insert! (fn [db md fields schema table params] [schema table]))
+(defmulti insert! (fn [db md fields table-map schema table params] [schema table]))
 
 
-(defmethod insert! :default [db md fields schema table params]
+(defmethod insert! :default [db md fields table-map schema table params]
   (if (= schema "event")
-    (insert-event! db md fields schema table params)
-    (insert-schema-table! db md fields schema table params)))
+    (let [event-class-argument-dimensions (event-class-dimensions db :argument)]
+      (insert-event! db md fields table-map schema table params
+                     (partial default-event-class-fn event-class-argument-dimensions)))
+    (insert-schema-table! db md fields table-map schema table params)))
 
 
 ;; Use to programmatically insert events.  The params are of the form
@@ -848,6 +933,7 @@
      db
      md
      fields
+     table-map
      "event"
      event-classes-id
      params)))
