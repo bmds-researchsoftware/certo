@@ -793,12 +793,13 @@
                   :event_data
                   (json/write-value-as-string params)))
           event-class-argument-dimensions (event-class-dimensions db :argument)]
-      ;; (println "did:" table)
+      (spit "log/events.log" (str "\n" (jt/local-date-time) "\n") :append true)
+      (spit "log/events.log" (str "did: " table "\n") :append true)
       (jdbc/delete!
        tx
        "sys.event_queue"
        ["event_classes_id = ?" table])
-      ;; (println "  dequeue:" table)
+      (spit "log/events.log" (str "  dequeue: " table "\n") :append true)
       (doseq [[ecid is-true?]
               (map
                (fn [ecid-candidate]
@@ -841,15 +842,13 @@
                  [(:event_queue_id eq)]
                  (mapv (fn [k] (get ecrd k)) (get event-class-argument-dimensions ecid))
                  [(:created_by params) (:updated_by params)]))))
-            ;; (println "  enqueue:" ecid)
-            )
+            (spit "log/events.log" (str "  enqueue: " ecid "\n") :append true))
           (do
             (jdbc/delete!
              tx
              "sys.event_queue"
              ["event_classes_id = ?" ecid])
-            ;; (println "  dequeue:" ecid)
-            )))
+            (spit "log/events.log" (str "  dequeue: " ecid "\n") :append true))))
       ;; return the event_class_result_dimensions so that they can be used by do-insert-event!
       ecrd)))
 
