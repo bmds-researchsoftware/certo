@@ -167,22 +167,6 @@ create table sys.ot_calendar_colors (
 select sys.create_trigger_set_updated_at('sys.ot_calendar_colors');
 
 
--- :name create-table-sys-ot-event-required-values
--- :command :execute
--- :result :raw
--- :doc Create table sys.ot_event_required_values
-create table sys.ot_event_required_values (
-  value text primary key,
-  label text not null,
-  location int8 constraint valid_sys_ot_event_required_values_location check (location is null or location >= 0),
-  -- is_group_label boolean not null,
-  created_by text references sys.users (username) not null,
-  created_at timestamptz default current_timestamp,
-  updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp);
-select sys.create_trigger_set_updated_at('sys.ot_event_required_values');
-
-
 -- :name create-table-sys-ot-event-not-done-reasons
 -- :command :execute
 -- :result :raw
@@ -631,8 +615,7 @@ create table sys.event_class_enqueue_dnfs (
   event_classes_id text references sys.event_classes (event_classes_id) not null,
   term int8 not null,
   depends_on_event_classes_id text references sys.event_classes (event_classes_id) not null,
-  -- is_positive boolean not null,
-  required_value text references sys.ot_event_required_values not null,
+  is_positive boolean not null,
   lag_years int8 constraint valid_lag_years check (lag_years is not null and lag_years >= 0),
   lag_months int8 constraint valid_lag_months check (lag_months is not null and lag_months >= 0),
   -- lag_days int8 constraint valid_lag_days check (lag_days is not null and lag_days >= 0),
@@ -649,23 +632,13 @@ select sys.create_trigger_set_updated_at('sys.event_class_enqueue_dnfs');
 
 create or replace function depends_on(sys.event_classes)
 returns text as $$
-  select string_agg(trm, E'\n or\n') from (select string_agg(depends_on_event_classes_id  || '(' || lag_years || ',' || lag_months || ',' || lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')' || case when required_value='true' then '=t' when required_value='false' then '=f' else '=nil' end, E' and\n') as trm from sys.event_class_enqueue_dnfs where event_classes_id = $1.event_classes_id group by term) as trms;
+  select string_agg(trm, E'\n or\n') from (select string_agg(case when is_positive='false' then '~' else ' ' end || depends_on_event_classes_id  || '(' || lag_years || ',' || lag_months || ',' || lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E' and\n') as trm from sys.event_class_enqueue_dnfs where event_classes_id = $1.event_classes_id group by term) as trms;
 $$ language sql stable;
 
 create or replace function dependency_of(sys.event_classes)
 returns text as $$
-  select string_agg(event_classes_id ||  '(' || lag_years || ',' || lag_months || ',' || lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')' || case when required_value='true' then '=t' when required_value='false' then '=f' else '=nil' end, E',\n') from sys.event_class_enqueue_dnfs where depends_on_event_classes_id =  $1.event_classes_id;
+  select string_agg(case when is_positive='false' then '~' else ' ' end || event_classes_id ||  '(' || lag_years || ',' || lag_months || ',' || lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E',\n') from sys.event_class_enqueue_dnfs where depends_on_event_classes_id =  $1.event_classes_id;
 $$ language sql stable;
-
--- create or replace function depends_on(sys.event_classes)
--- returns text as $$
---   select string_agg(trm, E'\n or\n') from (select string_agg(case when is_positive='false' then '~' else ' ' end || depends_on_event_classes_id  || '(' || lag_years || ',' || lag_months || ',' || lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E' and\n') as trm from sys.event_class_enqueue_dnfs where event_classes_id = $1.event_classes_id group by term) as trms;
--- $$ language sql stable;
-
--- create or replace function dependency_of(sys.event_classes)
--- returns text as $$
---   select string_agg(case when is_positive='false' then '~' else ' ' end || event_classes_id ||  '(' || lag_years || ',' || lag_months || ',' || lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E',\n') from sys.event_class_enqueue_dnfs where depends_on_event_classes_id =  $1.event_classes_id;
--- $$ language sql stable;
 
 
 -- :name create-table-sys-event-class-fields
