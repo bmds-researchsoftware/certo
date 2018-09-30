@@ -53,9 +53,14 @@
    (with-open [r (clojure.java.io/reader filename)]
      (doseq [line (line-seq r)]
        (when (not= line "")
-         (if (nil? schema-table)
-           (f db (clojure.edn/read-string line))
-           (f db (assoc (clojure.edn/read-string line) :schema-table schema-table))))))))
+         (try
+           (if (nil? schema-table)
+             (f db (clojure.edn/read-string line))
+             (f db (assoc (clojure.edn/read-string line) :schema-table schema-table)))
+           (catch Exception e
+             (println "Exception in hash-maps-to-db processing:")
+             (pprint/pprint line)
+             (throw e))))))))
 
 
 ;; Used in one time use function db-to-hash-maps
