@@ -611,7 +611,7 @@
    (let [idf (id-field fields schema table)]
      [(str (if where? "where " "") (sql-identifier idf) " = ?") (ui-to-db-one fields (key idf) id)]))
   ([fields params where?]
-   "Since schema and table are not arguments to this function, it can
+   "Since schema and table are not arguments to this function, it can be
    used to create the where clause for a view."
    (if (empty? params)
      [""]
