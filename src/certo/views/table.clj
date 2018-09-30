@@ -36,7 +36,9 @@
                    (fn [[k v]] (str "event." (:event-classes-id value) "." (name k) "=" v))
                    (:event-class-argument-dimensions value)))]
              [:a {:style "font-weight: bold;" :href (str "/event/" (:event-classes-id value) "/new" (if (not (str/blank? query-string)) (str "?" query-string) ""))}
-              (:event-queue-id value)])
+              (if (= (:event-queue-id value) 0)
+                "*"
+                (:event-queue-id value))])
            idf
            (let [[schema_name table_name field_name] (str/split idf #"[.]")]
              [:a {:href (str "/" schema_name "/" table_name "/" value "/edit")}
