@@ -814,7 +814,7 @@
                 tx
                 ;; This is the set of candidate events that we need to check if they should be added to or deleted from
                 ;; the queue.  It is all events that are dependent on the event that is being completed.
-                ["select event_classes_id from sys.event_class_dependencies where depends_on_event_classes_id = ?" table]
+                ["select event_classes_id from sys.event_class_enqueue_dnfs where depends_on_event_classes_id = ?" table]
                 {:row-fn :event_classes_id}))]
         (if is-true?
           (do
@@ -981,8 +981,8 @@
      (jdbc/query
       db
       ;; TO DO: Use this after inactive is included in the sys.event_classes table
-      ;; ["select sec.event_classes_id from sys.event_classes sec left outer join sys.event_class_dependencies ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null and sec.inactive='false'"]
-      ["select sec.event_classes_id from sys.event_classes sec left outer join sys.event_class_dependencies ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null"])
+      ;; ["select sec.event_classes_id from sys.event_classes sec left outer join sys.event_class_enqueue_dnfs ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null and sec.inactive='false'"]
+      ["select sec.event_classes_id from sys.event_classes sec left outer join sys.event_class_enqueue_dnfs ecp on sec.event_classes_id=ecp.event_classes_id where ecp.event_classes_id is null"])
      :sts
      (map
       (fn [schema]

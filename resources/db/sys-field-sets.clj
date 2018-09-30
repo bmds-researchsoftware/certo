@@ -1,6 +1,6 @@
-{:schema_name "sys" :table_name "event_dependencies" :field_name "event_classes_id" :sys_fields_id "sys.event_classes.event_classes_id" :label "Event Classes ID" :location 0 :created_by "root" :updated_by "root"}
-{:schema_name "sys" :table_name "event_dependencies" :field_name "depends_on" :sys_fields_id "sys.event_classes.depends_on" :label "Depends On" :location 1 :created_by "root" :updated_by "root"}
-{:schema_name "sys" :table_name "event_dependencies" :field_name "dependency_of" :sys_fields_id "sys.event_classes.dependency_of" :label "Dependency Of" :location 2 :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "event_enqueue_dnfs" :field_name "event_classes_id" :sys_fields_id "sys.event_classes.event_classes_id" :label "Event Classes ID" :location 0 :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "event_enqueue_dnfs" :field_name "depends_on" :sys_fields_id "sys.event_classes.depends_on" :label "Depends On" :location 1 :created_by "root" :updated_by "root"}
+{:schema_name "sys" :table_name "event_enqueue_dnfs" :field_name "dependency_of" :sys_fields_id "sys.event_classes.dependency_of" :label "Dependency Of" :location 2 :created_by "root" :updated_by "root"}
 
 
 {:schema_name "sys" :table_name "rv_calendars" :field_name "calendars_id" :sys_fields_id "sys.calendars.calendars_id" :label "Calendars ID" :location 0 :created_by "root" :updated_by "root"}

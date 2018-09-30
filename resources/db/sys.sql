@@ -78,11 +78,11 @@ on conflict (event_classes_id) do update set
   (schema_name, table_name, function_name, is_time_required, created_by, updated_by) = (:schema_name, :table_name, :function_name, :is_time_required, :created_by, :updated_by);
 
 
--- :name insert-sys-event-class-dependencies
+-- :name insert-sys-event-class-enqueue-dnfs
 -- :command :execute
 -- :result :raw
--- :doc Insert into sys.event_class_dependencies
-insert into sys.event_class_dependencies
+-- :doc Insert into sys.event_class_enqueue_dnfs
+insert into sys.event_class_enqueue_dnfs
   (event_classes_id, term, depends_on_event_classes_id, required_value, lag_years, lag_months, lag_hours, lag_days, lag_minutes, lag_seconds, created_by, updated_by)
 values
   (:event_classes_id, :term, :depends_on_event_classes_id, :required_value, :lag_years, :lag_months, :lag_hours, :lag_days, :lag_minutes, :lag_seconds, :created_by, :updated_by);
@@ -203,10 +203,10 @@ where sf.control='select-result' and ecf.event_classes_id=:event_classes_id;
 -- :result many
 -- :doc Select events to enqueue or dequeue
 select event_classes_id, deps.degree=evts.number_true is_true
-from (select event_classes_id, term, count(*) degree from sys.event_class_dependencies where event_classes_id=:ecid_candidate group by event_classes_id, term) deps,
+from (select event_classes_id, term, count(*) degree from sys.event_class_enqueue_dnfs where event_classes_id=:ecid_candidate group by event_classes_id, term) deps,
   lateral
     (select count(*) number_true
-     from sys.event_class_dependencies secd
+     from sys.event_class_enqueue_dnfs secd
      inner join sys.events se on secd.depends_on_event_classes_id=se.event_classes_id and secd.is_positive=se.is_event_done
      where secd.event_classes_id=deps.event_classes_id and secd.term=deps.term) evts;
 
@@ -216,10 +216,10 @@ from (select event_classes_id, term, count(*) degree from sys.event_class_depend
 -- :result many
 -- :doc Select events to enqueue or dequeue
 select event_classes_id, deps.degree=evts.number_true is_true
-from (select event_classes_id, term, count(*) degree from sys.event_class_dependencies where event_classes_id=:ecid_candidate group by event_classes_id, term) deps,
+from (select event_classes_id, term, count(*) degree from sys.event_class_enqueue_dnfs where event_classes_id=:ecid_candidate group by event_classes_id, term) deps,
   lateral
     (select count(*) number_true
-     from sys.event_class_dependencies secd
+     from sys.event_class_enqueue_dnfs secd
      inner join sys.events se
      on (secd.depends_on_event_classes_id=se.event_classes_id
      	and
