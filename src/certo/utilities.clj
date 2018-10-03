@@ -48,15 +48,15 @@
 
 
 (defn hash-maps-to-db
-  ([db filename f] (hash-maps-to-db db filename f nil))
-  ([db filename f schema-table]
+  ([db filename f] (hash-maps-to-db db filename f nil nil))
+  ([db filename f k v]
    (with-open [r (clojure.java.io/reader filename)]
      (doseq [line (line-seq r)]
        (when (not= line "")
          (try
-           (if (nil? schema-table)
+           (if (nil? k)
              (f db (clojure.edn/read-string line))
-             (f db (assoc (clojure.edn/read-string line) :schema-table schema-table)))
+             (f db (assoc (clojure.edn/read-string line) k v)))
            (catch Exception e
              (println "Exception in hash-maps-to-db processing:")
              (pprint/pprint line)
