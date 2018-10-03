@@ -34,9 +34,13 @@
 
 {:schema_name "sys" :table_name "event_class_enqueue_dnfs" :table_type "table" :created_by "root" :updated_by "root"}
 
+{:schema_name "sys" :table_name "event_class_dequeue_dnfs" :table_type "table" :created_by "root" :updated_by "root"}
+
 
 
 {:schema_name "sys" :table_name "event_enqueue_dnfs" :table_type "view" :created_by "root" :updated_by "root"}
+
+{:schema_name "sys" :table_name "event_dequeue_dnfs" :table_type "view" :created_by "root" :updated_by "root"}
 
 
 

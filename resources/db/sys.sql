@@ -2,7 +2,7 @@
 -- :command :execute
 -- :result :raw
 -- :doc Insert into options table
-insert into :i:schema-table
+insert into :i:options-schema-table
   (value, label, location, created_by, updated_by)
 values
   (:value, :label, :location, :created_by, :updated_by);
@@ -78,11 +78,11 @@ on conflict (event_classes_id) do update set
   (schema_name, table_name, function_name, is_time_required, created_by, updated_by) = (:schema_name, :table_name, :function_name, :is_time_required, :created_by, :updated_by);
 
 
--- :name insert-sys-event-class-enqueue-dnfs
+-- :name insert-sys-event-class-dnfs
 -- :command :execute
 -- :result :raw
--- :doc Insert into sys.event_class_enqueue_dnfs
-insert into sys.event_class_enqueue_dnfs
+-- :doc Insert into sys.event_class_enqueue_dnfs or sys.event_class_dequeue_dnfs
+insert into :i:sys-event-class-dnfs-schema-table
   (event_classes_id, term, depends_on_event_classes_id, is_positive, lag_years, lag_months, lag_hours, lag_days, lag_minutes, lag_seconds, created_by, updated_by)
 values
   (:event_classes_id, :term, :depends_on_event_classes_id, :is_positive, :lag_years, :lag_months, :lag_hours, :lag_days, :lag_minutes, :lag_seconds, :created_by, :updated_by);
@@ -202,12 +202,12 @@ where sf.control='select-result' and ecf.event_classes_id=:event_classes_id;
 -- :command :query
 -- :result many
 -- :doc Select events to enqueue or dequeue
-select event_classes_id, deps.degree=evts.number_true is_true
-from (select event_classes_id, term, count(*) degree from sys.event_class_enqueue_dnfs where event_classes_id=:ecid_candidate group by event_classes_id, term) deps,
+select event_classes_id,term, deps.degree, evts.number_true
+from (select event_classes_id, term, count(*) degree from :i:sys-event-class-dnfs-schema-table where event_classes_id=:ecid_candidate group by event_classes_id, term) deps,
   lateral
     (select count(*) number_true
-     from sys.event_class_enqueue_dnfs secd
-     inner join sys.events se on secd.depends_on_event_classes_id=se.event_classes_id and secd.is_positive=se.is_event_done
+     from :i:sys-event-class-dnfs-schema-table secd
+     inner join (select distinct on (event_classes_id) events_id, event_classes_id, is_event_done from sys.events order by event_classes_id, events_id desc) se
+     on secd.depends_on_event_classes_id=se.event_classes_id and secd.is_positive=se.is_event_done
      where secd.event_classes_id=deps.event_classes_id and secd.term=deps.term) evts;
-
 

@@ -774,6 +774,75 @@
 ;;       (sql-events/recruitment-participant-did-not-consent-mainstudy db params))))
 
 
+;; TO DO:  table is event_classes_id, so rename the table argument to be event-classes-id
+(defn enqueue-dequeue-event-classes-id-candidates [tx table action]
+  (assert (or (= action :enqueue) (= action :dequeue))
+          (format "enqueue-dequeue-event-classes-id-candidates must be :enqueue or :dequeue"))
+  (let [sys-event-class-dnfs-schema-table (format "sys.event_class_%s_dnfs" (name action))]
+    (filter
+     (fn [ecid-candidate]
+       (get
+        (apply
+         merge-with
+         (fn [current next] (or current next))
+         (map
+          (fn [row] (hash-map (:event_classes_id row) (= (:degree row) (:number_true row))))
+          (certo.sql/select-events-to-enqueue-or-dequeue
+           tx
+           {:sys-event-class-dnfs-schema-table sys-event-class-dnfs-schema-table
+            :ecid_candidate ecid-candidate})))
+        ecid-candidate))
+     (jdbc/query
+      tx
+      ;; This is the set of candidate events that we need to check if they should be added to or deleted from
+      ;; the queue.  It is all events that are dependent on the event that is being completed.
+      [(format "select event_classes_id from %s where depends_on_event_classes_id = ?" sys-event-class-dnfs-schema-table) table]
+      {:row-fn :event_classes_id}))))
+
+
+;; TO DO:  table is event_classes_id, so rename the table argument to be event-classes-id
+(defn enqueue-events! [tx table params ecrd event-class-argument-dimensions]
+  (doseq [ecid (enqueue-dequeue-event-classes-id-candidates tx table :enqueue)]
+    (do
+      (let [eq
+            (first
+             (jdbc/insert!
+              tx
+              "sys.event_queue"
+              {:event_classes_id ecid
+               :lag_years 0 :lag_months 0 :lag_days 0 :lag_hours 0 :lag_minutes 0 :lag_seconds 0
+               :created_by (:created_by params) :updated_by (:updated_by params)}
+              {:return-keys true}))]
+        (jdbc/insert!
+         tx
+         "app.event_queue_dimensions"
+         ;; columns
+         (vec
+          (concat
+           [:event_queue_id]
+           (get event-class-argument-dimensions ecid)
+           [:created_by :updated_by]))
+         ;; values
+         (vec
+          (concat
+           [(:event_queue_id eq)]
+           (mapv (fn [k] (get ecrd k)) (get event-class-argument-dimensions ecid))
+           [(:created_by params) (:updated_by params)]))))
+      (spit "log/events.log" (str "  enqueue: " ecid "\n") :append true))))
+
+
+;; TO DO:  table is event_classes_id, so rename the table argument to be event-classes-id
+(defn dequeue-events! [tx table params ecrd event-class-argument-dimensions]
+  (doseq [ecid (enqueue-dequeue-event-classes-id-candidates tx table :dequeue)]
+    (do
+      (jdbc/delete!
+       tx
+       "sys.event_queue"
+       ["event_classes_id = ?" ecid])
+      ;; on delete cascade will delete the corresponding row in app.event_queue_dimensions
+      (spit "log/events.log" (str "  dequeue: " ecid "\n") :append true))))
+
+
 ;; TO DO: schema is always "event" and table is event_classes_id, so
 ;; remove the schema argument and rename the table argument to be
 ;; event-classes-id
@@ -792,63 +861,11 @@
                   :event_classes_id table
                   :event_data
                   (json/write-value-as-string params)))
-          event-class-argument-dimensions (event-class-dimensions db :argument)]
+          event-class-argument-dimensions (event-class-dimensions tx :argument)]
       (spit "log/events.log" (str "\n" (jt/local-date-time) "\n") :append true)
       (spit "log/events.log" (str "did: " table "\n") :append true)
-      (jdbc/delete!
-       tx
-       "sys.event_queue"
-       ["event_classes_id = ?" table])
-      (spit "log/events.log" (str "  dequeue: " table "\n") :append true)
-      (doseq [[ecid is-true?]
-              (map
-               (fn [ecid-candidate]
-                 ((juxt :event_classes_id :is_true)
-                  (first
-                   ;; Check whether each candidate event should actually be added to or deleted from the queue.
-                   ;; When :is_true = true add it, and when :is_true = false delete it.
-                   (certo.sql/select-events-to-enqueue-or-dequeue
-                    tx
-                    {:ecid_candidate ecid-candidate}))))
-               (jdbc/query
-                tx
-                ;; This is the set of candidate events that we need to check if they should be added to or deleted from
-                ;; the queue.  It is all events that are dependent on the event that is being completed.
-                ["select event_classes_id from sys.event_class_enqueue_dnfs where depends_on_event_classes_id = ?" table]
-                {:row-fn :event_classes_id}))]
-        (if is-true?
-          (do
-            (let [eq
-                  (first
-                   (jdbc/insert!
-                    tx
-                    "sys.event_queue"
-                    {:event_classes_id ecid
-                     :lag_years 0 :lag_months 0 :lag_days 0 :lag_hours 0 :lag_minutes 0 :lag_seconds 0
-                     :created_by (:created_by params) :updated_by (:updated_by params)}
-                    {:return-keys true}))]
-              (jdbc/insert!
-               tx
-               "app.event_queue_dimensions"
-               ;; columns
-               (vec
-                (concat
-                 [:event_queue_id]
-                 (get event-class-argument-dimensions ecid)
-                 [:created_by :updated_by]))
-               ;; values
-               (vec
-                (concat
-                 [(:event_queue_id eq)]
-                 (mapv (fn [k] (get ecrd k)) (get event-class-argument-dimensions ecid))
-                 [(:created_by params) (:updated_by params)]))))
-            (spit "log/events.log" (str "  enqueue: " ecid "\n") :append true))
-          (do
-            (jdbc/delete!
-             tx
-             "sys.event_queue"
-             ["event_classes_id = ?" ecid])
-            (spit "log/events.log" (str "  dequeue: " ecid "\n") :append true))))
+      (dequeue-events! tx table params ecrd event-class-argument-dimensions)
+      (enqueue-events! tx table params ecrd event-class-argument-dimensions)
       ;; return the event_class_result_dimensions so that they can be used by do-insert-event!
       ecrd)))
 
