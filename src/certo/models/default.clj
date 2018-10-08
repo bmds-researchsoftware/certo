@@ -775,7 +775,7 @@
 
 
 ;; TO DO:  table is event_classes_id, so rename the table argument to be event-classes-id
-(defn enqueue-dequeue-event-classes-id-candidates [tx table action]
+(defn enqueue-dequeue-event-classes-id-candidates [tx table event-class-dimensions-where-clause action]
   (assert (or (= action :enqueue) (= action :dequeue))
           (format "enqueue-dequeue-event-classes-id-candidates must be :enqueue or :dequeue"))
   (let [sys-event-class-dnfs-schema-table (format "sys.event_class_%s_dnfs" (name action))]
@@ -790,7 +790,8 @@
           (certo.sql/select-events-to-enqueue-or-dequeue
            tx
            {:sys-event-class-dnfs-schema-table sys-event-class-dnfs-schema-table
-            :ecid_candidate ecid-candidate})))
+            :ecid-candidate ecid-candidate
+            :event-class-dimensions-where-clause event-class-dimensions-where-clause})))
         ecid-candidate))
      (jdbc/query
       tx
@@ -800,9 +801,21 @@
       {:row-fn :event_classes_id}))))
 
 
+;; Dimensions are all integers (int8 foreign keys in Postgresql) and are the result of query (not an HTTP request).
+;; Therefore don't need to use a prepared statement to protect against SQL injection and just build the where clause
+;; as a string.
+(defn event-class-dimensions-where-clause [table event-class-dimensions event-class-dimensions-map]
+  (let [event-class-dimensions-map (select-keys event-class-dimensions-map (get event-class-dimensions table))]
+    (if (empty? event-class-dimensions-map)
+      ""
+      (str
+       "where "
+       (apply format (str (str/join " = %d and " (map name (keys event-class-dimensions-map))) " = %d") (vals event-class-dimensions-map))))))
+
+
 ;; TO DO:  table is event_classes_id, so rename the table argument to be event-classes-id
 (defn enqueue-events! [tx table params ecrd event-class-argument-dimensions]
-  (doseq [ecid (enqueue-dequeue-event-classes-id-candidates tx table :enqueue)]
+  (doseq [ecid (enqueue-dequeue-event-classes-id-candidates tx table (event-class-dimensions-where-clause table event-class-argument-dimensions ecrd) :enqueue)]
     (do
       (let [eq
             (first
@@ -833,7 +846,7 @@
 
 ;; TO DO:  table is event_classes_id, so rename the table argument to be event-classes-id
 (defn dequeue-events! [tx table params ecrd event-class-argument-dimensions]
-  (doseq [ecid (enqueue-dequeue-event-classes-id-candidates tx table :dequeue)]
+  (doseq [ecid (enqueue-dequeue-event-classes-id-candidates tx table (event-class-dimensions-where-clause table event-class-argument-dimensions ecrd) :dequeue)]
     (do
       (jdbc/delete!
        tx

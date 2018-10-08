@@ -203,11 +203,11 @@ where sf.control='select-result' and ecf.event_classes_id=:event_classes_id;
 -- :result many
 -- :doc Select events to enqueue or dequeue
 select event_classes_id,term, deps.degree, evts.number_true
-from (select event_classes_id, term, count(*) degree from :i:sys-event-class-dnfs-schema-table where event_classes_id=:ecid_candidate group by event_classes_id, term) deps,
+from (select event_classes_id, term, count(*) degree from :i:sys-event-class-dnfs-schema-table where event_classes_id=:ecid-candidate group by event_classes_id, term) deps,
   lateral
     (select count(*) number_true
      from :i:sys-event-class-dnfs-schema-table secd
-     inner join (select distinct on (event_classes_id) events_id, event_classes_id, is_event_done from sys.events order by event_classes_id, events_id desc) se
+     inner join (select distinct on (event_classes_id) events_id, event_classes_id, is_event_done from app.events :sql:event-class-dimensions-where-clause order by event_classes_id, events_id desc) se
      on secd.depends_on_event_classes_id=se.event_classes_id and secd.is_positive=se.is_event_done
      where secd.event_classes_id=deps.event_classes_id and secd.term=deps.term) evts;
 
