@@ -925,18 +925,6 @@
       (throw (Exception. "Warning: Unexpected result on insert.")))))
 
 
-(defn insert-schema-table! [db md fields schema table params]
-  (let [rs
-        (jdbc/insert!
-         db
-         (st schema table)
-         (ui-to-db fields params))]
-    (case (count (take 2 rs))
-      0 (throw (Exception. "Error: Not inserted."))
-      1 true
-      (throw (Exception. "Warning: Unexpected result on insert.")))))
-
-
 (defmulti insert! (fn [db md fields table-map schema table params] [schema table]))
 
 

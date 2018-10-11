@@ -13,12 +13,14 @@
    [certo.models.default :as models]
    [certo.utilities :as u]
    [certo.views.form :as frm]
+   [certo.views.login :as login]
    [certo.views.table :as t]
    [certo.views.dashboard :as d]
    [certo.views.common :as common]))
 
 
 (defn dashboard [title user sts] (d/dashboard title user sts))
+(defn login [title] (login/login title))
 (defn table [tables fields schema table rows data] (t/table tables fields schema table rows data))
 (defn new [fields schema table redirect-to data] (frm/new fields schema table redirect-to data))
 (defn edit [fields schema table redirect-to data] (frm/edit fields schema table redirect-to data))

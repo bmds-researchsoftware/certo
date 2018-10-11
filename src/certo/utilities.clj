@@ -6,7 +6,12 @@
    [clojure.java.jdbc :as jdbc]
    [clojure.pprint :as pprint]   
    [clojure.string :as str]
+   [cemerick.friend :as friend]
    [java-time :as jt]))
+
+
+(defn authenticated-username [req]
+  (-> req friend/current-authentication :identity))
 
 
 (defn system-config-filename [system-name]

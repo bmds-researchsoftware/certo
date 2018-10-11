@@ -3,7 +3,10 @@
    [clojure.string :as str]
    [clojure.pprint :as pprint]
    [clj-stacktrace.repl]
-   [ring.middleware.basic-authentication :refer [wrap-basic-authentication]]
+   [cemerick.friend :as friend]
+   (cemerick.friend [workflows :as workflows]
+                    [credentials :as credentials])
+   ;; [ring.middleware.basic-authentication :refer [wrap-basic-authentication]]
    [ring.middleware.defaults :refer [wrap-defaults site-defaults api-defaults secure-api-defaults secure-site-defaults]]
    [ring.middleware.stacktrace :refer [wrap-stacktrace wrap-stacktrace-log wrap-stacktrace-web]]
    [ring.middleware.ssl :refer [wrap-forwarded-scheme wrap-hsts wrap-ssl-redirect]]
@@ -99,11 +102,22 @@
 
 
 (defn wrapped-handler [handler db md]
-  (-> (handler db md)
+  (-> (friend/authenticate
+       (handler db md)
+       {
+        ;; :allow-anon? true
+        ;; :login-uri "/login"
+        ;; :default-landing-uri "/"
+        ;; :unauthorized-handler
+        ;; #(-> (cvd/message "Error" (format "You are not authorized to access %s" (:uri %)))
+        ;;      ring.util.response/response
+        ;;      (ring.util.response/status 401))
+        :credential-fn (partial credentials/bcrypt-credential-fn (partial ca/load-user-record db))
+        :workflows [(workflows/interactive-form)]})
       (wrap-defaults (customize-site-defaults secure-site-defaults))
       ;; (wrap-forwarded-scheme)
       (wrap-whitelist md)
-      (wrap-basic-authentication (partial ca/authenticated? db))
+      ;; (wrap-basic-authentication (partial ca/authenticated? db))
       ;; (wrap-content-type)
       ;; (wrap-not-modified)
       ;; (wrap-stacktrace)

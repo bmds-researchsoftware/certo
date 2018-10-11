@@ -183,8 +183,10 @@
         (when (not (or (:is_view table-map) (:is_result_view table-map)))
           [:td
            {:class "lnk"
-            :style "text-align:right"
-            :colspan (str (dec (count stfs)))} [:a {:href (str "/" schema "/" table "/new")} "New"]])]
+            :style "text-align:center"
+            :colspan (str (- (count stfs) 2))} [:a {:href (str "/" schema "/" table "/new")} "New"]])
+        [:td
+         {:class "lnk" :style "text-align:right"} [:a {:href "/help.html"} "Help"]]]
 
        [:tr
         (for [field (map #(get fields %) stfs)]

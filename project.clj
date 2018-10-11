@@ -7,6 +7,7 @@
                  [org.clojure/data.csv "0.1.4"]
                  [ring-basic-authentication "1.0.5"]
                  [metosin/jsonista "0.2.1"]
+                 [com.cemerick/friend "0.2.3"]
                  [com.stuartsierra/component "0.3.2"]
                  [com.layerware/hugsql "0.4.8"]
                  [compojure "1.6.1"]
