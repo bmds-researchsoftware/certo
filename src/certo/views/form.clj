@@ -159,6 +159,10 @@
       value)]))
 
 
+(defmethod form-field [:password] [field name attrs value _]
+  (f/password-field (assoc (update-attrs attrs field {:text_max_length :maxlength :size :size}) :minlength 16) name value))
+
+
 (defmethod form-field [:text] [field name attrs value _]
   (f/text-field (update-attrs attrs field {:text_max_length :maxlength :size :size}) name value))
 

@@ -386,7 +386,7 @@ create table sys.fields (
   check ((type = 'serial8' and control='integer') or (type != 'serial8')),
 
   constraint valid_text_type_controls
-  check ((type = 'text' and (control='select-result' or control='text' or control='textarea' or control='select-option')) or (type != 'text')),
+  check ((type = 'text' and (control='password' or control='select-result' or control='text' or control='textarea' or control='select-option')) or (type != 'text')),
 
   constraint valid_time_type_controls
   check ((type = 'time' and control='time') or (type != 'time')),
@@ -441,13 +441,13 @@ create table sys.fields (
   	(control != 'select-result' and select_result_view is null and select_result_to_text is null)),
 
   constraint valid_control_size_attribute
-  check (((control = 'text' or control = 'integer' or control = 'float' or control = 'date' or control = 'datetime' or control = 'time') and size is not null and size > 0) or
-  	((control = 'text' or control = 'integer' or control = 'float' or control = 'date' or control = 'datetime' or control = 'time') and is_settable='false') or
+  check (((control = 'password' or control = 'text' or control = 'integer' or control = 'float' or control = 'date' or control = 'datetime' or control = 'time') and size is not null and size > 0) or
+  	((control = 'password' or control = 'text' or control = 'integer' or control = 'float' or control = 'date' or control = 'datetime' or control = 'time') and is_settable='false') or
   	(control != 'text' and size is null)),
 
   constraint valid_control_max_length_attributes
-  check (((control = 'text' or control = 'textarea') and text_max_length is not null and text_max_length > 0) or
-  	((control = 'text' or control = 'textarea') and is_settable='false') or
+  check (((control = 'password' or control = 'text' or control = 'textarea') and text_max_length is not null and text_max_length > 0) or
+  	((control = 'password' or control = 'text' or control = 'textarea') and is_settable='false') or
 	(control != 'text' and control != 'textarea' and text_max_length is null)),
 
   -- if textarea_cols is not null and textarea_cols > 0 and textarea_rows is not null and textarea_rows > 0
