@@ -6,13 +6,14 @@
                              [credentials :as credentials])))
 
 
+;; Used for form based authentication
 (defn load-user-record [db username]
   (if-let [user-record
            (jdbc/query
             db
-            ;; TO DO: Don't call credentials/hash-bcrypt on the password, it should be returned in that format
+            ;; password is hashed using crypt(password, gen_salt('bf', 8))
             ["select username, password, usergroup from sys.users where username=?" username]
-            {:row-fn (fn [row] {:username (:username row) :password (credentials/hash-bcrypt (:password row)) :roles #{(:usergroup row)}})
+            {:row-fn (fn [row] {:username (:username row) :password (:password row) :roles #{(:usergroup row)}})
              :result-set-fn first})]
     (workflows/make-auth user-record)
     nil))

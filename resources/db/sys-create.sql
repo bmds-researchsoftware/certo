@@ -106,6 +106,23 @@ create table sys.users (
 select sys.create_trigger_set_updated_at('sys.users');
 create index on sys.users (usergroup);
 
+create or replace function sys.hash_sys_users_password()
+returns trigger as $$
+begin
+  if (length(new.password) < 16) then
+    raise exception 'Password must have at least 16 characters';
+  else
+    new.password = crypt(new.password, gen_salt('bf', 8));
+    return new;
+  end if;
+end;
+$$ language plpgsql;
+
+create trigger trigger_sys_hash_sys_users_password
+before insert or update on sys.users
+for each row
+execute procedure sys.hash_sys_users_password();
+
 
 -- :name create-table-sys-ot-table-types
 -- :command :execute
