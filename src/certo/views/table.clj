@@ -178,15 +178,21 @@
 
        [:tr
         [:td
-         {:class "lnk" :style "text-align:left;"} [:a {:href "/"} "Home"]]
+         {:class "lnk" :style "text-align:left;" :colspan "1"}
+         [:a {:href "/"} "Home"]]
         ;; Only provide a New link for tables, i.e. not for views or result_views.
         (when (not (or (:is_view table-map) (:is_result_view table-map)))
           [:td
            {:class "lnk"
-            :style "text-align:center"
-            :colspan (str (- (count stfs) 2))} [:a {:href (str "/" schema "/" table "/new")} "New"]])
-        [:td
-         {:class "lnk" :style "text-align:right"} [:a {:href "/help.html"} "Help"]]]
+            :style "text-align:center" :colspan (- (count stfs) 2)}
+           [:a {:href (str "/" schema "/" table "/new")} "New"]])
+        (if (not (or (:is_view table-map) (:is_result_view table-map)))
+          [:td
+           {:class "lnk" :style "text-align:right" :colspan "1"}
+           [:a {:href "/help.html"} "Help"]]
+          [:td
+           {:class "lnk" :style "text-align:right" :colspan (- (count stfs) 1)}
+           [:a {:href "/help.html"} "Help"]])]
 
        [:tr
         (for [field (map #(get fields %) stfs)]
