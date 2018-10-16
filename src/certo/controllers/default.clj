@@ -10,8 +10,7 @@
    [certo.models.default :as model :refer [insert!]]
    [certo.views.core :as view]
    [certo.metadata :as metadata]
-   [certo.utilities :as cu]
-   [certo.models.events :as me]))
+   [certo.utilities :as cu]))
 
 
 ;; text primary keys can contains lower case letters, numbers, hyphens, periods, and underscores without whitespace
