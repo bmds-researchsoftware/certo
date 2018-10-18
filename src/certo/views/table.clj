@@ -205,22 +205,26 @@
                     value (form/db-to-form field (models/ui-to-db-one fields stf (get data stf "")))
                     common-attrs {:class "fld" :disabled false :readonly false :required false}]]
           [:td {:class "sc" :style "vertical-align:top"}
-           (if (and (= (:control field) "select-result") (:select_result_to_text field))
-             ;; "convert" select-result control to a text control for search
-             (->
-              (merge
-               (select-keys
-                field
-                [:fields_id :schema_name :table_name :field_name :type :is_function
-                 :is_id :is_uk :is_fk :is_settable :label :location :in_table_view])
-               (cond (= (:type field) "int8")
-                     {:control "integer"}
-                     (= (:type field) "text")
-                     ;; TO DO: Remove hard coded text_size and text_max_length
-                     {:control "text" :size (or (:size field) 50) :text_max_length 1024}
-                     :else (throw (Exception. (format "Invalid type: %s for control: select-result" (:type field))))))
-              (form/form-field stf common-attrs value fields))
-             (form/form-field field stf common-attrs value fields))])]
+           (cond (and (= (:control field) "select-result") (:select_result_to_text field))
+                 ;; "convert" select-result control to a text control for search
+                 (->
+                  (merge
+                   (select-keys
+                    field
+                    [:fields_id :schema_name :table_name :field_name :type :is_function
+                     :is_id :is_uk :is_fk :is_settable :label :location :in_table_view])
+                   (cond (= (:type field) "int8")
+                         {:control "integer"}
+                         (= (:type field) "text")
+                         ;; TO DO: Remove hard coded text_size and text_max_length
+                         {:control "text" :size (or (:size field) 50) :text_max_length 1024}
+                         :else (throw (Exception. (format "Invalid type: %s for control: select-result" (:type field))))))
+                  (form/form-field stf common-attrs value fields))
+                 ;; remove datetime control from search
+                 (= (:control field) "datetime")
+                 "<br>"
+                 :else
+                 (form/form-field field stf common-attrs value fields))])]
 
        [:tr
         {:class "sb"}
