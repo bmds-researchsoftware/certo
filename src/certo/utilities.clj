@@ -57,7 +57,7 @@
   ([db filename f k v]
    (with-open [r (clojure.java.io/reader filename)]
      (doseq [line (line-seq r)]
-       (when (not= line "")
+       (when (and (not= (str/trim line) "") (not (str/starts-with? (str/triml line) ";")))
          (try
            (if (nil? k)
              (f db (clojure.edn/read-string line))

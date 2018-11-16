@@ -930,9 +930,14 @@
 
 (defmethod insert! :default [db md fields table-map schema table params]
   (if (= schema "event")
-    (let [event-class-argument-dimensions (event-class-dimensions db :argument)]
-      (insert-event! db md fields table-map schema table params
-                     (partial default-event-class-fn event-class-argument-dimensions)))
+    (do
+      (println (format "warning: function %s not found, using default" table))
+      (spit "log/events.log" (str "\n" (jt/local-date-time) "\n") :append true)
+      (spit "log/events.log" (format "warning: function %s not found, using default.\n" table) :append true)
+      (let [event-class-argument-dimensions (event-class-dimensions db :argument)]
+        (insert-event! db md fields table-map schema table params
+                       (partial default-event-class-fn event-class-argument-dimensions))))
+    ;; (throw (Exception. (format "Function %s not found." table)))
     (insert-schema-table! db md fields table-map schema table params)))
 
 
@@ -940,20 +945,21 @@
 ;; that comes from the ui, i.e. string keys and string values.
 ;; Specifically, "" for nil, "true" for true, and "false" for false,
 ;; and strings for doubles.
-(defn do-insert-event! [system event-classes-id params]
-  (let [db (get-in system [:database :db-spec])
-        md (:metadata system)
-        table-map (event-classes db event-classes-id)
-        fields (fields db "event" event-classes-id table-map)
-        params (into {} (map (fn [[k v]] (vector (str "event." event-classes-id "." (name k)) v)) params))]
-    (insert!
-     db
-     md
-     fields
-     table-map
-     "event"
-     event-classes-id
-     params)))
+(defn do-insert-event!
+  ([system event-classes-id params]
+   (do-insert-event! (get-in system [:database :db-spec]) (:metadata system) event-classes-id params))
+  ([db md event-classes-id params]
+   (let [table-map (event-classes db event-classes-id)
+         fields (fields db "event" event-classes-id table-map)
+         params (into {} (map (fn [[k v]] (vector (str "event." event-classes-id "." (name k)) v)) params))]
+     (insert!
+      db
+      md
+      fields
+      table-map
+      "event"
+      event-classes-id
+      params))))
 
 
 (defn update! [db fields schema table params id]

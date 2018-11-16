@@ -587,40 +587,16 @@ create unique index field_sets_id_index on sys.field_sets (field_sets_id);
 -- :doc Create table sys.event_classes
 create table sys.event_classes (
   event_classes_id text primary key,
-  -- If study.participant_id = 2345 and function_name='screen-participant', and
-  -- sys.fields contains the row (id = 54, schema_name=study, table_name=people, field_name=participant_id),
-  -- then study.participant_id = 2345 is passed into the
-  -- function whose name is 'screen-participant'.
-  tables_id text references sys.tables (tables_id), -- populated by a before trigger as schema_name.table_name
-  schema_name text,
-  table_name text,
-  function_name text,
+  inactive boolean not null,
+  is_negatable boolean not null,
   is_time_required boolean not null,
-  foreign key (schema_name, table_name) references sys.tables (schema_name, table_name),
+  description text,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp,
-  unique (is_time_required, event_classes_id),
-  constraint valid_event_classes
-  check ((tables_id is not null and schema_name is not null and table_name is not null and function_name is null) or
-       	 (tables_id is null and schema_name is null and table_name is null and function_name is not null) or
-       	 (tables_id is null and schema_name is null and table_name is null and function_name is null)));
+  unique (is_time_required, event_classes_id));
 select sys.create_trigger_set_updated_at('sys.event_classes');
-
-create or replace function sys.update_sys_event_classes()
-returns trigger as $$
-begin
-  -- note: new.tables_id is null when new.schema_name or new.table_name is null
-  new.tables_id = new.schema_name || '.' || new.table_name;
-  return new;
-end;
-$$ language plpgsql;
-
-create trigger trigger_sys_update_sys_event_classes
-before insert or update on sys.event_classes
-for each row
-execute procedure sys.update_sys_event_classes();
 
 
 -- :name create-table-sys-event-class-enqueue-dnfs
@@ -633,20 +609,19 @@ create table sys.event_class_enqueue_dnfs (
   term int8 not null,
   depends_on_event_classes_id text references sys.event_classes (event_classes_id) not null,
   is_positive boolean not null,
-  lag_years int8 constraint valid_lag_years check (lag_years is not null and lag_years >= 0),
-  lag_months int8 constraint valid_lag_months check (lag_months is not null and lag_months >= 0),
-  -- lag_days int8 constraint valid_lag_days check (lag_days is not null and lag_days >= 0),
+  lag_years int8 default 0 constraint valid_lag_years check (lag_years >= 0),
+  lag_months int8 default 0 constraint valid_lag_months check (lag_months >= 0),
+  -- lag_days int8 constraint valid_lag_days check (lag_days >= 0),
   -- TO DO: Must use the following
-  lag_days int8 constraint valid_lag_days check (lag_days is not null),
-  lag_hours int8 constraint valid_lag_hours check (lag_hours is not null and lag_hours >= 0),
-  lag_minutes int8 constraint valid_lag_minutes check (lag_minutes is not null and lag_minutes >= 0),
-  lag_seconds int8 constraint valid_lag_seconds check (lag_seconds is not null and lag_seconds >= 0),
+  lag_days int8 default 0,
+  lag_hours int8 default 0 constraint valid_lag_hours check (lag_hours >= 0),
+  lag_minutes int8 default 0 constraint valid_lag_minutes check (lag_minutes >= 0),
+  lag_seconds int8 default 0 constraint valid_lag_seconds check (lag_seconds >= 0),
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp);
 select sys.create_trigger_set_updated_at('sys.event_class_enqueue_dnfs');
-
 
 create or replace function enqueue_depends_on(sys.event_classes)
 returns text as $$
@@ -669,20 +644,19 @@ create table sys.event_class_dequeue_dnfs (
   term int8 not null,
   depends_on_event_classes_id text references sys.event_classes (event_classes_id) not null,
   is_positive boolean not null,
-  lag_years int8 constraint valid_lag_years check (lag_years is not null and lag_years >= 0),
-  lag_months int8 constraint valid_lag_months check (lag_months is not null and lag_months >= 0),
-  -- lag_days int8 constraint valid_lag_days check (lag_days is not null and lag_days >= 0),
+  lag_years int8 default 0 constraint valid_lag_years check (lag_years >= 0),
+  lag_months int8 default 0 constraint valid_lag_months check (lag_months >= 0),
+  -- lag_days int8 constraint valid_lag_days check (lag_days >= 0),
   -- TO DO: Must use the following
-  lag_days int8 constraint valid_lag_days check (lag_days is not null),
-  lag_hours int8 constraint valid_lag_hours check (lag_hours is not null and lag_hours >= 0),
-  lag_minutes int8 constraint valid_lag_minutes check (lag_minutes is not null and lag_minutes >= 0),
-  lag_seconds int8 constraint valid_lag_seconds check (lag_seconds is not null and lag_seconds >= 0),
+  lag_days int8 default 0,
+  lag_hours int8 default 0 constraint valid_lag_hours check (lag_hours >= 0),
+  lag_minutes int8 default 0 constraint valid_lag_minutes check (lag_minutes >= 0),
+  lag_seconds int8 default 0 constraint valid_lag_seconds check (lag_seconds >= 0),
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp);
 select sys.create_trigger_set_updated_at('sys.event_class_dequeue_dnfs');
-
 
 create or replace function dequeue_depends_on(sys.event_classes)
 returns text as $$
@@ -842,6 +816,16 @@ for each row
 execute procedure sys.set_tstzrange_from_dates_and_times();
 
 
+create view sys.event_enqueue_dnfs as
+select event_classes_id, sys.event_classes.enqueue_depends_on, sys.event_classes.enqueue_dependency_of
+from sys.event_classes;
+
+
+create view sys.event_dequeue_dnfs as
+select event_classes_id, sys.event_classes.dequeue_depends_on, sys.event_classes.dequeue_dependency_of
+from sys.event_classes;
+
+
 create view sys.rv_calendars as
 select calendars_id as value, calendars_id, name
 from sys.calendars
@@ -851,7 +835,7 @@ order by name;
 create view sys.rv_event_classes as
 select event_classes_id as value, event_classes_id
 from sys.event_classes
-order by event_classes_id, function_name;
+order by event_classes_id;
 
 
 create view sys.rv_fields as
@@ -861,33 +845,35 @@ order by fields_id;
 
 
 create view sys.rv_option_tables as
-select tables_id as value, tables_id, schema_name, table_name from sys.tables where table_type='option-table';
+select tables_id as value, tables_id, schema_name, table_name
+from sys.tables
+where table_type='option-table'
+order by tables_id;
 
 
 create view sys.rv_result_views as
-select tables_id as value, tables_id, schema_name, table_name from sys.tables where table_type='result-view';
-
-
-create view sys.rv_views as
-select tables_id as value, tables_id, schema_name, table_name from sys.tables where table_type='view';
+select tables_id as value, tables_id, schema_name, table_name
+from sys.tables
+where table_type='view'
+order by tables_id;
 
 
 create view sys.rv_tables as
-select tables_id as value, tables_id, schema_name, table_name from sys.tables where table_type='table';
-
-
-create view sys.rv_function_names as
-select distinct function_name as value, function_name from sys.event_classes;
+select tables_id as value, tables_id, schema_name, table_name
+from sys.tables
+where table_type='table'
+order by tables_id;
 
 
 create view sys.rv_users as
-select username as value, full_name from sys.users;
+select username as value, full_name
+from sys.users
+order by username;
 
 
-create view sys.event_enqueue_dnfs as
-select event_classes_id, sys.event_classes.enqueue_depends_on, sys.event_classes.enqueue_dependency_of from sys.event_classes;
-
-
-create view sys.event_dequeue_dnfs as
-select event_classes_id, sys.event_classes.dequeue_depends_on, sys.event_classes.dequeue_dependency_of from sys.event_classes;
+create view sys.rv_views as
+select tables_id as value, tables_id, schema_name, table_name
+from sys.tables
+where table_type='view'
+order by tables_id;
 
