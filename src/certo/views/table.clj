@@ -116,7 +116,7 @@
 
 
 (defmethod db-to-table [:int8 :select-result] [field value]
-    (search-link field value))
+  (search-link field value))
 
 
 (defmethod db-to-table [:serial8 :integer] [field value]
