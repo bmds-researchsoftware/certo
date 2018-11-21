@@ -22,9 +22,12 @@
   (start [component]
     ;; if using connection or a connection-pool open it here and
     ;; assoc it to the component
-    (if (and (:whitelist component) (:function component))
+    (if (:whitelist component)
       component
-      (as-> (update component :whitelist set) component
+      (as-> (-> (clojure.set/rename-keys
+                 component
+                 {:initial-whitelist :whitelist})
+                (update :whitelist set)) component
         (update
          component
          :whitelist
@@ -38,8 +41,7 @@
            (-> component
                (get-in [:database :connection])
                (cmd/event-classes)
-               (event-classes)))))
-        (assoc component :functions (cmd/functions (get-in component [:database :connection]))))))
+               (event-classes))))))))
 
   (stop [component]
     ;; if using connection or a connection-pool close it here and
