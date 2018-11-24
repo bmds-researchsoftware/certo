@@ -7,6 +7,7 @@
    [clojure.java.jdbc :as jdbc]
    [clojure.pprint :as pprint]
    [java-time :as jt]
+   [taoensso.timbre :as log]
    [certo.sql]
    [certo.sql-events]
    [certo.utilities :as cu])

@@ -5,6 +5,7 @@
             :url "https://opensource.org/licenses/MIT"}
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/data.csv "0.1.4"]
+                 [com.taoensso/timbre "2.7.1"]
                  [ring-basic-authentication "1.0.5"]
                  [metosin/jsonista "0.2.1"]
                  [com.cemerick/friend "0.2.3"]
