@@ -810,19 +810,24 @@
            [(:event_queue_id eq)]
            (mapv (fn [k] (get ecrd k)) (get event-class-argument-dimensions ecid))
            [(:created_by params) (:updated_by params)]))))
-      (spit "log/events.log" (str "  enqueue: " ecid "\n") :append true))))
+      ;; logging uses agent to prevent blocking in transaction
+      (log/info (str "  enqueue: " ecid "\n")))))
 
 
-;; TO DO:  table is event_classes_id, so rename the table argument to be event-classes-id
+;; TO DO: table is event_classes_id, so rename the table argument to be event-classes-id
 (defn dequeue-events! [tx table params ecrd event-class-argument-dimensions]
   (doseq [ecid (enqueue-dequeue-event-classes-id-candidates tx table (event-class-dimensions-where-clause table event-class-argument-dimensions ecrd) :dequeue)]
     (do
       (jdbc/delete!
        tx
        "sys.event_queue"
-       ["event_classes_id = ?" ecid])
+       (if (= table ecid)
+         ;; include the event_queue_id in the where clause when removing the event that was just done from the queue
+         ["event_classes_id = ? and event_queue_id = ?" ecid (:event_queue_id params)]
+         ["event_classes_id = ?" ecid]))
       ;; on delete cascade will delete the corresponding row in app.event_queue_dimensions
-      (spit "log/events.log" (str "  dequeue: " ecid "\n") :append true))))
+      ;; logging uses agent to prevent blocking in transaction
+      (log/info (str "  dequeue: " ecid "\n")))))
 
 
 ;; TO DO: schema is always "event" and table is event_classes_id, so
@@ -900,9 +905,8 @@
 (defmethod insert! :default [db md fields table-map schema table params]
   (if (= schema "event")
     (do
-      (println (format "warning: function %s not found, using default" table))
-      (spit "log/events.log" (str "\n" (jt/local-date-time) "\n") :append true)
-      (spit "log/events.log" (format "warning: function %s not found, using default.\n" table) :append true)
+      (println (format "function %s not found, using default.\n" table))
+      (log/warn (format "function %s not found, using default.\n" table))
       (let [event-class-argument-dimensions (event-class-dimensions db :argument)]
         (insert-event! db md fields table-map schema table params
                        (partial default-event-class-fn event-class-argument-dimensions))))
