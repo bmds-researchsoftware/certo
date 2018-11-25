@@ -204,38 +204,6 @@
       (fn [rs] (into {} rs)))}))
 
 
-;; TO DO: Rename functions to event-functions.  Load event-function
-;; from namespaces specified in config.clj and use to handle :default
-;; case.
-
-
-;; (defn functions [db]
-;;   (let [event-function-not-implemented
-;;         (fn [db]
-;;           (throw (Exception. "Event function is not implemented")))]
-;;     (jdbc/query
-;;      db
-;;      ["select event_classes_id, function_name from sys.event_classes"]
-;;      {:row-fn
-;;       (fn [row]
-;;         (vector
-;;          (:event_classes_id row)
-;;          (let [function_name (:function_name row)]
-;;            (if (= function_name "event_function_not_implemented")
-;;              event-function-not-implemented
-;;              (try
-;;                (eval (read-string function_name))
-;;                (catch clojure.lang.Compiler$CompilerException e
-;;                  (throw (Exception. (format "Function: %s is not defined" function_name))))
-;;                (catch Exception e
-;;                  (throw e)))))))
-;;       :result-set-fn (fn [rs] (into {} rs))})))
-
-
-(defn functions [db]
-  nil)
-
-
 (defn select-options [db row]
   (assoc
    row
