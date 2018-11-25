@@ -182,10 +182,10 @@
        (:event_classes_id row)
        (mapv key (filter (fn [[k v]] v) (dissoc row :event_classes_id :created_by :created_at :updated_by :updated_at)))))
     :result-set-fn
-      (fn [rs]
-        (if event_classes_id
-          (second (first rs))
-          (into {} rs)))}))
+    (fn [rs]
+      (if event_classes_id
+        (second (first rs))
+        (into {} rs)))}))
 
 
 (defn event-classes [db & [event_classes_id]]
