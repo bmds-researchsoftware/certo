@@ -743,7 +743,7 @@
 ;;       (sql-events/recruitment-participant-did-not-consent-mainstudy db params))))
 
 
-;; TO DO:  table is event_classes_id, so rename the table argument to be event-classes-id
+;; TO DO: table is event_classes_id, so rename the table argument to be event-classes-id
 (defn enqueue-dequeue-event-classes-id-candidates [tx table event-class-dimensions-where-clause action]
   (assert (or (= action :enqueue) (= action :dequeue))
           (format "enqueue-dequeue-event-classes-id-candidates must be :enqueue or :dequeue"))
