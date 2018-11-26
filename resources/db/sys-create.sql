@@ -109,7 +109,7 @@ create index on sys.users (usergroup);
 create or replace function sys.hash_sys_users_password()
 returns trigger as $$
 begin
-  if (length(new.password) < 16) then
+  if (length(new.password) < 4) then
     raise exception 'Password must have at least 16 characters';
   else
     new.password = crypt(new.password, gen_salt('bf', 8));
@@ -749,7 +749,7 @@ execute procedure sys.update_sys_event_queue();
 -- :result :raw
 -- :doc Create table sys.events
 create table sys.events (
-  events_id serial8 primary key,
+  events_id int8 primary key, -- TO DO: references sys.event_queue (event_queue_id),
   event_classes_id text references sys.event_classes (event_classes_id),
   event_by text references sys.users (username) not null,
   event_date date not null,

@@ -86,6 +86,24 @@ values
   (:event_classes_id, :field_name, :sys_fields_id, :label, :location, :created_by, :updated_by);
 
 
+-- :name insert-sys-event-queue-depends-on-self
+-- :command :execute
+-- :result :raw
+-- :doc insert sys event queue depends on self
+with
+event_queue as (
+  insert into sys.event_queue
+    (event_classes_id, lag_years, lag_months, lag_days, lag_hours, lag_minutes, lag_seconds, start_tstz, created_by, updated_by)
+  values
+    (:event_classes_id, :lag_years, :lag_months, :lag_days, :lag_hours, :lag_minutes, :lag_seconds, :start_tstz::timestamptz, :created_by, :updated_by)
+  returning *)
+
+insert into app.event_queue_dimensions
+    (event_queue_id, created_by, updated_by)
+  values
+    ((select event_queue_id from event_queue), :created_by, :updated_by);
+
+
 -- :name select-sys-event-classes-all
 -- :command :query
 -- :result many
@@ -198,4 +216,16 @@ from (select event_classes_id, term, count(*) degree from :i:sys-event-class-dnf
      inner join (select distinct on (event_classes_id) events_id, event_classes_id, is_event_done from app.events :sql:event-class-dimensions-where-clause order by event_classes_id, events_id desc) se
      on secd.depends_on_event_classes_id=se.event_classes_id and secd.is_positive=se.is_event_done
      where secd.event_classes_id=deps.event_classes_id and secd.term=deps.term) evts;
+
+
+-- :name select-event-to-dequeue
+-- :command :execute
+-- :result :raw
+-- :doc Select events to enqueue or dequeue
+delete from sys.event_queue
+where event_queue_id = (
+  select event_queue_id
+  from sys.event_queue
+  where event_queue_id = :event_queue_id
+  for update skip locked);
 

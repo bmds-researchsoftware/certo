@@ -307,7 +307,25 @@
 
 
 (defn common-event-fields [db schema table require-time]
-  {(str schema "." table ".event_by")
+  {(str schema "." table ".event_queue_id")
+   {:fields_id (stf schema table "event_queue_id")
+    :schema_name schema
+    :table_name table
+    :field_name "event_queue_id"
+    :type "int8"
+    :label "Event Queue ID"
+    :control "integer"
+    :integer_step 1
+    :integer_min 0
+    :integer_max nil
+    :location Long/MIN_VALUE
+    :size 6
+    :is_settable true
+    :disabled false
+    :readonly true
+    :required true}
+
+   (str schema "." table ".event_by")
    (select-results
     db
     {:fields_id (stf schema table "event_by")
@@ -317,7 +335,7 @@
      :type "text"
      :label "Event By"
      :control "select-result"
-     :location Long/MIN_VALUE
+     :location (+ Long/MIN_VALUE 1)
      :size "22"
      :is_settable true
      :disabled false
@@ -335,7 +353,7 @@
     :type "date"
     :label "Event Date"
     :control "date"
-    :location (+ Long/MIN_VALUE 1)
+    :location (+ Long/MIN_VALUE 2)
     :size "22"
     :is_settable true
     :disabled false
@@ -352,7 +370,7 @@
       :type "time"
       :label "Event Time"
       :control "time"
-      :location (+ Long/MIN_VALUE 2)
+      :location (+ Long/MIN_VALUE 3)
       :size "22"
       :is_settable true
       :disabled false
@@ -369,7 +387,7 @@
     :control "select-boolean"
     :boolean_true "Yes"
     :boolean_false "No"
-    :location (+ Long/MIN_VALUE 3)
+    :location (+ Long/MIN_VALUE 4)
     :size "22"
     :is_settable true
     :disabled false
@@ -389,7 +407,7 @@
      :select_option_table "sys.ot_event_not_done_reasons"
      :select_multiple false
      :select_size 1
-     :location (+ Long/MIN_VALUE 4)
+     :location (+ Long/MIN_VALUE 5)
      :size "22"
      :is_settable true
      :disabled false
@@ -836,30 +854,32 @@
 (defn insert-event! [db md fields table-map schema table params event-class-fn]
   (jdbc/with-db-transaction [tx db]
     (let [params (cu/str-to-key-map (ui-to-db fields params))
-          ;; The last statement of every event function is
-          ;; insert into app.event_dimensions (...) values (...) returning *;
-          ;; and is stored in ed.
-          ;; event-class-result-dimensions
-          ecrd
-          ;; Run the function for this event
-          (event-class-fn
-           tx
-           (assoc params
-                  :event_classes_id table
-                  :event_data
-                  (json/write-value-as-string params)))
           event-class-argument-dimensions (event-class-dimensions tx :argument)]
-      (spit "log/events.log" (str "\n" (jt/local-date-time) "\n") :append true)
-      (spit "log/events.log" (str "did: " table "\n") :append true)
-      (dequeue-events! tx table params ecrd event-class-argument-dimensions)
-      (enqueue-events! tx table params ecrd event-class-argument-dimensions)
-      ;; return the event_class_result_dimensions so that they can be used by do-insert-event!
-      ecrd)))
+      (certo.sql/select-event-to-dequeue tx {:event_queue_id (:event_queue_id params)})
+      ;; The last statement of every event function is
+      ;; insert into app.event_dimensions (...) values (...) returning *;
+      ;; and is stored in edrd.
+      ;; event-class-result-dimensions
+      (let [ecrd
+            ;; Run the function for this event
+            (event-class-fn
+             tx
+             (assoc params
+                    :event_classes_id table
+                    :event_data
+                    (json/write-value-as-string params)))]
+        ;; logging uses agent to prevent blocking in transaction
+        (log/info (format "did: %s with event_queue_id = %s\n" table (:events_id ecrd)))
+        (log/info (str "  dequeue: " table "\n"))
+        (dequeue-events! tx table params ecrd event-class-argument-dimensions)
+        (enqueue-events! tx table params ecrd event-class-argument-dimensions)
+        ;; return the event_class_result_dimensions so that they can be used by do-insert-event!
+        ecrd))))
 
 
 ;; Insert an event and event dimsensions using the event argument dimensions.
 (defn default-event-class-fn [event-class-argument-dimensions db params]
-  (let [event (certo.sql-events/insert-event db params)]
+  (let [event (certo.sql-events/insert-event db (assoc params :events_id (:event_queue_id params)))]
     ;; Use app.event_class_result_dimensions to construct statement to
     ;; insert into app.event_dimensions.  Note that the dimensions
     ;; that are the argument dimensions, not the result dimensions,
@@ -877,7 +897,7 @@
                  event-class-argument-dimension
                  (get params event-class-argument-dimension)))
               (get event-class-argument-dimensions (:event_classes_id params))))
-            :events_id (:events_id event)
+            :events_id (:event_queue_id params)
             :created_by (:created_by params)
             :updated_by (:updated_by params))
            {:return-keys true})]

@@ -34,7 +34,7 @@
                   "&"
                   (map
                    (fn [[k v]] (str "event." (:event-classes-id value) "." (name k) "=" v))
-                   (:event-class-argument-dimensions value)))]
+                   (into {:event_queue_id (:event-queue-id value)} (:event-class-argument-dimensions value))))]
              [:a {:style "font-weight: bold;" :href (str "/event/" (:event-classes-id value) "/new" (if (not (str/blank? query-string)) (str "?" query-string) ""))}
               (if (= (:event-queue-id value) 0)
                 "*"
