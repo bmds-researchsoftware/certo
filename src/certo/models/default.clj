@@ -306,130 +306,133 @@
     :required false}})
 
 
-(defn common-event-fields [db schema table require-time]
-  {(str schema "." table ".event_queue_id")
-   {:fields_id (stf schema table "event_queue_id")
-    :schema_name schema
-    :table_name table
-    :field_name "event_queue_id"
-    :type "int8"
-    :label "Event Queue ID"
-    :control "integer"
-    :integer_step 1
-    :integer_min 0
-    :integer_max nil
-    :location Long/MIN_VALUE
-    :size 6
-    :is_settable true
-    :disabled false
-    :readonly true
-    :required true}
+(defn common-event-fields [db schema table is-negatable require-time]
+  (cond->
+      {(str schema "." table ".event_queue_id")
+       {:fields_id (stf schema table "event_queue_id")
+        :schema_name schema
+        :table_name table
+        :field_name "event_queue_id"
+        :type "int8"
+        :label "Event Queue ID"
+        :control "integer"
+        :integer_step 1
+        :integer_min 0
+        :integer_max nil
+        :location Long/MIN_VALUE
+        :size 6
+        :is_settable true
+        :disabled false
+        :readonly true
+        :required true}
 
-   (str schema "." table ".event_by")
-   (select-results
-    db
-    {:fields_id (stf schema table "event_by")
-     :schema_name schema
-     :table_name table
-     :field_name "event_by"
-     :type "text"
-     :label "Event By"
-     :control "select-result"
-     :location (+ Long/MIN_VALUE 1)
-     :size "22"
-     :is_settable true
-     :disabled false
-     :readonly false
-     :required true
-     :select_multiple false
-     :select_size 5
-     :select_result_view "sys.rv_users"})
+       (str schema "." table ".event_by")
+       (select-results
+        db
+        {:fields_id (stf schema table "event_by")
+         :schema_name schema
+         :table_name table
+         :field_name "event_by"
+         :type "text"
+         :label "Event By"
+         :control "select-result"
+         :location (+ Long/MIN_VALUE 1)
+         :size "22"
+         :is_settable true
+         :disabled false
+         :readonly false
+         :required true
+         :select_multiple false
+         :select_size 5
+         :select_result_view "sys.rv_users"})
 
-   (str schema "." table ".event_date")
-   {:fields_id (stf schema table "event_date")
-    :schema_name schema
-    :table_name table
-    :field_name "event_date"
-    :type "date"
-    :label "Event Date"
-    :control "date"
-    :location (+ Long/MIN_VALUE 2)
-    :size "22"
-    :is_settable true
-    :disabled false
-    :readonly false
-    :required true}
+       (str schema "." table ".event_date")
+       {:fields_id (stf schema table "event_date")
+        :schema_name schema
+        :table_name table
+        :field_name "event_date"
+        :type "date"
+        :label "Event Date"
+        :control "date"
+        :location (+ Long/MIN_VALUE 2)
+        :size "22"
+        :is_settable true
+        :disabled false
+        :readonly false
+        :required true}
 
-   (when require-time
-     (str schema "." table ".event_time"))
-   (when require-time
-     {:fields_id (stf schema table "event_time")
-      :schema_name schema
-      :table_name table
-      :field_name "event_time"
-      :type "time"
-      :label "Event Time"
-      :control "time"
-      :location (+ Long/MIN_VALUE 3)
-      :size "22"
-      :is_settable true
-      :disabled false
-      :readonly false
-      :required true})
+       (str schema "." table ".event_notes")
+       {:fields_id (stf schema table "event_notes")
+        :schema_name schema
+        :table_name table
+        :field_name "event_notes"
+        :type "text"
+        :label "Event Notes"
+        :control "textarea"
+        :location Long/MAX_VALUE
+        :is_settable true
+        :disabled false
+        :readonly false
+        :required false
+        :textarea_cols 80
+        :textarea_rows 10
+        :size "22"}}
 
-   (str schema "." table ".is_event_done")
-   {:fields_id (stf schema table "is_event_done")
-    :schema_name schema
-    :table_name table
-    :field_name "is_event_done"
-    :type "boolean"
-    :label "Is Event Done?"
-    :control "select-boolean"
-    :boolean_true "Yes"
-    :boolean_false "No"
-    :location (+ Long/MIN_VALUE 4)
-    :size "22"
-    :is_settable true
-    :disabled false
-    :readonly false
-    :required true}
+      require-time
+      (assoc
+       (str schema "." table ".event_time")
+       {:fields_id (stf schema table "event_time")
+        :schema_name schema
+        :table_name table
+        :field_name "event_time"
+        :type "time"
+        :label "Event Time"
+        :control "time"
+        :location (+ Long/MIN_VALUE 3)
+        :size "22"
+        :is_settable true
+        :disabled false
+        :readonly false
+        :required true})
 
-   (str schema "." table ".event_not_done_reason")
-   (select-options
-    db
-    {:fields_id (stf schema table "event_not_done_reason")
-     :schema_name schema
-     :table_name table
-     :field_name "event_not_done_reason"
-     :type "text"
-     :label "Event Not Done Reason"
-     :control "select-option"
-     :select_option_table "sys.ot_event_not_done_reasons"
-     :select_multiple false
-     :select_size 1
-     :location (+ Long/MIN_VALUE 5)
-     :size "22"
-     :is_settable true
-     :disabled false
-     :readonly false
-     :required false})
+      is-negatable
+      (assoc
+       (str schema "." table ".is_event_done")
+       {:fields_id (stf schema table "is_event_done")
+        :schema_name schema
+        :table_name table
+        :field_name "is_event_done"
+        :type "boolean"
+        :label "Is Event Done?"
+        :control "select-boolean"
+        :boolean_true "Yes"
+        :boolean_false "No"
+        :location (+ Long/MIN_VALUE 4)
+        :size "22"
+        :is_settable true
+        :disabled false
+        :readonly false
+        :required true}
 
-   (str schema "." table ".event_notes")
-   {:fields_id (stf schema table "event_notes")
-    :schema_name schema
-    :table_name table
-    :field_name "event_notes"
-    :type "text"
-    :label "Event Notes"
-    :control "textarea"
-    :location Long/MAX_VALUE
-    :is_settable true
-    :disabled false
-    :readonly false
-    :required false
-    :textarea_cols 80
-    :textarea_rows 10 
-    :size "22"}})
+       (str schema "." table ".event_not_done_reason")
+       (select-options
+        db
+        {:fields_id (stf schema table "event_not_done_reason")
+         :schema_name schema
+         :table_name table
+         :field_name "event_not_done_reason"
+         :type "text"
+         :label "Event Not Done Reason"
+         :control "select-option"
+         :select_option_table "sys.ot_event_not_done_reasons"
+         :select_multiple false
+         :select_size 1
+         :location (+ Long/MIN_VALUE 5)
+         :size "22"
+         :is_settable true
+         :disabled false
+         :readonly false
+         :required false}))))
 
 
 (defn sort-by-location [fields]
@@ -497,8 +500,9 @@
          is_option_table :is_option_table
          is_view :is_view
          is_result_view :is_result_view
+         is_negatable :is_negatable
          is_time_required :is_time_required
-         :or {is_table false is_option_table false is_view false is_result_view false is_time_required false}}
+         :or {is_table false is_option_table false is_view false is_result_view false is_negatable false is_time_required false}}
         table-map
         is_event (= schema "event")]
 
@@ -509,7 +513,7 @@
        {})
 
      (if is_event
-       (common-event-fields db schema table is_time_required)
+       (common-event-fields db schema table is_negatable is_time_required)
        {})
 
      (cond
@@ -856,6 +860,12 @@
 (defn insert-event! [db md fields table-map schema table params event-class-fn]
   (jdbc/with-db-transaction [tx db]
     (let [params (cu/str-to-key-map (ui-to-db fields params))
+          params
+          (if (not (:is_negatable table-map))
+            (assoc params
+                   :is_event_done true
+                   :event_not_done_reason nil)
+            params)
           event-class-argument-dimensions (event-class-dimensions tx :argument)]
       (certo.sql/select-event-to-dequeue tx {:event_queue_id (:event_queue_id params)})
       ;; The last statement of every event function is
