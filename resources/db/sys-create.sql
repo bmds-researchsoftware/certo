@@ -385,34 +385,34 @@ create table sys.fields (
 
   -- start: constraints for types --
   constraint valid_boolean_type_controls
-  check ((type = 'boolean' and control='select-boolean') or (type != 'boolean')),
+  check ((type = 'boolean' and (control='select-boolean' or control='hidden')) or (type != 'boolean')),
 
   constraint valid_date_type_controls
-  check ((type = 'date' and control='date') or (type != 'date')),
+  check ((type = 'date' and (control='date' or control='hidden')) or (type != 'date')),
 
   constraint valid_float8_type_controls
-  check ((type = 'float8' and control='float') or (type != 'float')),
+  check ((type = 'float8' and (control='float' or control='hidden')) or (type != 'float')),
 
   constraint valid_int8_type_controls
-  check ((type = 'int8' and (control='integer' or control='select-option' or control='select-result')) or (type != 'int8')),
+  check ((type = 'int8' and (control='integer' or control='select-option' or control='select-result' or control='hidden')) or (type != 'int8')),
 
   constraint valid_jsonb_type_controls
-  check ((type = 'jsonb' and (control='text' or control='textarea')) or (type != 'jsonb')),
+  check ((type = 'jsonb' and (control='text' or control='textarea' or control='hidden')) or (type != 'jsonb')),
 
   constraint valid_serial8_type_controls
-  check ((type = 'serial8' and control='integer') or (type != 'serial8')),
+  check ((type = 'serial8' and (control='integer' or control='hidden')) or (type != 'serial8')),
 
   constraint valid_text_type_controls
-  check ((type = 'text' and (control='password' or control='select-result' or control='text' or control='textarea' or control='select-option')) or (type != 'text')),
+  check ((type = 'text' and (control='password' or control='select-result' or control='text' or control='textarea' or control='select-option') or control='hidden') or (type != 'text')),
 
   constraint valid_time_type_controls
-  check ((type = 'time' and control='time') or (type != 'time')),
+  check ((type = 'time' and (control='time' or control='hidden')) or (type != 'time')),
 
   constraint valid_timestamptz_type_controls
-  check ((type = 'timestamptz' and control='datetime') or (type != 'timestamptz')),
+  check ((type = 'timestamptz' and (control='datetime' or control='hidden')) or (type != 'timestamptz')),
 
   constraint valid_uuid_type_controls
-  check ((type = 'uuid' and control='text') or (type != 'uuid')),
+  check ((type = 'uuid' and (control='text' or control='hidden')) or (type != 'uuid')),
   -- end: constraints for types --
 
   -- start: constraints for controls --
