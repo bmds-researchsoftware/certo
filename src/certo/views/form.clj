@@ -292,7 +292,11 @@
            :value "Add People"}]
          "&nbsp;" "&nbsp;"))
 
-      [:input {:type "button" :onclick (format "location.href='/%s/%s'" schema table) :value "Cancel"}]]
+      [:input {:type "button"
+               :onclick (if (= schema "event")
+                          "history.go(-1); return false;"
+                          (format "location.href='/%s/%s'" schema table))
+               :value "Cancel"}]]
 
      [:br])))
 
