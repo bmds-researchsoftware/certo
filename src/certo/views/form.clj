@@ -195,6 +195,12 @@
   ;; aren't displayed at the top level of the form
   (let [fields (models/fields-by-schema-table all-fields schema table)
         fields (models/sort-by-location fields)
+        fields (if (and (= schema "event") (= ((keyword (models/stf schema table "event_queue_id")) data) 0))
+                 (dissoc fields (models/stf schema table "event_queue_id"))
+                 fields)
+        data (if (and (= schema "event") (= ((keyword (models/stf schema table "event_queue_id")) data) 0))
+                 (dissoc data (keyword (models/stf schema table "event_queue_id")))
+                 data)
         fields (if (and (= schema "sys") (= table "events") (false? (:sys.events.is_time_required data)))
                  (dissoc fields "sys.events.event_time")
                  fields)

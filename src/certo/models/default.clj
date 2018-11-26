@@ -800,7 +800,7 @@
        (apply format (str (str/join " = %d and " (map name (keys event-class-dimensions-map))) " = %d") (vals event-class-dimensions-map))))))
 
 
-;; TO DO:  table is event_classes_id, so rename the table argument to be event-classes-id
+;; TO DO: table is event_classes_id, so rename the table argument to be event-classes-id
 (defn enqueue-events! [tx table params ecrd event-class-argument-dimensions]
   (doseq [ecid (enqueue-dequeue-event-classes-id-candidates tx table (event-class-dimensions-where-clause table event-class-argument-dimensions ecrd) :enqueue)]
     (do
@@ -810,6 +810,7 @@
               tx
               "sys.event_queue"
               {:event_classes_id ecid
+               :is_queued true
                :lag_years 0 :lag_months 0 :lag_days 0 :lag_hours 0 :lag_minutes 0 :lag_seconds 0
                :created_by (:created_by params) :updated_by (:updated_by params)}
               {:return-keys true}))]
@@ -836,9 +837,10 @@
 (defn dequeue-events! [tx table params ecrd event-class-argument-dimensions]
   (doseq [ecid (enqueue-dequeue-event-classes-id-candidates tx table (event-class-dimensions-where-clause table event-class-argument-dimensions ecrd) :dequeue)]
     (do
-      (jdbc/delete!
+      (jdbc/update!
        tx
        "sys.event_queue"
+       {:is_queued false}
        (if (= table ecid)
          ;; include the event_queue_id in the where clause when removing the event that was just done from the queue
          ["event_classes_id = ? and event_queue_id = ?" ecid (:event_queue_id params)]

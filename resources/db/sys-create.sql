@@ -708,6 +708,7 @@ execute procedure sys.update_sys_event_class_fields();
 create table sys.event_queue (
   event_queue_id serial8 primary key,
   event_classes_id text references sys.event_classes (event_classes_id),
+  is_queued boolean not null,
   lag_years int8 constraint valid_lag_years check (lag_years is not null and lag_years >= 0),
   lag_months int8 constraint valid_lag_months check (lag_months is not null and lag_months >= 0),
   lag_days int8 constraint valid_lag_days check (lag_days is not null),
@@ -749,7 +750,7 @@ execute procedure sys.update_sys_event_queue();
 -- :result :raw
 -- :doc Create table sys.events
 create table sys.events (
-  events_id int8 primary key, -- TO DO: references sys.event_queue (event_queue_id),
+  events_id int8 primary key references sys.event_queue (event_queue_id),
   event_classes_id text references sys.event_classes (event_classes_id),
   event_by text references sys.users (username) not null,
   event_date date not null,

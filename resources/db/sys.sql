@@ -93,9 +93,9 @@ values
 with
 event_queue as (
   insert into sys.event_queue
-    (event_classes_id, lag_years, lag_months, lag_days, lag_hours, lag_minutes, lag_seconds, start_tstz, created_by, updated_by)
+    (event_classes_id, is_queued, lag_years, lag_months, lag_days, lag_hours, lag_minutes, lag_seconds, start_tstz, created_by, updated_by)
   values
-    (:event_classes_id, :lag_years, :lag_months, :lag_days, :lag_hours, :lag_minutes, :lag_seconds, :start_tstz::timestamptz, :created_by, :updated_by)
+    (:event_classes_id, 'true', :lag_years, :lag_months, :lag_days, :lag_hours, :lag_minutes, :lag_seconds, :start_tstz::timestamptz, :created_by, :updated_by)
   returning *)
 
 insert into app.event_queue_dimensions
@@ -222,10 +222,11 @@ from (select event_classes_id, term, count(*) degree from :i:sys-event-class-dnf
 -- :command :execute
 -- :result :raw
 -- :doc Select events to enqueue or dequeue
-delete from sys.event_queue
+update sys.event_queue
+set is_queued = 'false'
 where event_queue_id = (
   select event_queue_id
   from sys.event_queue
-  where event_queue_id = :event_queue_id
+  where event_queue_id = :event_queue_id and is_queued = 'true'
   for update skip locked);
 
