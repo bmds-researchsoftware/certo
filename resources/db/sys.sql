@@ -221,7 +221,7 @@ from (select event_classes_id, term, count(*) degree from :i:sys-event-class-dnf
 -- :name select-event-to-dequeue
 -- :command :execute
 -- :result :raw
--- :doc Select events to enqueue or dequeue
+-- :doc Select event to dequeue
 update sys.event_queue
 set is_queued = 'false'
 where event_queue_id = (

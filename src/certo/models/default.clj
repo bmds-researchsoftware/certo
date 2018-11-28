@@ -801,7 +801,10 @@
       ""
       (str
        "where "
-       (apply format (str (str/join " = %d and " (map name (keys event-class-dimensions-map))) " = %d") (vals event-class-dimensions-map))))))
+       (apply
+        format
+        (str/join " and " (map (fn [[k v]] (str (name k) (if (nil? v) " is null" " = %d")) ) event-class-dimensions-map))
+        (vals event-class-dimensions-map))))))
 
 
 ;; TO DO: table is event_classes_id, so rename the table argument to be event-classes-id
