@@ -10,6 +10,7 @@
    [ring.middleware.defaults :refer [wrap-defaults site-defaults api-defaults secure-api-defaults secure-site-defaults]]
    [ring.middleware.stacktrace :refer [wrap-stacktrace wrap-stacktrace-log wrap-stacktrace-web]]
    [ring.middleware.ssl :refer [wrap-forwarded-scheme wrap-hsts wrap-ssl-redirect]]
+   [ring-debug-logging.core :refer [wrap-with-logger]]
    [certo.auth :as ca]
    [certo.views.core :as cvd]))
 
@@ -126,5 +127,7 @@
       ;; (wrap-postgres-exception)
       (wrap-postgres-exception-web)
       ;; (wrap-exception)
-      (wrap-exception-web)))
+      (wrap-exception-web)
+      ;; (wrap-with-logger)
+      ))
 
