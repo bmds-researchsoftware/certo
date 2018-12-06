@@ -620,7 +620,8 @@ create table sys.event_class_enqueue_dnfs (
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp);
+  updated_at timestamptz default current_timestamp,
+  unique (event_classes_id, term, depends_on_event_classes_id));
 select sys.create_trigger_set_updated_at('sys.event_class_enqueue_dnfs');
 
 create or replace function enqueue_depends_on(sys.event_classes)
@@ -655,7 +656,8 @@ create table sys.event_class_dequeue_dnfs (
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
-  updated_at timestamptz default current_timestamp);
+  updated_at timestamptz default current_timestamp,
+  unique (event_classes_id, term, depends_on_event_classes_id));
 select sys.create_trigger_set_updated_at('sys.event_class_dequeue_dnfs');
 
 create or replace function dequeue_depends_on(sys.event_classes)
