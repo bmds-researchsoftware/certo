@@ -204,20 +204,6 @@ inner join sys.event_class_fields as ecf on sf.fields_id=ecf.sys_fields_id
 where sf.control='select-result' and ecf.event_classes_id=:event_classes_id;
 
 
--- :name select-events-to-enqueue-or-dequeue
--- :command :query
--- :result many
--- :doc Select events to enqueue or dequeue
-select event_classes_id,term, deps.degree, evts.number_true
-from (select event_classes_id, term, count(*) degree from :i:sys-event-class-dnfs-schema-table where event_classes_id=:ecid-candidate group by event_classes_id, term) deps,
-  lateral
-    (select count(*) number_true
-     from :i:sys-event-class-dnfs-schema-table secd
-     inner join (select distinct on (event_classes_id) events_id, event_classes_id, is_event_done from app.events :sql:event-class-dimensions-where-clause order by event_classes_id, events_id desc) se
-     on secd.depends_on_event_classes_id=se.event_classes_id and secd.is_positive=se.is_event_done
-     where secd.event_classes_id=deps.event_classes_id and secd.term=deps.term) evts;
-
-
 -- :name select-event-to-dequeue
 -- :command :execute
 -- :result :raw
@@ -229,4 +215,32 @@ where event_queue_id = (
   from sys.event_queue
   where event_queue_id = :event_queue_id and is_queued = 'true'
   for update skip locked);
+
+
+-- :name enqueue-dequeue-event-class-dependencies
+-- :command :query
+-- :result many
+-- :doc Select the event_classes_id and term of the event classes that depend on :depends-on-event-classes-id
+select dnfs.event_classes_id, dnfs.term, count(*) degree
+from :i:sys-event-class-dnfs-schema-table dnfs
+inner join
+  (select event_classes_id, term
+   from :i:sys-event-class-dnfs-schema-table
+   where depends_on_event_classes_id = :depends-on-event-classes-id) deps
+  on (dnfs.event_classes_id=deps.event_classes_id and dnfs.term=deps.term)
+group by dnfs.event_classes_id, dnfs.term;
+
+
+-- :name enqueue-dequeue-event-class-candidates
+-- :command :query
+-- :result many
+-- :doc Select information necessary to determine if :term for :event_classes_id is true
+select distinct on (se.event_classes_id) secd.event_classes_id, secd.term, secd.depends_on_event_classes_id, secd.is_positive, se.is_event_done, aed.*
+from :i:sys-event-class-dnfs-schema-table secd
+inner join sys.events se
+  on secd.depends_on_event_classes_id=se.event_classes_id
+inner join app.event_dimensions aed
+  on se.events_id=aed.events_id
+where secd.event_classes_id = :event_classes_id and secd.term = :term :i:event-class-dimensions-superset-where-clause
+order by se.event_classes_id, events_id desc;
 

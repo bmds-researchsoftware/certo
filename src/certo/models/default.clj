@@ -765,51 +765,72 @@
 ;;       (sql-events/recruitment-participant-did-not-consent-mainstudy db params))))
 
 
-;; TO DO: table is event_classes_id, so rename the table argument to be event-classes-id
-(defn enqueue-dequeue-event-classes-id-candidates [tx table event-class-dimensions-where-clause action]
+;; Dimensions are all integers (int8 foreign keys in Postgresql) and
+;; are the result of query (not an HTTP request).  Therefore don't
+;; need to use a prepared statement to protect against SQL injection
+;; and just build the where clause as a string.
+(defn event-class-dimensions-superset-where-clause [table ecrd]
+  (let [ecrd (dissoc ecrd :events_id :created_by :created_at :updated_by :updated_at)
+        ecrd (filter (fn [[k v]] (not (nil? v))) ecrd)]
+    (if (empty? ecrd)
+      ""
+      (str
+       "and ("
+       (apply
+        format
+        ;; Using 'or' returns a superset of the desired rows.  This
+        ;; superset will be filtered using an 'and' statement in a
+        ;; filter.
+        (str/join " or " (map (fn [[k v]] (str "aed." (name k) " = %d")) ecrd))
+        (vals ecrd))
+       ")"))))
+
+
+(defn event-class-dimensions-conjunction [x ecds ecrd]
+  (let [ecrd (dissoc ecrd :events_id :created_by :created_at :updated_by :updated_at)
+        ecrd (filter (fn [[k v]] (ecds k)) ecrd)]
+    (if (empty? ecrd)
+      []
+      (map (fn [[k v]] (= (k x) v)) ecrd))))
+
+
+(defn enqueue-dequeue-event-classes [tx depends-on-event-classes-id event-class-dimensions ecrd action]
   (assert (or (= action :enqueue) (= action :dequeue))
           (format "enqueue-dequeue-event-classes-id-candidates must be :enqueue or :dequeue"))
   (let [sys-event-class-dnfs-schema-table (format "sys.event_class_%s_dnfs" (name action))]
-    (filter
-     (fn [ecid-candidate]
-       (get
-        (apply
-         merge-with
-         (fn [current next] (or current next))
-         (map
-          (fn [row] (hash-map (:event_classes_id row) (= (:degree row) (:number_true row))))
-          (certo.sql/select-events-to-enqueue-or-dequeue
-           tx
-           {:sys-event-class-dnfs-schema-table sys-event-class-dnfs-schema-table
-            :ecid-candidate ecid-candidate
-            :event-class-dimensions-where-clause event-class-dimensions-where-clause})))
-        ecid-candidate))
-     (jdbc/query
-      tx
-      ;; This is the set of candidate events that we need to check if they should be added to or deleted from
-      ;; the queue.  It is all events that are dependent on the event that is being completed.
-      [(format "select event_classes_id from %s where depends_on_event_classes_id = ?" sys-event-class-dnfs-schema-table) table]
-      {:row-fn :event_classes_id}))))
-
-
-;; Dimensions are all integers (int8 foreign keys in Postgresql) and are the result of query (not an HTTP request).
-;; Therefore don't need to use a prepared statement to protect against SQL injection and just build the where clause
-;; as a string.
-(defn event-class-dimensions-where-clause [table event-class-dimensions event-class-dimensions-map]
-  (let [event-class-dimensions-map (select-keys event-class-dimensions-map (get event-class-dimensions table))]
-    (if (empty? event-class-dimensions-map)
-      ""
-      (str
-       "where "
-       (apply
-        format
-        (str/join " and " (map (fn [[k v]] (str (name k) (if (nil? v) " is null" " = %d")) ) event-class-dimensions-map))
-        (vals event-class-dimensions-map))))))
+    (map
+     :event_classes_id
+     (filter
+      (fn [{:keys [event_classes_id term degree] :as all}]
+        (let [ecds (set (get event-class-dimensions event_classes_id))
+              number-true
+              (reduce
+               +
+               (map
+                (fn [x]
+                  (if (every?
+                       true?
+                       (conj
+                        (event-class-dimensions-conjunction x ecds ecrd)
+                        (= (:is_positive x) (:is_event_done x))))
+                    1
+                    0))
+                (certo.sql/enqueue-dequeue-event-class-candidates
+                 tx
+                 {:sys-event-class-dnfs-schema-table sys-event-class-dnfs-schema-table
+                  :event_classes_id event_classes_id
+                  :term term
+                  :event-class-dimensions-superset-where-clause (event-class-dimensions-superset-where-clause event_classes_id ecrd)})))]
+          (= number-true degree)))
+      (certo.sql/enqueue-dequeue-event-class-dependencies
+       tx
+       {:sys-event-class-dnfs-schema-table sys-event-class-dnfs-schema-table
+        :depends-on-event-classes-id depends-on-event-classes-id})))))
 
 
 ;; TO DO: table is event_classes_id, so rename the table argument to be event-classes-id
 (defn enqueue-events! [tx table params ecrd event-class-argument-dimensions]
-  (doseq [ecid (enqueue-dequeue-event-classes-id-candidates tx table (event-class-dimensions-where-clause table event-class-argument-dimensions ecrd) :enqueue)]
+  (doseq [ecid (enqueue-dequeue-event-classes tx table event-class-argument-dimensions ecrd :enqueue)]
     (do
       (let [eq
             (first
@@ -842,7 +863,7 @@
 
 ;; TO DO: table is event_classes_id, so rename the table argument to be event-classes-id
 (defn dequeue-events! [tx table params ecrd event-class-argument-dimensions]
-  (doseq [ecid (enqueue-dequeue-event-classes-id-candidates tx table (event-class-dimensions-where-clause table event-class-argument-dimensions ecrd) :dequeue)]
+  (doseq [ecid (enqueue-dequeue-event-classes tx table event-class-argument-dimensions ecrd :dequeue)]
     (do
       (jdbc/update!
        tx
