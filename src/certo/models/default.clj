@@ -796,7 +796,7 @@
 
 (defn enqueue-dequeue-event-classes [tx depends-on-event-classes-id event-class-dimensions ecrd action]
   (assert (or (= action :enqueue) (= action :dequeue))
-          (format "enqueue-dequeue-event-classes-id-candidates must be :enqueue or :dequeue"))
+          (format "enqueue-dequeue-event-classes action must be :enqueue or :dequeue"))
   (let [sys-event-class-dnfs-schema-table (format "sys.event_class_%s_dnfs" (name action))]
     (map
      :event_classes_id
