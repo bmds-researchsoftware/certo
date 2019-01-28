@@ -609,8 +609,11 @@ create table sys.event_class_enqueue_dnfs (
   term int8 not null,
   depends_on_event_classes_id text references sys.event_classes (event_classes_id) not null,
   is_positive boolean not null,
+  lag_offset_function text,
+  lag_offset_argument_dimension text,
   lag_years int8 default 0 constraint valid_lag_years check (lag_years >= 0),
   lag_months int8 default 0 constraint valid_lag_months check (lag_months >= 0),
+  lag_weeks int8 default 0 constraint valid_lag_weeks check (lag_weeks >= 0),
   -- lag_days int8 constraint valid_lag_days check (lag_days >= 0),
   -- TO DO: Must use the following
   lag_days int8 default 0,
@@ -621,17 +624,18 @@ create table sys.event_class_enqueue_dnfs (
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp,
-  unique (event_classes_id, term, depends_on_event_classes_id));
+  unique (event_classes_id, term, depends_on_event_classes_id),
+  constraint valid_lag_offset check ((lag_offset_function is null and lag_offset_argument_dimension is null) or (lag_offset_function is not null and lag_offset_argument_dimension is not null)));
 select sys.create_trigger_set_updated_at('sys.event_class_enqueue_dnfs');
 
 create or replace function enqueue_depends_on(sys.event_classes)
 returns text as $$
-  select string_agg(trm, E'\n or\n') from (select string_agg(case when is_positive='false' then '~' else ' ' end || depends_on_event_classes_id  || '(' || lag_years || ',' || lag_months || ',' || lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E' and\n') as trm from sys.event_class_enqueue_dnfs where event_classes_id = $1.event_classes_id group by term) as trms;
+  select string_agg(trm, E'\n or\n') from (select string_agg(case when is_positive='false' then '~' else ' ' end || depends_on_event_classes_id  || '(' || lag_years || ',' || lag_months || ',' || lag_weeks || ',' || lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E' and\n') as trm from sys.event_class_enqueue_dnfs where event_classes_id = $1.event_classes_id group by term) as trms;
 $$ language sql stable;
 
 create or replace function enqueue_dependency_of(sys.event_classes)
 returns text as $$
-  select string_agg(case when is_positive='false' then '~' else ' ' end || event_classes_id ||  '(' || lag_years || ',' || lag_months || ',' || lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E',\n') from sys.event_class_enqueue_dnfs where depends_on_event_classes_id =  $1.event_classes_id;
+  select string_agg(case when is_positive='false' then '~' else ' ' end || event_classes_id ||  '(' || lag_years || ',' || lag_months || ',' || lag_weeks || ','|| lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E',\n') from sys.event_class_enqueue_dnfs where depends_on_event_classes_id =  $1.event_classes_id;
 $$ language sql stable;
 
 
@@ -645,8 +649,11 @@ create table sys.event_class_dequeue_dnfs (
   term int8 not null,
   depends_on_event_classes_id text references sys.event_classes (event_classes_id) not null,
   is_positive boolean not null,
+  lag_offset_function text,
+  lag_offset_argument_dimension text,
   lag_years int8 default 0 constraint valid_lag_years check (lag_years >= 0),
   lag_months int8 default 0 constraint valid_lag_months check (lag_months >= 0),
+  lag_weeks int8 default 0 constraint valid_lag_weeks check (lag_weeks >= 0),
   -- lag_days int8 constraint valid_lag_days check (lag_days >= 0),
   -- TO DO: Must use the following
   lag_days int8 default 0,
@@ -657,17 +664,18 @@ create table sys.event_class_dequeue_dnfs (
   created_at timestamptz default current_timestamp,
   updated_by text references sys.users (username) not null,
   updated_at timestamptz default current_timestamp,
-  unique (event_classes_id, term, depends_on_event_classes_id));
+  unique (event_classes_id, term, depends_on_event_classes_id),
+  constraint valid_lag_offset check ((lag_offset_function is null and lag_offset_argument_dimension is null) or (lag_offset_function is not null and lag_offset_argument_dimension is not null)));
 select sys.create_trigger_set_updated_at('sys.event_class_dequeue_dnfs');
 
 create or replace function dequeue_depends_on(sys.event_classes)
 returns text as $$
-  select string_agg(trm, E'\n or\n') from (select string_agg(case when is_positive='false' then '~' else ' ' end || depends_on_event_classes_id  || '(' || lag_years || ',' || lag_months || ',' || lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E' and\n') as trm from sys.event_class_dequeue_dnfs where event_classes_id = $1.event_classes_id group by term) as trms;
+  select string_agg(trm, E'\n or\n') from (select string_agg(case when is_positive='false' then '~' else ' ' end || depends_on_event_classes_id  || '(' || lag_years || ',' || lag_months || ',' || lag_weeks || ',' || lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E' and\n') as trm from sys.event_class_dequeue_dnfs where event_classes_id = $1.event_classes_id group by term) as trms;
 $$ language sql stable;
 
 create or replace function dequeue_dependency_of(sys.event_classes)
 returns text as $$
-  select string_agg(case when is_positive='false' then '~' else ' ' end || event_classes_id ||  '(' || lag_years || ',' || lag_months || ',' || lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E',\n') from sys.event_class_dequeue_dnfs where depends_on_event_classes_id =  $1.event_classes_id;
+  select string_agg(case when is_positive='false' then '~' else ' ' end || event_classes_id ||  '(' || lag_years || ',' || lag_months || ',' || lag_weeks || ',' || lag_hours || ',' || lag_days || ',' || lag_minutes || ',' || lag_seconds || ')', E',\n') from sys.event_class_dequeue_dnfs where depends_on_event_classes_id =  $1.event_classes_id;
 $$ language sql stable;
 
 
@@ -713,6 +721,7 @@ create table sys.event_queue (
   is_queued boolean not null,
   lag_years int8 constraint valid_lag_years check (lag_years is not null and lag_years >= 0),
   lag_months int8 constraint valid_lag_months check (lag_months is not null and lag_months >= 0),
+  lag_weeks int8 constraint valid_lag_weeks check (lag_weeks is not null and lag_weeks >= 0),
   lag_days int8 constraint valid_lag_days check (lag_days is not null),
   -- TO DO: Must use the following
   -- lag_days int8 constraint valid_lag_days check (lag_days is not null and lag_days >= 0),
@@ -733,7 +742,7 @@ select sys.create_trigger_set_updated_at('sys.event_queue');
 create or replace function sys.update_sys_event_queue()
 returns trigger as $$
 begin
-  new.start_tstz = new.created_at + format('%s year %s month %s day %s hour %s second', new.lag_years, new.lag_months, new.lag_days, new.lag_hours, new.lag_minutes, new.lag_seconds)::interval;
+  new.start_tstz = new.created_at + format('%s year %s month %s day %s hour %s second', new.lag_years, new.lag_months, new.lag_weeks, new.lag_days, new.lag_hours, new.lag_minutes, new.lag_seconds)::interval;
   -- new.end_tstz = null;
   -- new.tstzs = tstzrange(new.start_tstz, new.end_tstz);
   new.tstzs = tstzrange(new.start_tstz, null);

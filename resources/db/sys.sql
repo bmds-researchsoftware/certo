@@ -71,9 +71,9 @@ values
 -- :result :raw
 -- :doc Insert into sys.event_class_enqueue_dnfs or sys.event_class_dequeue_dnfs
 insert into :i:sys-event-class-dnfs-schema-table
-  (event_classes_id, term, depends_on_event_classes_id, is_positive, lag_years, lag_months, lag_hours, lag_days, lag_minutes, lag_seconds, created_by, updated_by)
+  (event_classes_id, term, depends_on_event_classes_id, is_positive, lag_years, lag_months, lag_weeks, lag_hours, lag_days, lag_minutes, lag_seconds, created_by, updated_by)
 values
-  (:event_classes_id, :term, :depends_on_event_classes_id, :is_positive, :lag_years, :lag_months, :lag_hours, :lag_days, :lag_minutes, :lag_seconds, :created_by, :updated_by);
+  (:event_classes_id, :term, :depends_on_event_classes_id, :is_positive, :lag_years, :lag_months, :lag_weeks, :lag_hours, :lag_days, :lag_minutes, :lag_seconds, :created_by, :updated_by);
 
 
 -- :name insert-sys-event-class-fields
@@ -93,9 +93,9 @@ values
 with
 event_queue as (
   insert into sys.event_queue
-    (event_classes_id, is_queued, lag_years, lag_months, lag_days, lag_hours, lag_minutes, lag_seconds, start_tstz, created_by, updated_by)
+    (event_classes_id, is_queued, lag_years, lag_months, lag_weeks, lag_days, lag_hours, lag_minutes, lag_seconds, start_tstz, created_by, updated_by)
   values
-    (:event_classes_id, 'true', :lag_years, :lag_months, :lag_days, :lag_hours, :lag_minutes, :lag_seconds, :start_tstz::timestamptz, :created_by, :updated_by)
+    (:event_classes_id, 'true', :lag_years, :lag_months, :lag_weeks, :lag_days, :lag_hours, :lag_minutes, :lag_seconds, :start_tstz::timestamptz, :created_by, :updated_by)
   returning *)
 
 insert into app.event_queue_dimensions
