@@ -590,6 +590,8 @@ create table sys.event_classes (
   inactive boolean not null,
   is_negatable boolean not null,
   is_time_required boolean not null,
+  is_required boolean not null,
+  is_hidden boolean not null,
   description text,
   created_by text references sys.users (username) not null,
   created_at timestamptz default current_timestamp,
