@@ -11,7 +11,7 @@
    [certo.sql]
    [certo.sql-events]
    [certo.utilities :as cu])
-  (:import [java.util.UUID]))
+  (:import (java.util UUID)))
 
 
 ;; Something like this would work and is easy to implement, but it
