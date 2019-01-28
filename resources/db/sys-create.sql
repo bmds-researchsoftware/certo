@@ -803,7 +803,7 @@ select sys.create_trigger_set_updated_at('sys.calendars');
 -- :result :raw
 -- :doc Create table sys.calendar_entries
 create table sys.calendar_entries (
-  calendar_entries_id uuid primary key default gen_random_uuid(),
+  calendar_entries_id uuid primary key default public.gen_random_uuid(),
   calendars_id text references sys.calendars (calendars_id) not null,
   description text not null,
   start_date date not null,
