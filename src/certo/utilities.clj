@@ -172,3 +172,84 @@
 (defn str-to-key-map [m]
   (into {} (map (fn [[k v]] (vector (keyword k) v)) m)))
 
+
+(defn read-forms [file]
+  (let [r (PushbackReader. (io/reader (io/file file)))]
+    (loop [forms []
+           number-forms 0]
+      (let [form
+            (try
+              (read {:eof :eof} r)
+              (catch Exception e
+                (println (str "Exception reading " file " at form " number-forms))
+                (throw e)))]
+        (if (not= form :eof)
+          (recur (conj forms form) (inc number-forms))
+          forms)))))
+
+
+(defn insert-sys-event-class-dnfs [db params]
+  (jdbc/insert!
+   db
+   (:sys-event-class-dnfs-schema-table params)
+   (assoc (dissoc params :sys-event-class-dnfs-schema-table) :created_by "root" :updated_by "root")))
+
+
+(defn dnf-helper
+  ([index event-classes-id depends-on-event-classes-id]
+   (dnf-helper index event-classes-id depends-on-event-classes-id true {}))
+
+  ([index event-classes-id depends-on-event-classes-id is-positive]
+   (dnf-helper index event-classes-id depends-on-event-classes-id is-positive {}))
+
+  ([index event-classes-id depends-on-event-classes-id is-positive optional]
+   (merge {:event_classes_id event-classes-id :term index :depends_on_event_classes_id depends-on-event-classes-id :is_positive is-positive} optional)))
+
+
+(defn dnf [[event-classes-id & terms]]
+  (flatten
+   (map-indexed
+    (fn [index term]
+      (map
+       #(apply dnf-helper (concat (list index event-classes-id) %))
+       term))
+    terms)))
+
+
+(defn dnf-action-sequence-helper
+  ([event-classes-id-format action depends-on-action]
+   (dnf-action-sequence-helper event-classes-id-format action depends-on-action true {}))
+
+  ([event-classes-id-format action depends-on-action is-positive]
+   (dnf-action-sequence-helper event-classes-id-format action depends-on-action is-positive {}))
+
+  ([event-classes-id-format action depends-on-action is-positive optional]
+   (merge
+    {:event_classes_id
+     (format event-classes-id-format action)
+     :term 1
+     :depends_on_event_classes_id (format event-classes-id-format depends-on-action)
+     :is_positive is-positive}
+    optional)))
+
+
+(defn dnfs-by-action-sequence [[event-classes-id-format action-maps]]
+  (flatten
+   (map
+    #(apply dnf-action-sequence-helper (concat (list event-classes-id-format) %))
+    action-maps)))
+
+
+(defn dnfs-to-db [db sys-event-class-dnfs-schema-table file]
+  (let [display? false]
+    (doseq [form (read-forms file)]
+      (doseq [dnf
+              (if (every? (fn [x] (and (string? (first x)) (string? (second x)))) (second form))
+                (do
+                  (when display? (println "ACTION SEQUENCE"))
+                  (dnfs-by-action-sequence form))
+                (dnf form))]
+        (when display? (pprint/pprint dnf))
+        (insert-sys-event-class-dnfs db (assoc dnf :sys-event-class-dnfs-schema-table sys-event-class-dnfs-schema-table)))
+      (when display? (println)))))
+
