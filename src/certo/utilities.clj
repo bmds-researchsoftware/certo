@@ -173,6 +173,13 @@
   (into {} (map (fn [[k v]] (vector (keyword k) v)) m)))
 
 
+(defn map-nil-vals-to-empty-str [m]
+  (reduce-kv
+   (fn [m k v] (assoc m k (if (= v nil) "" v)))
+   {}
+   m))
+
+
 (defn read-forms [file]
   (let [r (PushbackReader. (io/reader (io/file file)))]
     (loop [forms []
