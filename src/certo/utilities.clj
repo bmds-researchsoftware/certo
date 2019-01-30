@@ -250,13 +250,18 @@
 (defn dnfs-to-db [db sys-event-class-dnfs-schema-table file]
   (let [display? false]
     (doseq [form (read-forms file)]
-      (doseq [dnf
-              (if (every? (fn [x] (and (string? (first x)) (string? (second x)))) (second form))
-                (do
-                  (when display? (println "ACTION SEQUENCE"))
-                  (dnfs-by-action-sequence form))
-                (dnf form))]
-        (when display? (pprint/pprint dnf))
-        (insert-sys-event-class-dnfs db (assoc dnf :sys-event-class-dnfs-schema-table sys-event-class-dnfs-schema-table)))
+      (try
+        (doseq [dnf
+                (if (every? (fn [x] (and (string? (first x)) (string? (second x)))) (second form))
+                  (do
+                    (when display? (println "ACTION SEQUENCE"))
+                    (dnfs-by-action-sequence form))
+                  (dnf form))]
+          (when display? (pprint/pprint dnf))
+          (insert-sys-event-class-dnfs db (assoc dnf :sys-event-class-dnfs-schema-table sys-event-class-dnfs-schema-table)))
+        (catch Exception e
+          (println "form:")
+          (pprint/pprint form)
+          (throw e)))
       (when display? (println)))))
 
