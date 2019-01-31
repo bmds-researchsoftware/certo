@@ -785,16 +785,6 @@
       (throw (Exception. "Multiple found, but expected exactly one.")))))
 
 
-(defn select-all [db fields schema table]
-  (let [rs
-        (jdbc/query
-         db
-         [(columns-clause fields schema table)])]
-    (if (empty? rs)
-      (throw (Exception. "None found"))
-      rs)))
-
-
 (defn event! []
   )
 
