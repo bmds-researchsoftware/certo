@@ -700,18 +700,68 @@
       rs)))
 
 
+(defn order-by-clause [fields {:strs [order-by direction] :as params}]
+  (let [order-by
+        (or ((set (map :field_name (vals fields))) order-by)
+            (throw (Exception. "Order by is invalid")))
+        direction
+        (if (or (nil? direction) (#{"asc" "desc"} direction))
+          direction
+          (throw (Exception. "Direction is invalid")))]
+    (cond
+      (and (not (nil? order-by)) (not (nil? direction)))
+      (format "order by %s %s nulls last" order-by direction)
+      (and (not (nil? order-by)) (nil? direction))
+      (throw (Exception. "Order by direction not specified"))
+      (and (nil? order-by) (not (nil? direction)))
+      (throw (Exception. "Order by field not specified"))
+      :else
+      "")))
+
+
+(defn parse-positive-integer [x label]
+  (try
+    (if (nil? x)
+      x
+      (let [x (Long/parseLong x)]
+        (if (pos? x)
+          x
+          (throw (NumberFormatException.)))))
+    (catch NumberFormatException e (throw (Exception. (format "%s field is invalid" label))))))
+
+
+(defn limit-offset-clause [limit offset]
+  (let [limit (parse-positive-integer limit "Limit")
+        limit-clause
+        (if (nil? limit)
+          ""
+          (format "limit %d" limit))
+        offset (parse-positive-integer offset "Offset")
+        offset-clause
+        (if (nil? offset)
+          ""
+          (format "offset %d" offset))]
+    (str/trim (str limit-clause " " offset-clause))))
+
+
 (defmethod select :default [db fields table-map schema table params]
-  (let [[where-string & where-parameters] (where-clause fields params true)
+  (let [{:strs [limit offset]} params
+        [where-string & where-parameters] (where-clause fields (dissoc params "limit" "offset" "order-by" "direction") true)
         rs
         (jdbc/query
          db
          (into
           (vector
-           (str
-            (columns-clause fields schema table)
+           (str/join
             " "
-            where-string))
-          where-parameters))]
+            (filter
+             #(not (str/blank? %))
+             (vector
+              (columns-clause fields schema table)
+              where-string
+              (order-by-clause fields (dissoc params "operator" "comparator" "limit" "offset"))
+              (limit-offset-clause limit offset)))))
+          (or where-parameters [])))]
     (if (empty? rs)
       (throw (Exception. "None found"))
       rs)))
