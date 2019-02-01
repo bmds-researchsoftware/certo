@@ -157,11 +157,26 @@
 ;; ----- end: db-to-table -----
 
 
+(defn compare-order-by-fields [[score1 label1 field_name1] [score2 label2 field_name2]]
+  (cond
+    (< score1 score2) 1
+    (> score1 score2) -1
+    :else (compare label1 label2)))
+
 (defn table [table-map fields schema table rows data]
   (let [fields (models/sort-by-location
                 (models/fields-by-schema-table-and-in-table-view fields schema table))
         stfs (map key fields)
-        title (common/format-title table)]
+        title (common/format-title table)
+        order-by-fields
+        (map
+         (fn [[score label field_name]] (vector label field_name))
+         (sort-by
+          identity
+          compare-order-by-fields
+          (map
+           (fn [field] (vector (+ (if (:is_id field) 100 0) (if (:is_uk field) 10 0) (if (:is_fk field) 1 0)) (:label field) (:field_name field)))
+           (vals fields))))]
     
     (common/page
      title
@@ -241,10 +256,17 @@
              sep
              (f/drop-down "comparator" [["Approximate" "approximate"] ["Exact" "exact"]] (get data "comparator" "approximate"))
              sep
+             (f/drop-down "order-by" order-by-fields (get data "order-by" (second (first order-by-fields))))
+             sep
+             (f/drop-down "direction" [["Increasing" "asc"] ["Decreasing" "desc"]] (get data "direction" "asc"))
+             sep
+             ;; TO DO: Get defaults preferably from config.
+             (f/drop-down "limit" [["25" "25"] ["50" "50"] ["100" "100"] ["250" "250"] ["500" "500"]] (get data "limit" "25"))
+             sep
              (f/submit-button {:form "search-form"} "Search")))]]]
 
        ;; TO DO: If rows is a reducible-query this will work well
-           
+
        (for [row rows]
          [:tr
           (for [stf stfs]
