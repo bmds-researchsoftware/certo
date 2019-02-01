@@ -695,65 +695,64 @@
 
 ;; TO DO: Store a default order by clause for each table in sys.tables.
 
+
+(defn select-result-set
+  ([db fields table-map schema table params]
+   (select-result-set db fields table-map schema table params identity))
+  ([db fields table-map schema table params row-fn]
+   ;; TO DO: Get defaults preferably from config.
+   (let [{:strs [limit offset direction] :or {limit "25" offset "" direction "asc"}} params
+         [where-string & where-parameters] (where-clause fields (dissoc params "limit" "offset" "order-by" "direction") true)]
+     (jdbc/query
+      db
+      (into
+       (vector
+        (str/join
+         " "
+         (filter
+          #(not (str/blank? %))
+          (vector
+           (columns-clause fields schema table)
+           where-string
+           (order-by-clause fields (dissoc params "operator" "comparator" "limit" "offset"))
+           (limit-offset-clause limit offset)))))
+       (or where-parameters []))
+      {:row-fn row-fn}))))
+
+
 (defmulti select (fn [db fields table-map schema table params] (st schema table)))
 
 
 (defmethod select "app.event_queue" [db fields table-map schema table params]
   (let [event-class-argument-dimensions (event-class-dimensions db :argument)
-        [where-string & where-parameters] (where-clause fields params true)
         rs
-        (jdbc/query
-         db
-         (into
-          (vector
-           (str
-            (columns-clause fields schema table)
-            " "
-            where-string))
-          where-parameters)
-         {:row-fn
-          (fn [row]
-            (assoc
-             (dissoc row :app.event_queue.event_classes_id)
-             :app.event_queue.event_queue_id
-             ;; For example
-             ;; {:event-queue-id 17
-             ;; :event-classes-id "an-event-classes-id"
-             ;; :event-class-argument-dimensions
-             ;; {:app.event_queue.dimension_one_id 123, :app.event_queue.dimension_two_id nil, :app.event_queue.dimension_three_id 456}}
-             {:event-queue-id (:app.event_queue.event_queue_id row)
-              :event-classes-id (:app.event_queue.event_classes_id row)
-              :event-class-argument-dimensions
-              (into
-               {}
-               (map
-                (fn [k]
-                  (vector k (get row (keyword (str "app.event_queue." (name k))))))
-                (get event-class-argument-dimensions (:app.event_queue.event_classes_id row))))}))})]
+        (select-result-set
+         db fields table-map schema table params
+         (fn [row]
+           (assoc
+            (dissoc row :app.event_queue.event_classes_id)
+            :app.event_queue.event_queue_id
+            ;; For example
+            ;; {:event-queue-id 17
+            ;; :event-classes-id "an-event-classes-id"
+            ;; :event-class-argument-dimensions
+            ;; {:app.event_queue.dimension_one_id 123, :app.event_queue.dimension_two_id nil, :app.event_queue.dimension_three_id 456}}
+            {:event-queue-id (:app.event_queue.event_queue_id row)
+             :event-classes-id (:app.event_queue.event_classes_id row)
+             :event-class-argument-dimensions
+             (into
+              {}
+              (map
+               (fn [k]
+                 (vector k (get row (keyword (str "app.event_queue." (name k))))))
+               (get event-class-argument-dimensions (:app.event_queue.event_classes_id row))))})))]
     (if (empty? rs)
       (throw (Exception. "None found"))
       rs)))
 
 
 (defmethod select :default [db fields table-map schema table params]
-  ;; TO DO: Get defaults preferably from config.
-  (let [{:strs [limit offset direction] :or {limit "25" offset "" direction "asc"}} params
-        [where-string & where-parameters] (where-clause fields (dissoc params "limit" "offset" "order-by" "direction") true)
-        rs
-        (jdbc/query
-         db
-         (into
-          (vector
-           (str/join
-            " "
-            (filter
-             #(not (str/blank? %))
-             (vector
-              (columns-clause fields schema table)
-              where-string
-              (order-by-clause fields (dissoc params "operator" "comparator" "limit" "offset"))
-              (limit-offset-clause limit offset)))))
-          (or where-parameters [])))]
+  (let [rs (select-result-set db fields table-map schema table params)]
     (if (empty? rs)
       (throw (Exception. "None found"))
       rs)))
