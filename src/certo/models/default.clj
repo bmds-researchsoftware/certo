@@ -654,6 +654,41 @@
       (throw (Exception. (format "No fields found for schema: %s and table: %s" schema table))))))
 
 
+
+(defn order-by-clause [fields {:strs [order-by direction] :as params}]
+  (let [order-by
+        (if (or (nil? order-by) ((set (map :field_name (vals fields))) order-by))
+          order-by
+          (throw (Exception. "Order by is invalid")))
+        direction
+        (if (or (nil? direction) (#{"asc" "desc"} direction))
+          direction
+          (throw (Exception. "Direction is invalid")))]
+    (cond
+      (and (not (nil? order-by)) (not (nil? direction)))
+      (format "order by %s %s nulls last" order-by direction)
+      (and (not (nil? order-by)) (nil? direction))
+      (throw (Exception. "Direction not specified"))
+      (and (nil? order-by) (not (nil? direction)))
+      (throw (Exception. "Order by not specified"))
+      :else
+      "")))
+
+
+(defn limit-offset-clause [limit offset]
+  (let [limit (cu/parse-integer limit "Limit" pos?)
+        limit-clause
+        (if (nil? limit)
+          ""
+          (format "limit %d" limit))
+        offset (cu/parse-integer offset "Offset" (fn [x] (>= x 0)))
+        offset-clause
+        (if (nil? offset)
+          ""
+          (format "offset %d" offset))]
+    (str/trim (str limit-clause " " offset-clause))))
+
+
 ;; TO DO: Considering combining (select) and (select-by-id).
 
 ;; TO DO: Add the ability to specify an order by clause via query-params
@@ -700,52 +735,9 @@
       rs)))
 
 
-(defn order-by-clause [fields {:strs [order-by direction] :as params}]
-  (let [order-by
-        (or ((set (map :field_name (vals fields))) order-by)
-            (throw (Exception. "Order by is invalid")))
-        direction
-        (if (or (nil? direction) (#{"asc" "desc"} direction))
-          direction
-          (throw (Exception. "Direction is invalid")))]
-    (cond
-      (and (not (nil? order-by)) (not (nil? direction)))
-      (format "order by %s %s nulls last" order-by direction)
-      (and (not (nil? order-by)) (nil? direction))
-      (throw (Exception. "Order by direction not specified"))
-      (and (nil? order-by) (not (nil? direction)))
-      (throw (Exception. "Order by field not specified"))
-      :else
-      "")))
-
-
-(defn parse-positive-integer [x label]
-  (try
-    (if (nil? x)
-      x
-      (let [x (Long/parseLong x)]
-        (if (pos? x)
-          x
-          (throw (NumberFormatException.)))))
-    (catch NumberFormatException e (throw (Exception. (format "%s field is invalid" label))))))
-
-
-(defn limit-offset-clause [limit offset]
-  (let [limit (parse-positive-integer limit "Limit")
-        limit-clause
-        (if (nil? limit)
-          ""
-          (format "limit %d" limit))
-        offset (parse-positive-integer offset "Offset")
-        offset-clause
-        (if (nil? offset)
-          ""
-          (format "offset %d" offset))]
-    (str/trim (str limit-clause " " offset-clause))))
-
-
 (defmethod select :default [db fields table-map schema table params]
-  (let [{:strs [limit offset]} params
+  ;; TO DO: Get defaults preferably from config.
+  (let [{:strs [limit offset direction] :or {limit "25" offset "" direction "asc"}} params
         [where-string & where-parameters] (where-clause fields (dissoc params "limit" "offset" "order-by" "direction") true)
         rs
         (jdbc/query

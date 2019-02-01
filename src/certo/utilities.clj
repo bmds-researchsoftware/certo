@@ -35,6 +35,21 @@
   (jt/local-date))
 
 
+(defn parse-integer
+  ([x label]
+   (parse-integer x label identity))
+  ([x label predicate]
+   (try
+     ;; return nil if x is "" or nil
+     (if (str/blank? x)
+       nil
+       (let [x (Long/parseLong x)]
+         (if (predicate x)
+           x
+           (throw (NumberFormatException.)))))
+     (catch NumberFormatException e (throw (Exception. (format "%s field is invalid" label)))))))
+
+
 (defn touch [fs]
   (doseq [f fs]
     (let [af (clojure.java.io/file f)]
