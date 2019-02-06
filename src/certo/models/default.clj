@@ -77,7 +77,7 @@
 (defn ui-to-db-one [fields field value]
   "The values are always strings."
   (when (not (get fields field))
-    (throw (Exception. (format "ui-to-db-one:: unknown field: %s" field))))
+    (throw (Exception. (format "ui-to-db-one:: unknown field: %s with value: %s" field value))))
   (if (not (= value ""))
     (let [type (:type (get fields field))]
       ;; TO DO: See if this is faster if type is a keyword or if use a multimethod?
