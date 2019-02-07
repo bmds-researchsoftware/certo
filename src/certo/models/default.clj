@@ -608,7 +608,7 @@
      [""]
      (let [operator (or (#{"and" "or"} (get params "operator"))
                         (throw (Exception. "Operator is invalid or not specified")))
-           comparator (or (#{"exact" "approximate"} (get params "comparator"))
+           comparator (or (#{"beginning" "approximate" "exact"} (get params "comparator"))
                           (throw (Exception. "Comparator is invalid or not specified")))]
        (loop [params (dissoc params "operator" "comparator")
               where-strings []
@@ -626,12 +626,15 @@
                 where-params)
                (recur
                 (next params)
-                (if (and (= comparator "approximate") (= (:type (get fields stf)) "text"))
-                  (conj where-strings (str stf " ilike ?"))
-                  (conj where-strings (str stf " = ?")))
-                (if (and (= comparator "approximate") (= (:type (get fields stf)) "text"))
-                  (conj where-params (str "%" value "%"))
-                  (conj where-params value)))))))))))
+                (if (and (or (= comparator "beginning") (= comparator "approximate")) (= (:type (get fields stf)) "text"))
+                      (conj where-strings (str stf " ilike ?"))
+                      (conj where-strings (str stf " = ?")))
+                (cond (and (= comparator "beginning") (= (:type (get fields stf)) "text"))
+                      (conj where-params (str value "%"))
+                      (and (= comparator "approximate") (= (:type (get fields stf)) "text"))
+                      (conj where-params (str "%" value "%"))
+                      :else
+                      (conj where-params value)))))))))))
 
 
 (defn columns-clause [fields schema table]
@@ -746,16 +749,12 @@
                (fn [k]
                  (vector k (get row (keyword (str "app.event_queue." (name k))))))
                (get event-class-argument-dimensions (:app.event_queue.event_classes_id row))))})))]
-    (if (empty? rs)
-      (throw (Exception. "None found"))
-      rs)))
+    rs))
 
 
 (defmethod select :default [db fields table-map schema table params]
   (let [rs (select-result-set db fields table-map schema table params)]
-    (if (empty? rs)
-      (throw (Exception. "None found"))
-      rs)))
+    rs))
 
 
 (defn select-by-id [db fields schema table id]

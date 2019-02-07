@@ -280,3 +280,13 @@
           (throw e)))
       (when display? (println)))))
 
+
+(defn base-url [request]
+  (str
+   (cond (= (:scheme request) :http) "http://"
+         (= (:scheme request) :https) "https://"
+         :else
+         (throw (Exception. (format "Invalid scheme: %s" (:scheme request)))))
+   (:server-name request)
+   (:uri request)))
+

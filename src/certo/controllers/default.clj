@@ -72,7 +72,7 @@
 
         (compojure/GET
          "/"
-         {query-params :query-params {referer "referer"} :headers}
+         {query-params :query-params {referer "referer"} :headers :as req}
          (let [op (get query-params "op")]
            (when (and (not (nil? op)) (not= op "edit") (not= op "show"))
              (throw (Exception. (format "Illegal op: %s" op))))
@@ -82,12 +82,11 @@
            (let [rs (model/select db fields table-map schema table (dissoc query-params "op"))
                  cnt (count (take 2 rs))]
              (cond
-               (= cnt 0) (throw (Exception. "None found"))
                (and (= cnt 1) (= op "edit"))
                (view/edit fields schema table referer (first rs))
                (and (= cnt 1) (= op "show"))
                (view/show fields schema table referer (first rs))
-               :else (view/table table-map fields schema table rs (dissoc query-params "op"))))))
+               :else (view/table table-map fields schema table rs (cu/base-url req) (dissoc query-params "op"))))))
 
         (compojure/GET
          "/new"

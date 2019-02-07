@@ -163,117 +163,146 @@
     (> score1 score2) -1
     :else (compare label1 label2)))
 
-(defn table [table-map fields schema table rows data]
-  (let [fields (models/sort-by-location
-                (models/fields-by-schema-table-and-in-table-view fields schema table))
-        stfs (map key fields)
-        title (common/format-title table)
-        order-by-fields
-        (map
-         (fn [[score label field_name]] (vector label field_name))
-         (sort-by
-          identity
-          compare-order-by-fields
-          (map
-           (fn [field] (vector (+ (if (:is_id field) 100 0) (if (:is_uk field) 10 0) (if (:is_fk field) 1 0)) (:label field) (:field_name field)))
-           (vals fields))))]
+
+(defn offset [data]
+  ;; TO DO: NEED TO ALWAYS REQUIRE LIMIT AND OFFSET - THIS MIGHT NEED TO BE DONE IN models/default.clj
+  (let [offset (u/parse-integer (get data "offset" "0") "Offset" (fn [x] (>= x 0)))
+        limit (u/parse-integer (get data "limit" "25") "Limit" pos?)]
+    {:previous (max 0 (- offset limit)) :next (+ offset limit)}))
+
+
+(defn row-range [data number-rows]
+  ;; TO DO: NEED TO ALWAYS REQUIRE LIMIT AND OFFSET - THIS MIGHT NEED TO BE DONE IN models/default.clj
+  (let [offset (u/parse-integer (get data "offset" "0") "Offset" (fn [x] (>= x 0)))
+        limit (u/parse-integer (get data "limit" "25") "Limit" pos?)]
+    {:lower (inc offset) :upper (+ number-rows offset)}))
+
+
+(defn previous-next-button [base-url data direction]
+  [:button
+   {:type "button" :onclick (format "window.location.href='%s?%s';" base-url (ring.util.codec/form-encode (assoc data "offset" (direction (offset data)))))}
+   (cond (= direction :previous) "<"
+         (= direction :next) ">"
+         :else (throw (Exception. (format "Invalid direction: %s" direction))))])
+
+
+(defn table [table-map fields schema table rows base-url data]
+  (if (zero? (count rows))
     
-    (common/page
-     title
-     [:br]
-     [:div {:class "ct"} title]
+    (common/message "Message" "None found")
 
-     (f/form-to
-      {:id "search-form"}
-      [:get (str "/" schema "/" table)]
-      ;; HTTTP GET, so not using anti-forgery field
-      ;; (af/anti-forgery-field)
+    (let [fields (models/sort-by-location
+                  (models/fields-by-schema-table-and-in-table-view fields schema table))
+          stfs (map key fields)
+          title (common/format-title table)
+          order-by-fields
+          (map
+           (fn [[score label field_name]] (vector label field_name))
+           (sort-by
+            identity
+            compare-order-by-fields
+            (map
+             ;; the score order is: id_id > is_uk > is_fk
+             (fn [field] (vector (+ (if (:is_id field) 100 0) (if (:is_uk field) 10 0) (if (:is_fk field) 1 0)) (:label field) (:field_name field)))
+             (vals fields))))]
 
-      [:table
+      (common/page
+       title
+       [:br]
+       [:div {:class "ct"} title]
 
-       [:tr
-        [:td
-         {:class "lnk" :style "text-align:left;" :colspan "1"}
-         [:a {:href "/"} "Home"]]
-        ;; Only provide a New link for tables, i.e. not for views or result_views.
-        (when (not (or (:is_view table-map) (:is_result_view table-map)))
-          [:td
-           {:class "lnk"
-            :style "text-align:center" :colspan (- (count stfs) 2)}
-           [:a {:href (str "/" schema "/" table "/new")} "New"]])
-        (if (not (or (:is_view table-map) (:is_result_view table-map)))
-          [:td
-           {:class "lnk" :style "text-align:right" :colspan "1"}
-           [:a {:href "/help.html"} "Help"]]
-          [:td
-           {:class "lnk" :style "text-align:right" :colspan (- (count stfs) 1)}
-           [:a {:href "/help.html"} "Help"]])]
+       (f/form-to
+        {:id "search-form"}
+        [:get (str "/" schema "/" table)]
+        ;; HTTTP GET, so not using anti-forgery field
+        ;; (af/anti-forgery-field)
 
-       [:tr
-        (for [field (map #(get fields %) stfs)]
-          [:th (:label field)])]
+        [:table
 
-       [:tr
-        {:class "sc"}
-        (for [stf stfs
-              :let [field (get fields stf)
-                    value (form/db-to-form field (models/ui-to-db-one fields stf (get data stf "")))
-                    common-attrs {:class "fld" :disabled false :readonly false :required false}]]
-          [:td {:class "sc" :style "vertical-align:top"}
-           (cond (and (= (:control field) "select-result") (:select_result_to_text field))
-                 ;; "convert" select-result control to a text control for search
-                 (->
-                  (merge
-                   (select-keys
-                    field
-                    [:fields_id :schema_name :table_name :field_name :type :is_function
-                     :is_id :is_uk :is_fk :is_settable :label :location :in_table_view])
-                   (cond (= (:type field) "int8")
-                         {:control "integer"}
-                         (= (:type field) "text")
-                         ;; TO DO: Remove hard coded text_size and text_max_length
-                         {:control "text" :size (or (:size field) 50) :text_max_length 1024}
-                         :else (throw (Exception. (format "Invalid type: %s for control: select-result" (:type field))))))
-                  (form/form-field stf common-attrs value fields))
-                 ;; remove datetime control from search
-                 (= (:control field) "datetime")
-                 "<br>"
-                 :else
-                 (form/form-field field stf common-attrs value fields))])]
-
-       [:tr
-        {:class "sb"}
-        [:td {:colspan (count stfs)}
-         [:div
-          {:class "sb"}
-          (let [sep (str/join (repeat 4 " &nbsp; "))]
-            (list
-             ;; "Order By:"
-             ;; " &nbsp; "
-             ;; (f/drop-down "order-by" [["^ Protocol Name" "protocol_name"] ["v Protocol Name" "protocol_name"]])
-             ;; sep
-             (f/drop-down "operator" [["Or" "or"] ["And" "and"]] (get data "operator" "or"))
-             sep
-             (f/drop-down "comparator" [["Approximate" "approximate"] ["Exact" "exact"]] (get data "comparator" "approximate"))
-             sep
-             (f/drop-down "order-by" order-by-fields (get data "order-by" (second (first order-by-fields))))
-             sep
-             (f/drop-down "direction" [["Increasing" "asc"] ["Decreasing" "desc"]] (get data "direction" "asc"))
-             sep
-             ;; TO DO: Get defaults preferably from config.
-             (f/drop-down "limit" [["25" "25"] ["50" "50"] ["100" "100"] ["250" "250"] ["500" "500"]] (get data "limit" "25"))
-             sep
-             (f/submit-button {:form "search-form"} "Search")))]]]
-
-       ;; TO DO: If rows is a reducible-query this will work well
-
-       (for [row rows]
          [:tr
-          (for [stf stfs]
-            [:td {:style "white-space: pre; vertical-align:top;"}
-             (db-to-table
-              (get fields stf)
-              (get row (keyword stf)))])])])
-     
-     [:br])))
+          [:td
+           {:class "lnk" :style "text-align:left;" :colspan "1"}
+           [:a {:href "/"} "Home"]]
+          ;; Only provide a New link for tables, i.e. not for views or result_views.
+          (when (not (or (:is_view table-map) (:is_result_view table-map)))
+            [:td
+             {:class "lnk"
+              :style "text-align:center" :colspan (- (count stfs) 2)}
+             [:a {:href (str "/" schema "/" table "/new")} "New"]])
+          (if (not (or (:is_view table-map) (:is_result_view table-map)))
+            [:td
+             {:class "lnk" :style "text-align:right" :colspan "1"}
+             [:a {:href "/help.html"} "Help"]]
+            [:td
+             {:class "lnk" :style "text-align:right" :colspan (- (count stfs) 1)}
+             [:a {:href "/help.html"} "Help"]])]
+
+         [:tr
+          (for [field (map #(get fields %) stfs)]
+            [:th (:label field)])]
+
+         [:tr
+          {:class "sc"}
+          (for [stf stfs
+                :let [field (get fields stf)
+                      value (form/db-to-form field (models/ui-to-db-one fields stf (get data stf "")))
+                      common-attrs {:class "fld" :disabled false :readonly false :required false}]]
+            [:td {:class "sc" :style "vertical-align:top"}
+             (cond (and (= (:control field) "select-result") (:select_result_to_text field))
+                   ;; "convert" select-result control to a text control for search
+                   (->
+                    (merge
+                     (select-keys
+                      field
+                      [:fields_id :schema_name :table_name :field_name :type :is_function
+                       :is_id :is_uk :is_fk :is_settable :label :location :in_table_view])
+                     (cond (= (:type field) "int8")
+                           {:control "integer"}
+                           (= (:type field) "text")
+                           ;; TO DO: Remove hard coded text_size and text_max_length
+                           {:control "text" :size (or (:size field) 50) :text_max_length 1024}
+                           :else (throw (Exception. (format "Invalid type: %s for control: select-result" (:type field))))))
+                    (form/form-field stf common-attrs value fields))
+                   ;; remove datetime control from search
+                   (= (:control field) "datetime")
+                   "<br>"
+                   :else
+                   (form/form-field field stf common-attrs value fields))])]
+
+         [:tr
+          [:td {:colspan (count stfs)}
+           (let [sep (str/join (repeat 6 "&nbsp;"))
+                 small-sep "&nbsp;"]
+             (list
+              [:div {:class "sbleft"}
+               "Match" small-sep (f/drop-down "operator" [["some values" "or"] ["all values" "and"]] (get data "operator" "or"))
+               sep
+               "Match" small-sep (f/drop-down "comparator" [["beginning of value" "beginning"] ["value approximately" "approximate"] ["value exactly" "exact"]] (get data "comparator" "beginning"))
+               sep
+               "Sort by" small-sep (f/drop-down "order-by" order-by-fields (get data "order-by" (second (first order-by-fields))))
+               sep
+               "Sort in" small-sep (f/drop-down "direction" [["increasing order" "asc"] ["decreasing order" "desc"]] (get data "direction" "asc"))
+               sep
+               ;; TO DO: Get defaults preferably from config.
+               "Display" small-sep (f/drop-down "limit" [["25 rows" "25"] ["50 rows" "50"] ["100 rows" "100"] ["250 rows" "250"] ["500 rows" "500"]] (get data "limit" "25"))
+               sep
+               [:button {:form "search-form" :name "offset" :value "0"} "Search"]]
+              [:div {:class "sbright"}
+               (format "%d-%d of %,d" (:lower (row-range data (count rows))) (:upper (row-range data (count rows))) 1000000) ;; TO DO: Fix this 1000000
+               small-sep
+               (previous-next-button base-url data :previous)
+               small-sep
+               (previous-next-button base-url data :next)]))]]
+
+         ;; TO DO: If rows is a reducible-query this will work well
+
+         (for [row rows]
+           [:tr
+            (for [stf stfs]
+              [:td {:style "white-space: pre; vertical-align:top;"}
+               (db-to-table
+                (get fields stf)
+                (get row (keyword stf)))])])])
+
+       [:br]))))
 
