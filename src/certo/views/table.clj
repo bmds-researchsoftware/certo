@@ -164,30 +164,30 @@
     :else (compare label1 label2)))
 
 
-(defn offset [data]
+(defn offset [data cnt-all]
   ;; TO DO: NEED TO ALWAYS REQUIRE LIMIT AND OFFSET - THIS MIGHT NEED TO BE DONE IN models/default.clj
   (let [offset (u/parse-integer (get data "offset" "0") "Offset" (fn [x] (>= x 0)))
         limit (u/parse-integer (get data "limit" "25") "Limit" pos?)]
-    {:previous (max 0 (- offset limit)) :next (+ offset limit)}))
+    {:previous (max 0 (- offset limit)) :next (if (<= (+ offset limit) cnt-all) (+ offset limit) offset)}))
 
 
-(defn row-range [data number-rows]
+(defn row-range [data cnt]
   ;; TO DO: NEED TO ALWAYS REQUIRE LIMIT AND OFFSET - THIS MIGHT NEED TO BE DONE IN models/default.clj
   (let [offset (u/parse-integer (get data "offset" "0") "Offset" (fn [x] (>= x 0)))
         limit (u/parse-integer (get data "limit" "25") "Limit" pos?)]
-    {:lower (inc offset) :upper (+ number-rows offset)}))
+    {:lower (inc offset) :upper (+ cnt offset)}))
 
 
-(defn previous-next-button [base-url data direction]
+(defn previous-next-button [base-url data cnt-all direction]
   [:button
-   {:type "button" :onclick (format "window.location.href='%s?%s';" base-url (ring.util.codec/form-encode (assoc data "offset" (direction (offset data)))))}
+   {:type "button" :onclick (format "window.location.href='%s?%s';" base-url (ring.util.codec/form-encode (assoc data "offset" (direction (offset data cnt-all)))))}
    (cond (= direction :previous) "<"
          (= direction :next) ">"
          :else (throw (Exception. (format "Invalid direction: %s" direction))))])
 
 
-(defn table [table-map fields schema table rows base-url data]
-  (if (zero? (count rows))
+(defn table [table-map fields schema table rows cnt cnt-all base-url data]
+  (if (zero? cnt)
     
     (common/message "Message" "None found")
 
@@ -288,11 +288,11 @@
                sep
                [:button {:form "search-form" :name "offset" :value "0"} "Search"]]
               [:div {:class "sbright"}
-               (format "%d-%d of %,d" (:lower (row-range data (count rows))) (:upper (row-range data (count rows))) 1000000) ;; TO DO: Fix this 1000000
+               (format "%d-%d of %,d" (:lower (row-range data cnt)) (:upper (row-range data cnt)) cnt-all)
                small-sep
-               (previous-next-button base-url data :previous)
+               (previous-next-button base-url data cnt-all :previous)
                small-sep
-               (previous-next-button base-url data :next)]))]]
+               (previous-next-button base-url data cnt-all :next)]))]]
 
          ;; TO DO: If rows is a reducible-query this will work well
 

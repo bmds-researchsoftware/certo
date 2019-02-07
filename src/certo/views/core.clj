@@ -21,7 +21,7 @@
 
 (defn dashboard [title user sts] (d/dashboard title user sts))
 (defn login [title] (login/login title))
-(defn table [tables fields schema table rows base-url data] (t/table tables fields schema table rows base-url data))
+(defn table [tables fields schema table rows cnt cnt-all base-url data] (t/table tables fields schema table rows cnt cnt-all base-url data))
 (defn new [fields schema table redirect-to data] (frm/new fields schema table redirect-to data))
 (defn edit [fields schema table redirect-to data] (frm/edit fields schema table redirect-to data))
 (defn show [fields schema table redirect-to data] (frm/show fields schema table redirect-to data))

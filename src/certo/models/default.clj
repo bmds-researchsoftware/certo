@@ -637,24 +637,32 @@
                       (conj where-params value)))))))))))
 
 
-(defn columns-clause [fields schema table]
-  "This function does a lookup on schema and table in the fields
+(defn columns-clause
+  ([fields schema table]
+   (columns-clause fields schema table false))
+  ([fields schema table count-all?]
+   "This function does a lookup on schema and table in the fields
   hashmap.  Since no database query is run, and it throws an exception
   when no fields are found for the given schema and table, it avoids
   the risk of an SQL injection attack."
-  (let [flds (fields-by-schema-table fields schema table)]
-    (if (not (empty? flds))
-      (format
-       "select %s from %s.%s"
-       (str/join
-        ", "
-        (map
-         #(str (str/join "." %) " as " "\"" (str/join "." %) "\"")
-         (map
-          #((juxt :schema_name :table_name :field_name) %)
-          (map val flds))))
-       schema table)
-      (throw (Exception. (format "No fields found for schema: %s and table: %s" schema table))))))
+   (let [flds (fields-by-schema-table fields schema table)]
+     (if (not (empty? flds))
+       (format
+        "select %s from %s.%s"
+        (str
+         (str/join
+          ", "
+          (concat
+           (map
+            #(str (str/join "." %) " as " "\"" (str/join "." %) "\"")
+            (map
+             #((juxt :schema_name :table_name :field_name) %)
+             (map val flds)))
+           (if count-all?
+             ["count(*) over () as count_all"]
+             []))))
+        schema table)
+       (throw (Exception. (format "No fields found for schema: %s and table: %s" schema table)))))))
 
 
 
@@ -700,61 +708,78 @@
 
 
 (defn select-result-set
-  ([db fields table-map schema table params]
-   (select-result-set db fields table-map schema table params identity))
-  ([db fields table-map schema table params row-fn]
+  ([db fields table-map schema table params count?]
+   (select-result-set db fields table-map schema table params count? identity))
+  ([db fields table-map schema table params count? row-fn]
    ;; TO DO: Get defaults preferably from config.
    (let [{:strs [limit offset direction] :or {limit "25" offset "" direction "asc"}} params
          [where-string & where-parameters] (where-clause fields (dissoc params "limit" "offset" "order-by" "direction") true)]
-     (jdbc/query
-      db
-      (into
-       (vector
-        (str/join
-         " "
-         (filter
-          #(not (str/blank? %))
-          (vector
-           (columns-clause fields schema table)
-           where-string
-           (order-by-clause fields (dissoc params "operator" "comparator" "limit" "offset"))
-           (limit-offset-clause limit offset)))))
-       (or where-parameters []))
-      {:row-fn row-fn}))))
+     (let [count-all (atom nil)
+           rs
+           (jdbc/query
+            db
+            (into
+             (vector
+              (str/join
+               " "
+               (filter
+                #(not (str/blank? %))
+                (vector
+                 (columns-clause fields schema table true)
+                 where-string
+                 (order-by-clause fields (dissoc params "operator" "comparator" "limit" "offset"))
+                 (limit-offset-clause limit offset)))))
+             (or where-parameters []))
+            {:row-fn
+             (comp
+              row-fn
+              (fn [row]
+                (reset! count-all (:count_all row))
+                (dissoc row :count_all)))})]
+       (if count?
+         {:count (count rs)
+          :count-all @count-all
+          :result-set rs}
+         ;; when count? is false just return the result set
+         rs)))))
 
 
-(defmulti select (fn [db fields table-map schema table params] (st schema table)))
+(defmulti select-mm (fn [db fields table-map schema table params count?] (st schema table)))
 
 
-(defmethod select "app.event_queue" [db fields table-map schema table params]
-  (let [event-class-argument-dimensions (event-class-dimensions db :argument)
-        rs
-        (select-result-set
-         db fields table-map schema table params
-         (fn [row]
-           (assoc
-            (dissoc row :app.event_queue.event_classes_id)
-            :app.event_queue.event_queue_id
-            ;; For example
-            ;; {:event-queue-id 17
-            ;; :event-classes-id "an-event-classes-id"
-            ;; :event-class-argument-dimensions
-            ;; {:app.event_queue.dimension_one_id 123, :app.event_queue.dimension_two_id nil, :app.event_queue.dimension_three_id 456}}
-            {:event-queue-id (:app.event_queue.event_queue_id row)
-             :event-classes-id (:app.event_queue.event_classes_id row)
-             :event-class-argument-dimensions
-             (into
-              {}
-              (map
-               (fn [k]
-                 (vector k (get row (keyword (str "app.event_queue." (name k))))))
-               (get event-class-argument-dimensions (:app.event_queue.event_classes_id row))))})))]
-    rs))
+(defmethod select-mm "app.event_queue" [db fields table-map schema table params count?]
+  (let [event-class-argument-dimensions (event-class-dimensions db :argument)]
+    (select-result-set
+     db fields table-map schema table params count?
+     (fn [row]
+       (assoc
+        (dissoc row :app.event_queue.event_classes_id)
+        :app.event_queue.event_queue_id
+        ;; For example
+        ;; {:event-queue-id 17
+        ;; :event-classes-id "an-event-classes-id"
+        ;; :event-class-argument-dimensions
+        ;; {:app.event_queue.dimension_one_id 123, :app.event_queue.dimension_two_id nil, :app.event_queue.dimension_three_id 456}}
+        {:event-queue-id (:app.event_queue.event_queue_id row)
+         :event-classes-id (:app.event_queue.event_classes_id row)
+         :event-class-argument-dimensions
+         (into
+          {}
+          (map
+           (fn [k]
+             (vector k (get row (keyword (str "app.event_queue." (name k))))))
+           (get event-class-argument-dimensions (:app.event_queue.event_classes_id row))))})))))
 
 
-(defmethod select :default [db fields table-map schema table params]
-  (let [rs (select-result-set db fields table-map schema table params)]
-    rs))
+(defmethod select-mm :default [db fields table-map schema table params count?]
+  (select-result-set db fields table-map schema table params count?))
+
+
+(defn select
+  ([db fields table-map schema table params]
+   (select db fields table-map schema table params false))
+  ([db fields table-map schema table params count?]
+   (select-mm db fields table-map schema table params count?)))
 
 
 (defn select-by-id [db fields schema table id]
