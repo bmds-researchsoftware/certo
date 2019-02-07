@@ -639,8 +639,8 @@
 
 (defn columns-clause
   ([fields schema table]
-   (columns-clause fields schema table false))
-  ([fields schema table count-all?]
+   (columns-clause fields schema table nil))
+  ([fields schema table count-all-field-name]
    "This function does a lookup on schema and table in the fields
   hashmap.  Since no database query is run, and it throws an exception
   when no fields are found for the given schema and table, it avoids
@@ -658,8 +658,8 @@
             (map
              #((juxt :schema_name :table_name :field_name) %)
              (map val flds)))
-           (if count-all?
-             ["count(*) over () as count_all"]
+           (if count-all-field-name
+             [(format "count(*) over() as %s" count-all-field-name)]
              []))))
         schema table)
        (throw (Exception. (format "No fields found for schema: %s and table: %s" schema table)))))))
@@ -715,6 +715,7 @@
    (let [{:strs [limit offset direction] :or {limit "25" offset "" direction "asc"}} params
          [where-string & where-parameters] (where-clause fields (dissoc params "limit" "offset" "order-by" "direction") true)]
      (let [count-all (atom nil)
+           count-all-field-name (keyword (str "count_all_" (str/replace (java.util.UUID/randomUUID) "-" "_")))
            rs
            (jdbc/query
             db
@@ -725,7 +726,7 @@
                (filter
                 #(not (str/blank? %))
                 (vector
-                 (columns-clause fields schema table true)
+                 (columns-clause fields schema table (name count-all-field-name))
                  where-string
                  (order-by-clause fields (dissoc params "operator" "comparator" "limit" "offset"))
                  (limit-offset-clause limit offset)))))
@@ -734,8 +735,8 @@
              (comp
               row-fn
               (fn [row]
-                (reset! count-all (:count_all row))
-                (dissoc row :count_all)))})]
+                (reset! count-all (count-all-field-name row))
+                (dissoc row count-all-field-name)))})]
        (if count?
          {:count (count rs)
           :count-all @count-all
