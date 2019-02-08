@@ -290,3 +290,22 @@
    (:server-name request)
    (:uri request)))
 
+
+(defn clean-get-url? [request]
+  (and (= (:request-method request) :get)
+       (or
+        (empty? (:query-params request))
+        (not (some (fn [[k v]] (empty? v)) (:query-params request))))))
+
+
+(defn clean-query-string [request]
+  (str/join
+   "&"
+   (map
+    (fn [[k v]] (str k "=" (ring.util.codec/url-encode v)))
+    (filter (fn [[k v]] (not (empty? v))) (:query-params request)))))
+
+
+(defn clean-get-url [request]
+  (str (base-url request) "?" (clean-query-string request)))
+

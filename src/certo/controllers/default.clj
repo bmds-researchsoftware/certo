@@ -79,14 +79,16 @@
 
            ;; TO DO: Must change model/select so that it uses a reducible-query.
 
-           (let [{rs :result-set cnt :count cnt-all :count-all} (model/select db fields table-map schema table (dissoc query-params "op") true)
-                 cnt-one? (= (count (take 2 rs)) 1)]
-             (cond
-               (and cnt-one? (= op "edit"))
-               (view/edit fields schema table referer (first rs))
-               (and cnt-one? (= op "show"))
-               (view/show fields schema table referer (first rs))
-               :else (view/table table-map fields schema table rs cnt cnt-all (cu/base-url req) (dissoc query-params "op"))))))
+           (if (not (cu/clean-get-url? req))
+             (ring.util.response/redirect (cu/clean-get-url req))
+             (let [{rs :result-set cnt :count cnt-all :count-all} (model/select db fields table-map schema table (dissoc query-params "op") true)
+                   cnt-one? (= (count (take 2 rs)) 1)]
+               (cond
+                 (and cnt-one? (= op "edit"))
+                 (view/edit fields schema table referer (first rs))
+                 (and cnt-one? (= op "show"))
+                 (view/show fields schema table referer (first rs))
+                 :else (view/table table-map fields schema table rs cnt cnt-all (cu/base-url req) (dissoc query-params "op")))))))
 
         (compojure/GET
          "/new"
