@@ -604,7 +604,7 @@
   ([fields params where?]
    "Since schema and table are not arguments to this function, it can be
    used to create the where clause for a view."
-   (if (empty? params)
+   (if (empty? (dissoc params "operator" "comparator"))
      [""]
      (let [operator (or (#{"and" "or"} (get params "operator"))
                         (throw (Exception. "Operator is invalid or not specified")))
@@ -627,8 +627,8 @@
                (recur
                 (next params)
                 (if (and (or (= comparator "beginning") (= comparator "approximate")) (= (:type (get fields stf)) "text"))
-                      (conj where-strings (str stf " ilike ?"))
-                      (conj where-strings (str stf " = ?")))
+                  (conj where-strings (str stf " ilike ?"))
+                  (conj where-strings (str stf " = ?")))
                 (cond (and (= comparator "beginning") (= (:type (get fields stf)) "text"))
                       (conj where-params (str value "%"))
                       (and (= comparator "approximate") (= (:type (get fields stf)) "text"))
@@ -665,39 +665,55 @@
        (throw (Exception. (format "No fields found for schema: %s and table: %s" schema table)))))))
 
 
+(defn valid-order-by-parameter? [fields order-by]
+ ((set (map :fields_id (vals fields))) order-by))
+
+
+(defn valid-direction-parameter? [direction]
+  (#{"asc" "desc"} direction))
+
 
 (defn order-by-clause [fields {:strs [order-by direction] :as params}]
-  (let [order-by
-        (if (or (nil? order-by) ((set (map :field_name (vals fields))) order-by))
-          order-by
-          (throw (Exception. "Order by is invalid")))
-        direction
-        (if (or (nil? direction) (#{"asc" "desc"} direction))
-          direction
-          (throw (Exception. "Direction is invalid")))]
-    (cond
-      (and (not (nil? order-by)) (not (nil? direction)))
-      (format "order by %s %s nulls last" order-by direction)
-      (and (not (nil? order-by)) (nil? direction))
-      (throw (Exception. "Direction not specified"))
-      (and (nil? order-by) (not (nil? direction)))
-      (throw (Exception. "Order by not specified"))
-      :else
-      "")))
+  (when (not (valid-order-by-parameter? fields order-by))
+    (throw (Exception. "Order by is invalid!")))
+  (when (not (valid-direction-parameter? direction))
+    (throw (Exception. "Direction is invalid!")))
+  (format "order by %s %s nulls last" order-by direction))
+
+
+(defn valid-limit-parameter? [limit]
+  (cu/parse-integer limit "Limit" pos?))
+
+
+(defn valid-offset-parameter? [offset]
+  (cu/parse-integer offset "Offset" (fn [x] (>= x 0))))
 
 
 (defn limit-offset-clause [limit offset]
-  (let [limit (cu/parse-integer limit "Limit" pos?)
-        limit-clause
-        (if (nil? limit)
-          ""
-          (format "limit %d" limit))
-        offset (cu/parse-integer offset "Offset" (fn [x] (>= x 0)))
-        offset-clause
-        (if (nil? offset)
-          ""
-          (format "offset %d" offset))]
-    (str/trim (str limit-clause " " offset-clause))))
+  (when (not (valid-limit-parameter? limit))
+    (throw (Exception. "Limit is invalid!")))
+  (when (not (valid-offset-parameter? offset))
+    (throw (Exception. "Offset is invalid!")))
+  (str/trim (str "limit " limit " offset " offset)))
+
+
+;; To use the limit clause in a select statement we require :order-by,
+;; :direction, :limit, and :offset
+(defn valid-limited-select-parameters? [fields {:strs [limit offset order-by direction]}]
+  (and (valid-limit-parameter? limit)
+       (valid-offset-parameter? offset)
+       (valid-order-by-parameter? fields order-by)
+       (valid-direction-parameter? direction)))
+
+
+(defn default-limited-select-parameters [db fields table-map schema table _]
+  (let [order-by
+        (:fields_id
+         (val
+          (first
+           (sort-by-location
+            (fields-by-schema-table-and-in-table-view fields schema table)))))]
+    {"order-by" order-by "direction" "asc" "offset" "0" "limit" "25"}))
 
 
 ;; TO DO: Considering combining (select) and (select-by-id).
@@ -738,6 +754,7 @@
                 (reset! count-all (count-all-field-name row))
                 (dissoc row count-all-field-name)))})]
        (if count?
+         ;; TO DO: (count rs) is doing a ount on lazy seq - look for faster way.
          {:count (count rs)
           :count-all @count-all
           :result-set rs}

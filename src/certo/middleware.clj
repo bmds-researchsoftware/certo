@@ -12,6 +12,7 @@
    [ring.middleware.ssl :refer [wrap-forwarded-scheme wrap-hsts wrap-ssl-redirect]]
    [ring-debug-logging.core :refer [wrap-with-logger]]
    [certo.auth :as ca]
+   [certo.utilities :as cu]
    [certo.views.core :as cvd]))
 
 
@@ -60,7 +61,10 @@
       (catch Exception e
         {:status 500
          :headers {"Content-Type" "text/html"}
-         :body (cvd/message "Error" (.getMessage e))}))))
+         :body
+         (cvd/message
+          "Error!"
+          (str (.getMessage e) "\n\n" (with-out-str (clojure.pprint/pprint request))))}))))
 
 
 (defn wrap-postgres-exception [handler]
@@ -102,6 +106,13 @@
          :body (cvd/message "Error" "Invalid Anti-Forgery Token")}})))
 
 
+(defn wrap-clean-get-url [handler]
+  (fn [request]
+    (if (and (= (:request-method request) :get) (not (cu/clean-get-url? request)))
+      (ring.util.response/redirect (cu/clean-get-url request))
+      (handler request))))
+
+
 (defn wrapped-handler [handler db md]
   (-> (friend/authenticate
        (handler db md)
@@ -115,6 +126,7 @@
         ;;      (ring.util.response/status 401))
         :credential-fn (partial credentials/bcrypt-credential-fn (partial ca/load-user-record db))
         :workflows [(workflows/interactive-form)]})
+      (wrap-clean-get-url)
       (wrap-defaults (customize-site-defaults secure-site-defaults))
       ;; (wrap-forwarded-scheme)
       (wrap-whitelist md)

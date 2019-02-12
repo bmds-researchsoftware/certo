@@ -291,6 +291,17 @@
    (:uri request)))
 
 
+(defn update-url-query-parameters [request update-fn]
+  (str
+   (base-url request)
+   "?"
+   (str/join
+    "&"
+    (map
+     (fn [[k v]] (str k "=" (ring.util.codec/url-encode v)))
+     (update-fn request)))))
+
+
 (defn clean-get-url? [request]
   (and (= (:request-method request) :get)
        (or
@@ -298,14 +309,10 @@
         (not (some (fn [[k v]] (empty? v)) (:query-params request))))))
 
 
-(defn clean-query-string [request]
-  (str/join
-   "&"
-   (map
-    (fn [[k v]] (str k "=" (ring.util.codec/url-encode v)))
-    (filter (fn [[k v]] (not (empty? v))) (:query-params request)))))
+(defn clean-query-parameters [request]
+  (into {} (filter (fn [[k v]] (not (empty? v))) (:query-params request))))
 
 
 (defn clean-get-url [request]
-  (str (base-url request) "?" (clean-query-string request)))
+  (update-url-query-parameters request clean-query-parameters))
 

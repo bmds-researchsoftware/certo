@@ -79,8 +79,11 @@
 
            ;; TO DO: Must change model/select so that it uses a reducible-query.
 
-           (if (not (cu/clean-get-url? req))
-             (ring.util.response/redirect (cu/clean-get-url req))
+           (if (not (model/valid-limited-select-parameters? fields query-params))
+             (ring.util.response/redirect
+              (cu/update-url-query-parameters
+               req
+               (partial model/default-limited-select-parameters db fields table-map schema table)))
              (let [{rs :result-set cnt :count cnt-all :count-all} (model/select db fields table-map schema table (dissoc query-params "op") true)
                    cnt-one? (= (count (take 2 rs)) 1)]
                (cond

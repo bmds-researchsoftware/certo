@@ -157,54 +157,38 @@
 ;; ----- end: db-to-table -----
 
 
-(defn compare-order-by-fields [[score1 label1 field_name1] [score2 label2 field_name2]]
-  (cond
-    (< score1 score2) 1
-    (> score1 score2) -1
-    :else (compare label1 label2)))
+(defn previous-next-offset [offset limit cnt-all]
+  {:previous (max 0 (- offset limit)) :next (if (<= (+ offset limit) cnt-all) (+ offset limit) offset)})
 
 
-(defn offset [data cnt-all]
-  ;; TO DO: NEED TO ALWAYS REQUIRE LIMIT AND OFFSET - THIS MIGHT NEED TO BE DONE IN models/default.clj
-  (let [offset (u/parse-integer (get data "offset" "0") "Offset" (fn [x] (>= x 0)))
-        limit (u/parse-integer (get data "limit" "25") "Limit" pos?)]
-    {:previous (max 0 (- offset limit)) :next (if (<= (+ offset limit) cnt-all) (+ offset limit) offset)}))
+(defn row-range [offset cnt]
+  {:lower (inc offset) :upper (+ cnt offset)})
 
 
-(defn row-range [data cnt]
-  ;; TO DO: NEED TO ALWAYS REQUIRE LIMIT AND OFFSET - THIS MIGHT NEED TO BE DONE IN models/default.clj
-  (let [offset (u/parse-integer (get data "offset" "0") "Offset" (fn [x] (>= x 0)))
-        limit (u/parse-integer (get data "limit" "25") "Limit" pos?)]
-    {:lower (inc offset) :upper (+ cnt offset)}))
-
-
-(defn previous-next-button [base-url data cnt-all direction]
+(defn previous-next-button [base-url params offset limit cnt-all direction]
   [:button
-   {:type "button" :onclick (format "window.location.href='%s?%s';" base-url (ring.util.codec/form-encode (assoc data "offset" (direction (offset data cnt-all)))))}
+   {:type "button"
+    :onclick (format "window.location.href='%s?%s';" base-url (ring.util.codec/form-encode (assoc params "offset" (direction (previous-next-offset offset limit cnt-all)))))}
    (cond (= direction :previous) "<"
          (= direction :next) ">"
          :else (throw (Exception. (format "Invalid direction: %s" direction))))])
 
 
-(defn table [table-map fields schema table rows cnt cnt-all base-url data]
+(defn table [table-map fields schema table rows cnt cnt-all base-url params]
   (if (zero? cnt)
     
     (common/message "Message" "None found")
 
     (let [fields (models/sort-by-location
                   (models/fields-by-schema-table-and-in-table-view fields schema table))
-          stfs (map key fields)
-          title (common/format-title table)
           order-by-fields
           (map
-           (fn [[score label field_name]] (vector label field_name))
-           (sort-by
-            identity
-            compare-order-by-fields
-            (map
-             ;; the score order is: id_id > is_uk > is_fk
-             (fn [field] (vector (+ (if (:is_id field) 100 0) (if (:is_uk field) 10 0) (if (:is_fk field) 1 0)) (:label field) (:field_name field)))
-             (vals fields))))]
+           (fn [{:keys [label fields_id]}] (vector label fields_id))
+           (vals fields))
+          offset-int (Integer/parseInt (get params "offset"))
+          limit-int (Integer/parseInt (get params "limit"))
+          stfs (map key fields)
+          title (common/format-title table)]
 
       (common/page
        title
@@ -245,7 +229,7 @@
           {:class "sc"}
           (for [stf stfs
                 :let [field (get fields stf)
-                      value (form/db-to-form field (models/ui-to-db-one fields stf (get data stf "")))
+                      value (form/db-to-form field (models/ui-to-db-one fields stf (get params stf "")))
                       common-attrs {:class "fld" :disabled false :readonly false :required false}]]
             [:td {:class "sc" :style "vertical-align:top"}
              (cond (and (= (:control field) "select-result") (:select_result_to_text field))
@@ -275,24 +259,24 @@
                  small-sep "&nbsp;"]
              (list
               [:div {:class "sbleft"}
-               "Match" small-sep (f/drop-down "operator" [["some values" "or"] ["all values" "and"]] (get data "operator" "or"))
+               "Match" small-sep (f/drop-down "operator" [["some values" "or"] ["all values" "and"]] (get params "operator" "or"))
                sep
-               "Match" small-sep (f/drop-down "comparator" [["beginning of value" "beginning"] ["value approximately" "approximate"] ["value exactly" "exact"]] (get data "comparator" "beginning"))
+               "Match" small-sep (f/drop-down "comparator" [["beginning of value" "beginning"] ["value approximately" "approximate"] ["value exactly" "exact"]] (get params "comparator" "beginning"))
                sep
-               "Sort by" small-sep (f/drop-down "order-by" order-by-fields (get data "order-by" (second (first order-by-fields))))
+               "Sort by" small-sep (f/drop-down "order-by" order-by-fields (get params "order-by"))
                sep
-               "Sort in" small-sep (f/drop-down "direction" [["increasing order" "asc"] ["decreasing order" "desc"]] (get data "direction" "asc"))
+               "Sort in" small-sep (f/drop-down "direction" [["increasing order" "asc"] ["decreasing order" "desc"]] (get params "direction"))
                sep
                ;; TO DO: Get defaults preferably from config.
-               "Display" small-sep (f/drop-down "limit" [["25 rows" "25"] ["50 rows" "50"] ["100 rows" "100"] ["250 rows" "250"] ["500 rows" "500"]] (get data "limit" "25"))
+               "Display" small-sep (f/drop-down "limit" [["25 rows" "25"] ["50 rows" "50"] ["100 rows" "100"] ["250 rows" "250"] ["500 rows" "500"]] (get params "limit"))
                sep
                [:button {:form "search-form" :name "offset" :value "0"} "Search"]]
               [:div {:class "sbright"}
-               (format "%d-%d of %,d" (:lower (row-range data cnt)) (:upper (row-range data cnt)) cnt-all)
+               (format "%d-%d of %,d" (:lower (row-range offset-int cnt)) (:upper (row-range offset-int cnt)) cnt-all)
                small-sep
-               (previous-next-button base-url data cnt-all :previous)
+               (previous-next-button base-url params offset-int limit-int cnt-all :previous)
                small-sep
-               (previous-next-button base-url data cnt-all :next)]))]]
+               (previous-next-button base-url params offset-int limit-int cnt-all :next)]))]]
 
          ;; TO DO: If rows is a reducible-query this will work well
 
