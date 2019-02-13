@@ -63,7 +63,7 @@
          :headers {"Content-Type" "text/html"}
          :body
          (cvd/message
-          "Error!"
+          "Error"
           (str (.getMessage e) "\n\n" (with-out-str (clojure.pprint/pprint request))))}))))
 
 
