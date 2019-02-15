@@ -86,7 +86,7 @@
                     (= value "true") true
                     (= value "false") false
                     :else
-                    (throw (Exception. (format "Invalid boolean value %s for field %s" value field))))
+                    (throw (Exception. (format "Invalid boolean value %s of class %s for field %s" value (str/replace (str (class value)) "class " "") field))))
         "date" (jt/local-date "yyyy-MM-dd" value)
         "float8" (Double/parseDouble value)
         ;; "int8" (Long/parseLong value)
