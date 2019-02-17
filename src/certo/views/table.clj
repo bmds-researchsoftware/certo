@@ -45,13 +45,15 @@
               value])
            (or ukf fkf)
            (let [[schema_name table_name field_name] (str/split (or ukf fkf) #"[.]")]
+             ;; TO DO: limit=25 should not be hardcoded, pass into db-to-table and then to this function
              [:a {:href (str "/" schema_name "/" table_name "?"
-                             (models/stf schema_name table_name field_name) "=" value "&op=" op "&operator=and&comparator=exact")}
+                             (models/stf schema_name table_name field_name) "=" value "&op=" op "&operator=and&comparator=exact&offset=0&limit=25&direction=asc&order-by=" (models/stf schema_name table_name field_name))}
               label])
            sf
            (let [[schema_name table_name field_name] (str/split sf #"[.]")]
+             ;; TO DO: limit=25 should not be hardcoded, pass into db-to-table and then to this function
              [:a {:href (str "/" schema_name "/" table_name "?"
-                             (models/stf schema_name table_name field_name) "=" value "&operator=and&comparator=exact")}
+                             (models/stf schema_name table_name field_name) "=" value "&operator=and&comparator=exact&offset=0&limit=25&direction=asc&order-by=" (models/stf schema_name table_name field_name))}
               label])
            :else
            label))))
