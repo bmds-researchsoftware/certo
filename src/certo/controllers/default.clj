@@ -80,6 +80,8 @@
            ;; TO DO: Must change model/select so that it uses a reducible-query.
 
            (if (not (model/valid-limited-select-parameters? fields query-params))
+             ;; for debugging
+             ;; (throw (Exception. (format "Invalid limited select parameters")))
              (ring.util.response/redirect
               (cu/update-url-query-parameters
                req
