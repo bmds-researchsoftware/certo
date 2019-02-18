@@ -1,8 +1,13 @@
 (ns dev
   (:require
+   [clojure.java.io :as io]
+   [clojure.core.server :as server]
    [clojure.string :as str]   
    [clojure.tools.namespace.repl :refer (refresh refresh-all)]
    [com.stuartsierra.component :as component]
+   [clj-stacktrace.repl]
+   [eftest.runner :as eftest]
+   [java-time :as jt]
    [certo.utilities :as u]))
 
 
@@ -37,18 +42,54 @@
   (init)
   (start))
 
+(defn touch [fs]
+  (doseq [f fs]
+    (let [af (clojure.java.io/file f)]
+      (if (.exists af)
+        (.setLastModified
+         af
+         (java-time/to-millis-from-epoch (java-time/instant)))
+        (throw (Exception. (format "File %s not found" (.getCanonicalPath af))))))))
+
 (defn reset []
   (stop)
   ;; touch *.clj files so hugsql reloads them, and changes in the
   ;; *.sql files they use are realized
-  (u/touch ["checkouts/certo/src/certo/sql.clj"
+  (touch ["checkouts/certo/src/certo/sql.clj"
             "checkouts/certo/src/certo/sql_events.clj"])
   (let [app-home (.getCanonicalPath (clojure.java.io/file "."))
         app-name (last (str/split app-home  #"[/]"))
         app-sql-file (str app-home "/src/" app-name "/sql.clj")
         app-sql-events-file (str app-home "/src/" app-name "/sql_events.clj")]
-    (u/touch [app-sql-file
+    (touch [app-sql-file
               app-sql-events-file]))
   ;; (clojure.tools.namespace.repl/refresh-all :after 'user/go)
   (clojure.tools.namespace.repl/refresh :after 'dev/go))
+
+(defmacro timeit
+  "Evaluates expr and prints the time it took.  Returns the elapsed time."
+  [expr]
+  `(let [start# (. System (nanoTime))
+         ret# ~expr]
+     (/ (double (- (. System (nanoTime)) start#)) 1000000.0)))
+
+(defn testit []
+  (binding [clojure.test/*test-out* *out*] 
+    (eftest/run-tests (eftest/find-tests "test"))))
+
+;; (defn repl-init
+;;   []
+;;   (in-ns 'user)
+;;   (apply require clojure.main/repl-requires)
+;;   (require 'complete.core))
+
+;; (defn repl []
+;;   (clojure.main/repl
+;;    :init repl-init
+;;    :read server/repl-read
+;;    :caught clj-stacktrace.repl/pst))
+
+(defn repl []
+  (require 'complete.core)
+  (server/repl))
 

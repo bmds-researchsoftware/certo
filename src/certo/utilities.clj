@@ -50,16 +50,6 @@
      (catch NumberFormatException e (throw (Exception. (format "%s field is invalid" label)))))))
 
 
-(defn touch [fs]
-  (doseq [f fs]
-    (let [af (clojure.java.io/file f)]
-      (if (.exists af)
-        (.setLastModified
-         af
-         (java-time/to-millis-from-epoch (java-time/instant)))
-        (throw (Exception. (format "File %s not found" (.getCanonicalPath af))))))))
-
-
 (defn read-csv-to-hash-map [filename separator]
   (with-open [in-file (io/reader filename)]
     (let [csv (doall (csv/read-csv in-file :separator separator))
@@ -174,14 +164,6 @@
                (.write out " ")
                (recur (next row)))))
          (.write out "}\n\n"))))))
-
-
-(defmacro timeit
-  "Evaluates expr and prints the time it took.  Returns the elapsed time."
-  [expr]
-  `(let [start# (. System (nanoTime))
-         ret# ~expr]
-     (/ (double (- (. System (nanoTime)) start#)) 1000000.0)))
 
 
 (defn str-to-key-map [m]
