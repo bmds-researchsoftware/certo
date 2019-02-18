@@ -177,6 +177,13 @@
    m))
 
 
+(defn map-vals-to-str [m]
+  (reduce-kv
+   (fn [m k v] (assoc m k (str v)))
+   {}
+   m))
+
+
 (defn read-forms [file]
   (let [r (PushbackReader. (io/reader (io/file file)))]
     (loop [forms []
