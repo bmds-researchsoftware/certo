@@ -14,6 +14,9 @@
   (:import (java.util UUID)))
 
 
+(def ^:dynamic legacy? false)
+
+
 ;; Something like this would work and is easy to implement, but it
 ;; makes a call to getParameterMetaData (~0.5ms) for each column in
 ;; the PreparedStatement so it's too slow.
@@ -133,10 +136,11 @@
   "Called by insert! and update!"
   (let [fs (clojure.set/intersection
            ;; fs is the intersection of the form parameter fields and
-           ;; the fields in this schema.table that are settable; all
-           ;; fields that are not settable, e.g. functions, are excluded.
-           (set (map name (keys params)))
-           (set (keys (filter (fn [[k v]] (:is_settable v)) fields))))]
+           ;; the fields in this schema.table with is_settable=true
+           ;; and either is_legacy=false or is_legacy=true and the
+           ;; legacy?  dynamic var is true, other fields are excluded.
+            (set (map name (keys params)))
+            (set (keys (filter (fn [[k v]] (and (:is_settable v) (or (not (:is_legacy v)) (and (:is_legacy v) legacy?)))) fields))))]
       (into
        {}
        (map
@@ -469,7 +473,7 @@
               (dissoc (keyword (str "vf_" k)))))
         row
         ["fields_id" "tables_id" "schema_name" "table_name" "field_name"
-         "label" "location"
+         "is_legacy" "label" "location"
          "created_by" "created_at" "updated_by" "updated_at"])
 
      ;; make :in_table_view=true so that fields which are in a
@@ -482,11 +486,13 @@
        ;; value :fields_id from the sys.fields.
        (:is_id row) (assoc :is_id false :is_uk true :search_fields_id (:fields_id row))
 
-       ;; make :is_settable=true so that fields which have
-       ;; :is_settable=false in sys.fields, will be displayed in new
-       ;; forms as a select-result control, e.g. when the field is a
-       ;; foreign key in the new table.
-       :always (assoc :is_settable true)
+       ;; make :is_settable=true for fields with is_legacy=false or
+       ;; is_legacy=true and the legacy? dynamic var is true, so that
+       ;; fields which have :is_settable=false in sys.fields, will be
+       ;; displayed in new forms as a select-result control, e.g. when
+       ;; the field is a foreign key in the new table
+       (or (not (:is_legacy row)) (and (:is_legacy row) legacy?)) (assoc :is_settable true)
+       ;; :always (assoc :is_settable true)
        :always (assoc :disabled false)
 
        ;; dissoc since sys_field_id is not a field in sys.fields

@@ -313,8 +313,8 @@
           identity
           (map
            (fn [[k v]]
-             (cond (not (:is_settable v))
-                   ;; if :is_settable is not true then do not include the field in the new form
+             (cond (or (not (:is_settable v)) (:is_legacy v))
+                   ;; if :is_settable=false or :is_legacy=true then do not include the field in the new form
                    false
                    ((set ["created_by" "created_at" "updated_by" "updated_at"]) (:field_name v))
                    ;;  drop created_* updated_* fields from the new form

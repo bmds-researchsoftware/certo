@@ -302,6 +302,7 @@ create table sys.fields (
   is_uk boolean not null,
   is_fk boolean not null,
   is_settable boolean not null,
+  is_legacy boolean not null,
 
   label text not null,
   control text references sys.ot_controls (value) not null,
@@ -690,6 +691,7 @@ create table sys.event_class_fields (
   event_classes_id text references sys.event_classes (event_classes_id) not null, -- part of pk
   field_name text not null, -- part of pk
   sys_fields_id text references sys.fields (fields_id) not null,
+  is_legacy boolean not null,
   label text not null,
   location int8 constraint valid_sys_fields_location check (location is not null and location >= 0),
   created_by text references sys.users (username) not null,

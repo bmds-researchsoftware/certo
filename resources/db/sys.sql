@@ -33,7 +33,7 @@ values
 -- :result :raw
 -- :doc Insert into sys.fields
 insert into sys.fields 
-  (schema_name, table_name, field_name, type, is_function, is_id, is_uk, is_fk, is_settable, label, control, size, disabled, readonly, required, location, in_table_view, search_fields_id, 
+  (schema_name, table_name, field_name, type, is_function, is_id, is_uk, is_fk, is_settable, is_legacy, label, control, size, disabled, readonly, required, location, in_table_view, search_fields_id, 
   boolean_true, boolean_false,
   date_min, date_max,
   datetime_min, datetime_max,
@@ -44,7 +44,7 @@ insert into sys.fields
   textarea_cols, textarea_rows,
   created_by, updated_by)
 values
-  (:schema_name, :table_name, :field_name, :type, :is_function, :is_id, :is_uk, :is_fk, :is_settable, :label, :control, :size, :disabled, :readonly, :required, :location, :in_table_view, :search_fields_id,
+  (:schema_name, :table_name, :field_name, :type, :is_function, :is_id, :is_uk, :is_fk, :is_settable, :is_legacy, :label, :control, :size, :disabled, :readonly, :required, :location, :in_table_view, :search_fields_id,
   :boolean_true, :boolean_false,
   :date_min::date, :date_max::date,
   :datetime_min::timestamptz, :datetime_max::timestamptz,
@@ -81,9 +81,9 @@ values
 -- :result :raw
 -- :doc Insert into sys.event_class_fields
 insert into sys.event_class_fields 
-  (event_classes_id, field_name, sys_fields_id, label, location, created_by, updated_by)
+  (event_classes_id, field_name, sys_fields_id, is_legacy, label, location, created_by, updated_by)
 values 
-  (:event_classes_id, :field_name, :sys_fields_id, :label, :location, :created_by, :updated_by);
+  (:event_classes_id, :field_name, :sys_fields_id, :is_legacy, :label, :location, :created_by, :updated_by);
 
 
 -- :name insert-sys-event-queue-depends-on-self
@@ -147,6 +147,7 @@ select sf.*,
   ecf.field_name "vf_field_name",
   ecf.sys_fields_id "vf_sys_fields_id",
   ecf.label "vf_label",
+  ecf.is_legacy "vf_is_legacy",
   ecf.location "vf_location",
   ecf.created_by "vf_created_by",
   ecf.created_at "vf_created_at",
