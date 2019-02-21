@@ -67,11 +67,22 @@
   (clojure.tools.namespace.repl/refresh :after 'dev/go))
 
 (defmacro timeit
-  "Evaluates expr and prints the time it took.  Returns the elapsed time."
+  "Evaluates expr and returns the elapsed time in milliseconds."
   [expr]
-  `(let [start# (. System (nanoTime))
+  `(let [start# (. System (currentTimeMillis))
          ret# ~expr]
-     (/ (double (- (. System (nanoTime)) start#)) 1000000.0)))
+     (- (. System (currentTimeMillis)) start#)))
+
+(defmacro timeitp
+  "Evaluates expr and prints the time it took."
+  [expr]
+  `(let [milliseconds# (timeit ~expr)
+         total-milliseconds# milliseconds#
+         hours# (quot milliseconds# (* 60 60 1000))
+         milliseconds# (- milliseconds# (* hours# 60 60 1000))
+         minutes# (quot milliseconds# (* 60 1000))
+         seconds# (/ (- milliseconds# (* minutes# 60 1000)) 1000.0)]
+     (println total-milliseconds# "milliseconds =" hours# "hours," minutes# "minutes," seconds# "seconds")))
 
 (defn testit []
   (binding [clojure.test/*test-out* *out*] 
