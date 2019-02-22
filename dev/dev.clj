@@ -66,23 +66,32 @@
   ;; (clojure.tools.namespace.repl/refresh-all :after 'user/go)
   (clojure.tools.namespace.repl/refresh :after 'dev/go))
 
-(defmacro timeit
+(defmacro duration-ms
   "Evaluates expr and returns the elapsed time in milliseconds."
   [expr]
   `(let [start# (. System (currentTimeMillis))
          ret# ~expr]
      (- (. System (currentTimeMillis)) start#)))
 
-(defmacro timeitp
-  "Evaluates expr and prints the time it took."
+(defrecord Duration
+    [hours minutes seconds total-milliseconds]
+    Object
+    (toString [d]
+      (str (:hours d) " hours, " (:minutes d) " minutes, " (:seconds d) " seconds")))
+
+;; (defmethod print-method Duration [d writer]
+;;   (.write writer (str (:hours d) " hours, " (:minutes d) " minutes, " (:seconds d) " seconds")))
+
+(defmacro duration
+  "Evaluates expr and returns the time it took as a Duration record."
   [expr]
-  `(let [milliseconds# (timeit ~expr)
+  `(let [milliseconds# (duration-ms ~expr)
          total-milliseconds# milliseconds#
          hours# (quot milliseconds# (* 60 60 1000))
          milliseconds# (- milliseconds# (* hours# 60 60 1000))
          minutes# (quot milliseconds# (* 60 1000))
          seconds# (/ (- milliseconds# (* minutes# 60 1000)) 1000.0)]
-     (println total-milliseconds# "milliseconds =" hours# "hours," minutes# "minutes," seconds# "seconds")))
+     (map->Duration {:total-milliseconds total-milliseconds#  :hours hours#  :minutes minutes# :seconds seconds#})))
 
 (defn testit []
   (binding [clojure.test/*test-out* *out*] 
