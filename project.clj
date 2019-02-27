@@ -14,6 +14,7 @@
                  [compojure "1.6.1"]
                  [hiccup "1.0.5"]
                  [eftest "0.5.4"]
+                 [prone "1.6.1"]
                  [ring/ring-core "1.7.0"]
                  [ring/ring-devel "1.7.1"]
                  [ring/ring-defaults "0.3.2"]

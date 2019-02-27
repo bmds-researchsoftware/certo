@@ -6,6 +6,7 @@
    [cemerick.friend :as friend]
    (cemerick.friend [workflows :as workflows]
                     [credentials :as credentials])
+   [prone.middleware :as prone]
    ;; [ring.middleware.basic-authentication :refer [wrap-basic-authentication]]
    [ring.middleware.defaults :refer [wrap-defaults site-defaults api-defaults secure-api-defaults secure-site-defaults]]
    [ring.middleware.stacktrace :refer [wrap-stacktrace wrap-stacktrace-log wrap-stacktrace-web]]
@@ -19,11 +20,11 @@
 (defn wrap-whitelist [handler md]
   (fn [request]
     (let [[schema table] (drop 1 (str/split (:uri request) #"/"))]
-      (if (and
-           (not (contains? (:whitelist md) (:uri request)))
-           (not (contains? (:whitelist md) (str schema "/" table))))
-        (cvd/not-found request)
-        (handler request)))))
+      (if (or (and (:dev? md) (str/includes? (:uri request) "prone"))
+              (contains? (:whitelist md) (:uri request))
+              (contains? (:whitelist md) (str schema "/" table)))
+        (handler request)
+        (cvd/not-found request)))))
 
 
 (defn wrap-stacktrace-log-certo [handler]
@@ -31,19 +32,20 @@
     (try
       (handler request)
       (catch Throwable e
-        (println)
-        (clj-stacktrace.repl/pst e)
+        (print (with-out-str (clojure.repl/pst e)))
+        ;; (doseq [line (take 20 (str/split-lines (clj-stacktrace.repl/pst-str e)))]
+        ;;   (println line))
         (throw e)))))
 
 
-(defn wrap-exception [handler]
-  (fn [request]
-    (try
-      (handler request)
-      (catch Exception e
-        {:status 500
-         :headers {"Content-Type" "text/plain"}
-         :body (format "Error: %s" (.getMessage e))}))))
+;; (defn wrap-exception [handler]
+;;   (fn [request]
+;;     (try
+;;       (handler request)
+;;       (catch Exception e
+;;         {:status 500
+;;          :headers {"Content-Type" "text/plain"}
+;;          :body (format "Error: %s" (.getMessage e))}))))
 
 
 ;; (defn wrap-exception-web [handler]
@@ -95,6 +97,21 @@
          :body (cvd/message "Database Error" (.getMessage e))}))))
 
 
+(defn wrap-exception [handler md]
+  (if (:dev? md)
+    (-> handler prone/wrap-exceptions)
+    (fn [request]
+      (try
+        (handler request)
+        (catch Exception e
+          {:status 500
+           :headers {"Content-Type" "text/html"}
+           :body
+           (cvd/message
+            "Error"
+            (.getMessage e))}))) ))
+
+
 (defn customize-site-defaults [site-defaults]
   (-> site-defaults
       (assoc :proxy true)
@@ -129,17 +146,18 @@
       (wrap-clean-get-url)
       (wrap-defaults (customize-site-defaults secure-site-defaults))
       ;; (wrap-forwarded-scheme)
+      (wrap-stacktrace-log-certo)
+      (wrap-exception md)
       (wrap-whitelist md)
       ;; (wrap-basic-authentication (partial ca/authenticated? db))
       ;; (wrap-content-type)
       ;; (wrap-not-modified)
       ;; (wrap-stacktrace)
       ;; (wrap-stacktrace-log)
-      (wrap-stacktrace-log-certo)
       ;; (wrap-postgres-exception)
-      (wrap-postgres-exception-web)
+      ;; (wrap-postgres-exception-web)
       ;; (wrap-exception)
-      (wrap-exception-web)
+      ;; (wrap-exception-web)
       ;; (wrap-with-logger)
       ))
 
