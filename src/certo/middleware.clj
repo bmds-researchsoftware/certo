@@ -12,6 +12,7 @@
    [ring.middleware.stacktrace :refer [wrap-stacktrace wrap-stacktrace-log wrap-stacktrace-web]]
    [ring.middleware.ssl :refer [wrap-forwarded-scheme wrap-hsts wrap-ssl-redirect]]
    [ring-debug-logging.core :refer [wrap-with-logger]]
+   [mvt-clj.error]
    [certo.auth :as ca]
    [certo.utilities :as cu]
    [certo.views.core :as cvd]))
@@ -32,9 +33,7 @@
     (try
       (handler request)
       (catch Throwable e
-        (print (with-out-str (clojure.repl/pst e)))
-        ;; (doseq [line (take 20 (str/split-lines (clj-stacktrace.repl/pst-str e)))]
-        ;;   (println line))
+        (mvt-clj.error/print-error e 20)
         (throw e)))))
 
 

@@ -97,19 +97,3 @@
   (binding [clojure.test/*test-out* *out*] 
     (eftest/run-tests (eftest/find-tests "test"))))
 
-;; (defn repl-init
-;;   []
-;;   (in-ns 'user)
-;;   (apply require clojure.main/repl-requires)
-;;   (require 'complete.core))
-
-;; (defn repl []
-;;   (clojure.main/repl
-;;    :init repl-init
-;;    :read server/repl-read
-;;    :caught clj-stacktrace.repl/pst))
-
-(defn repl []
-  (require 'complete.core)
-  (server/repl))
-

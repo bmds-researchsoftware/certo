@@ -23,6 +23,7 @@
                  [bananaoomarang/ring-debug-logging "1.1.0"]
                  [org.clojure/java.jdbc "0.7.8"]
                  [org.postgresql/postgresql "42.2.2"]
-                 [clojure.java-time "0.3.2"]]
+                 [clojure.java-time "0.3.2"]
+                 [mvt-clj "0.1.2-SNAPSHOT"]]
   :local-repo ".m2")
 
