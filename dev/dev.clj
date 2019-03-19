@@ -3,11 +3,11 @@
    [clojure.java.io :as io]
    [clojure.core.server :as server]
    [clojure.string :as str]   
-   [clojure.tools.namespace.repl :refer (refresh refresh-all)]
    [com.stuartsierra.component :as component]
    [clj-stacktrace.repl]
    [eftest.runner :as eftest]
    [java-time :as jt]
+   [mvt-clj.tools :refer [refresh]]
    [certo.utilities :as u]))
 
 
@@ -56,15 +56,14 @@
   ;; touch *.clj files so hugsql reloads them, and changes in the
   ;; *.sql files they use are realized
   (touch ["checkouts/certo/src/certo/sql.clj"
-            "checkouts/certo/src/certo/sql_events.clj"])
+          "checkouts/certo/src/certo/sql_events.clj"])
   (let [app-home (.getCanonicalPath (clojure.java.io/file "."))
         app-name (last (str/split app-home  #"[/]"))
         app-sql-file (str app-home "/src/" app-name "/sql.clj")
         app-sql-events-file (str app-home "/src/" app-name "/sql_events.clj")]
     (touch [app-sql-file
-              app-sql-events-file]))
-  ;; (clojure.tools.namespace.repl/refresh-all :after 'user/go)
-  (clojure.tools.namespace.repl/refresh :after 'dev/go))
+            app-sql-events-file]))
+    (refresh :after 'dev/go))
 
 (defmacro duration-ms
   "Evaluates expr and returns the elapsed time in milliseconds."
