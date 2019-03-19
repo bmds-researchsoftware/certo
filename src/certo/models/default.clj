@@ -1040,7 +1040,7 @@
 (defmethod insert! :default [db md fields table-map schema table params]
   (if (= schema "event")
     (do
-      (println (format "function %s not found, using default.\n" table))
+      ;; (println (format "function %s not found, using default.\n" table))
       (log/warn (format "function %s not found, using default.\n" table))
       (let [event-class-argument-dimensions (event-class-dimensions db :argument)]
         (insert-event! db md fields table-map schema table params
