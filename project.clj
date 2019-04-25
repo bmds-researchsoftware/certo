@@ -24,6 +24,6 @@
                  [org.clojure/java.jdbc "0.7.8"]
                  [org.postgresql/postgresql "42.2.2"]
                  [clojure.java-time "0.3.2"]
-                 [mvt-clj "0.1.4-SNAPSHOT"]]
+                 [mvt-clj "0.1.7"]]
   :local-repo ".m2")
 
